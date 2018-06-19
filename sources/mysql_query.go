@@ -2,12 +2,11 @@ package sources
 
 import (
 	"database/sql"
+	"encoding/json"
+	"fmt"
+	"github.com/Pirionfr/lookatch-common/control"
 	_ "github.com/siddontang/go-mysql/driver"
 	log "github.com/sirupsen/logrus"
-	"strconv"
-
-	"encoding/json"
-	"github.com/Pirionfr/lookatch-common/control"
 )
 
 const MysqlQueryType = "MysqlQuery"
@@ -65,7 +64,7 @@ func (m *MySQLQuery) HealtCheck() bool {
 
 func (m *MySQLQuery) Connect(schema string) {
 
-	dsn := m.config.User + ":" + m.config.Password + "@" + m.config.Host + ":" + strconv.Itoa(m.config.Port) + "?" + schema
+	dsn := fmt.Sprintf("%s:%s@%s:%d?%s", m.config.User, m.config.Password, m.config.Host, m.config.Port, schema)
 
 	//first check if db is not already established
 	db, err := sql.Open("mysql", dsn)

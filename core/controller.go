@@ -7,9 +7,9 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 
+	"github.com/Pirionfr/lookatch-common/rpc"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/status"
-	"github.com/Pirionfr/lookatch-common/rpc"
 	"strconv"
 	"time"
 )
@@ -38,7 +38,7 @@ func NewControllerClient(conf *viper.Viper, auth *Auth) *Controller {
 	var err error
 
 	cConf := &ControllerConfig{}
-	err = conf.Unmarshal(cConf)
+	conf.Unmarshal(cConf)
 
 	if cConf.Secure {
 		log.Debug("GRPC: Establishing TLS connection")

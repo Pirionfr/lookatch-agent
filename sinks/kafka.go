@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/Pirionfr/lookatch-common/events"
+	"github.com/Pirionfr/lookatch-common/util"
 	"github.com/Shopify/sarama"
 	"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"
-	"github.com/Pirionfr/lookatch-common/events"
-	"github.com/Pirionfr/lookatch-common/util"
 )
 
 const KafkaType = "kafka"
@@ -50,7 +50,7 @@ func newKafka(s *Sink) (SinkI, error) {
 }
 
 func (k *Kafka) Start(_ ...interface{}) error {
-	var topic string
+
 	resendChan := make(chan *sarama.ProducerMessage, 10000)
 	// Notice order could get altered having more than 1 producer
 	log.WithFields(log.Fields{
@@ -66,7 +66,7 @@ func (k *Kafka) Start(_ ...interface{}) error {
 		"threshold": threshold,
 	}).Debug("KafkaSink: started with threshold")
 
-	go startConsumer(k.kafkaConf, k.in, topic, threshold, resendChan)
+	go startConsumer(k.kafkaConf, k.in, threshold, resendChan)
 
 	return nil
 }
@@ -75,26 +75,26 @@ func (k *Kafka) GetInputChan() chan *events.LookatchEvent {
 	return k.in
 }
 
-func startConsumer(conf *kafkaSinkConfig, input chan *events.LookatchEvent, topic string, threshold int, kafkaChan chan *sarama.ProducerMessage) {
+func startConsumer(conf *kafkaSinkConfig, input chan *events.LookatchEvent, threshold int, kafkaChan chan *sarama.ProducerMessage) {
 	for {
 		for eventMsg := range input {
 
 			//id event is too heavy it wont fit in kafka threshold so we have to skip it
 			switch typedMsg := eventMsg.Payload.(type) {
 			case *events.SqlEvent:
-				producerMsg, err := processSqlEvent(typedMsg, conf, topic, threshold)
+				producerMsg, err := processSqlEvent(typedMsg, conf, threshold)
 				if err != nil {
 					break
 				}
 				kafkaChan <- producerMsg
 			case *events.GenericEvent:
-				producerMsg, err := processGenericEvent(typedMsg, conf, topic, threshold)
+				producerMsg, err := processGenericEvent(typedMsg, conf, threshold)
 				if err != nil {
 					break
 				}
 				kafkaChan <- producerMsg
 			case *sarama.ConsumerMessage:
-				producerMsg, err := processKafkaMsg(typedMsg, conf, topic, threshold)
+				producerMsg, err := processKafkaMsg(typedMsg, conf, threshold)
 				if err != nil {
 					break
 				}
@@ -108,7 +108,8 @@ func startConsumer(conf *kafkaSinkConfig, input chan *events.LookatchEvent, topi
 	}
 }
 
-func processGenericEvent(genericMsg *events.GenericEvent, conf *kafkaSinkConfig, topic string, threshold int) (*sarama.ProducerMessage, error) {
+func processGenericEvent(genericMsg *events.GenericEvent, conf *kafkaSinkConfig, threshold int) (*sarama.ProducerMessage, error) {
+	var topic string
 	if len(conf.Topic) == 0 {
 		topic = conf.Topic_prefix + genericMsg.Environment
 	} else {
@@ -150,8 +151,8 @@ func processGenericEvent(genericMsg *events.GenericEvent, conf *kafkaSinkConfig,
 
 }
 
-func processSqlEvent(sqlEvent *events.SqlEvent, conf *kafkaSinkConfig, topic string, threshold int) (*sarama.ProducerMessage, error) {
-
+func processSqlEvent(sqlEvent *events.SqlEvent, conf *kafkaSinkConfig, threshold int) (*sarama.ProducerMessage, error) {
+	var topic string
 	if len(conf.Topic) == 0 {
 		topic = conf.Topic_prefix + sqlEvent.Environment + "_" + sqlEvent.Database
 	} else {
@@ -191,12 +192,13 @@ func processSqlEvent(sqlEvent *events.SqlEvent, conf *kafkaSinkConfig, topic str
 	return &sarama.ProducerMessage{Topic: topic, Key: sarama.StringEncoder(key), Value: sarama.StringEncoder(string(serializedEventPayload))}, nil
 }
 
-func processKafkaMsg(kafkaMsg *sarama.ConsumerMessage, conf *kafkaSinkConfig, topic string, threshold int) (*sarama.ProducerMessage, error) {
+func processKafkaMsg(kafkaMsg *sarama.ConsumerMessage, conf *kafkaSinkConfig, threshold int) (*sarama.ProducerMessage, error) {
 	log.WithFields(log.Fields{
 		"topic": kafkaMsg.Topic,
 		"Value": kafkaMsg.Value,
 	}).Debug("KafkaSink: incoming Msg")
 
+	var topic string
 	if len(conf.Topic) == 0 {
 		topic = conf.Topic_prefix + kafkaMsg.Topic
 	} else {

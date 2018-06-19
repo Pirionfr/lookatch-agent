@@ -1,9 +1,9 @@
 package sinks
 
 import (
+	"github.com/Pirionfr/lookatch-common/events"
 	"github.com/spf13/viper"
 	"reflect"
-	"github.com/Pirionfr/lookatch-common/events"
 	"testing"
 )
 

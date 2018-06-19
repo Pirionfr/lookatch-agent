@@ -2,11 +2,11 @@ package core
 
 import (
 	"encoding/json"
-	"github.com/golang/mock/gomock"
-	"google.golang.org/grpc/metadata"
 	"github.com/Pirionfr/lookatch-common/control"
 	"github.com/Pirionfr/lookatch-common/rpc"
 	rpcmock "github.com/Pirionfr/lookatch-common/rpc/mock_rpc"
+	"github.com/golang/mock/gomock"
+	"google.golang.org/grpc/metadata"
 	"testing"
 )
 

@@ -4,9 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/Pirionfr/lookatch-common/control"
 	_ "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
-	"github.com/Pirionfr/lookatch-common/control"
 )
 
 const PostgreSQLQueryType = "postgresqlQuery"

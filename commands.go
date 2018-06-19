@@ -3,9 +3,14 @@ package main
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"runtime"
 )
 
 var (
+	version = "0.0.0"
+	githash = "HEAD"
+	date    = "1970-01-01T00:00:00Z UTC"
+
 	app = &cobra.Command{
 		Use:   "LookatchAgent",
 		Short: "LookatchAgent short...",
@@ -29,10 +34,20 @@ var (
 			fmt.Println("todo")
 		},
 	}
+
+	versionCmd = &cobra.Command{
+		Use:   "version",
+		Short: "Show version",
+		Run: func(cmd *cobra.Command, arguments []string) {
+			fmt.Printf("metronome-aggregator version %s %s\n", version, githash)
+			fmt.Printf("metronome-aggregator build date %s\n", date)
+			fmt.Printf("go version %s %s/%s\n", runtime.Version(), runtime.GOOS, runtime.GOARCH)
+		},
+	}
 )
 
 func init() {
-	app.AddCommand(agentCmd, statusCmd)
+	app.AddCommand(agentCmd, statusCmd, versionCmd)
 	app.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $PWD/config.json)")
 	app.PersistentFlags().StringVarP(&cfgPath, "configPath", "p", "", "config file path (default is $PWD)")
 }

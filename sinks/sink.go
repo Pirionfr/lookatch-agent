@@ -1,10 +1,10 @@
 package sinks
 
 import (
+	"github.com/Pirionfr/lookatch-common/events"
 	"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"github.com/Pirionfr/lookatch-common/events"
 )
 
 type (

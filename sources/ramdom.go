@@ -2,9 +2,9 @@ package sources
 
 import (
 	"github.com/Pallinder/go-randomdata"
-	log "github.com/sirupsen/logrus"
 	"github.com/Pirionfr/lookatch-common/control"
 	"github.com/Pirionfr/lookatch-common/events"
+	log "github.com/sirupsen/logrus"
 	"strconv"
 	"time"
 )

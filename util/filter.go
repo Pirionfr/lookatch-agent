@@ -5,6 +5,7 @@ import (
 )
 
 type (
+
 	Filter struct {
 		Filter_policy string                 `json:"filter_policy"`
 		Filter        map[string]interface{} `json:"filter"`

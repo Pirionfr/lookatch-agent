@@ -2,8 +2,8 @@ package sinks
 
 import (
 	"encoding/json"
-	log "github.com/sirupsen/logrus"
 	"github.com/Pirionfr/lookatch-common/events"
+	log "github.com/sirupsen/logrus"
 )
 
 type Stdout struct {

@@ -1,6 +1,8 @@
 package core
 
 import (
+	"github.com/Pirionfr/lookatch-common/rpc"
+	rpcmock "github.com/Pirionfr/lookatch-common/rpc/mock_rpc"
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/proto"
 	"github.com/spf13/viper"
@@ -8,8 +10,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"github.com/Pirionfr/lookatch-common/rpc"
-	rpcmock "github.com/Pirionfr/lookatch-common/rpc/mock_rpc"
 	"testing"
 )
 
@@ -21,9 +21,9 @@ var (
 func init() {
 	vCtrl = viper.New()
 	vCtrl.Set("controller", map[string]interface{}{
-		"adress": "localhost",
-		"port":   8080,
-		"secure": false,
+		"address": "localhost",
+		"port":    8080,
+		"secure":  false,
 	})
 	auth = &Auth{
 		tenant:    "test",

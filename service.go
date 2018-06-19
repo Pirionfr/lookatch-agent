@@ -1,12 +1,12 @@
 package main
 
 import (
+	"github.com/Pirionfr/lookatch-agent/core"
 	"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"os"
 	"os/signal"
-	"github.com/Pirionfr/lookatch-agent/core"
 )
 
 var (

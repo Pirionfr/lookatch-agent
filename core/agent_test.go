@@ -2,10 +2,10 @@ package core
 
 import (
 	"encoding/json"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"github.com/Pirionfr/lookatch-common/control"
 	"github.com/Pirionfr/lookatch-common/events"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"testing"
 )
 

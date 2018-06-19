@@ -12,14 +12,6 @@ var (
 	v                *viper.Viper
 )
 
-type config struct {
-	Agent      map[string]interface{} `yaml:"agent" json:"agent"`
-	Auth       map[string]interface{} `yaml:"auth" json:"auth"`
-	Controller map[string]interface{} `yaml:"controller" json:"controller"`
-	Sinks      map[string]interface{} `yaml:"sinks" json:"sinks"`
-	Sources    map[string]interface{} `yaml:"sources" json:"sources"`
-}
-
 // initializeConfig initializes a config file with sensible default configuration flags.
 func initializeConfig() (*viper.Viper, error) {
 
@@ -40,10 +32,8 @@ func initializeConfig() (*viper.Viper, error) {
 
 	err := v.ReadInConfig()
 	if err != nil {
-		if _, ok := err.(viper.ConfigParseError); ok {
+		if _, ok := err.(viper.ConfigParseError); !ok {
 			return v, fmt.Errorf("Unable to parse Config file : %v", err)
-		} else {
-			return v, fmt.Errorf("Unable to locate Config file : %v", err)
 		}
 
 	}
@@ -77,7 +67,7 @@ func initializeConfig() (*viper.Viper, error) {
 		}
 	}
 
-	m["uuid"], _ = uuid.NewV4()
+	m["uuid"] = uuid.NewV4()
 	v.Set("agent", m)
 	return v, nil
 }

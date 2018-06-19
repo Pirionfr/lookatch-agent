@@ -4,8 +4,8 @@ import "github.com/Pirionfr/lookatch-common/control"
 
 import (
 	"encoding/json"
-	log "github.com/sirupsen/logrus"
 	"github.com/Pirionfr/lookatch-common/rpc"
+	log "github.com/sirupsen/logrus"
 )
 
 var dispatchAgentFactory = map[string]func(*Agent, *control.Agent) error{

@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/siddontang/go-mysql/mysql"
-	"github.com/siddontang/go-mysql/replication"
-	log "github.com/sirupsen/logrus"
 	utils "github.com/Pirionfr/lookatch-agent/util"
 	"github.com/Pirionfr/lookatch-common/control"
 	"github.com/Pirionfr/lookatch-common/events"
 	"github.com/Pirionfr/lookatch-common/util"
+	"github.com/siddontang/go-mysql/mysql"
+	"github.com/siddontang/go-mysql/replication"
+	log "github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
 	"sync"
@@ -371,6 +371,10 @@ func (m *MysqlCDC) getRowsWithOldValue(timestamp int64, rows [][]interface{}, sc
 	}
 	// Serialize
 	j, err := json.Marshal(colmap)
+	if err != nil {
+		errMsg := "json.Marshal() error"
+		log.Panic(errMsg, err)
+	}
 	k, err := json.Marshal(colmapOld)
 	if err != nil {
 		errMsg := "json.Marshal() error"

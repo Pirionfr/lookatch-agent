@@ -1,8 +1,8 @@
 package sinks
 
 import (
-	"github.com/spf13/viper"
 	"github.com/Pirionfr/lookatch-common/events"
+	"github.com/spf13/viper"
 	"testing"
 
 	"github.com/Shopify/sarama"
@@ -157,7 +157,7 @@ func TestProcessGenericEvent(t *testing.T) {
 		Value:       "test",
 	}
 
-	msg, err := processGenericEvent(genericMsg, conf, "test", threshold)
+	msg, err := processGenericEvent(genericMsg, conf, threshold)
 	if err != nil {
 		t.Error(err)
 	}
@@ -189,7 +189,7 @@ func TestProcessSqlEvent(t *testing.T) {
 		Statement:   "test",
 	}
 
-	msg, err := processSqlEvent(msgSql, conf, "test", threshold)
+	msg, err := processSqlEvent(msgSql, conf, threshold)
 	if err != nil {
 		t.Error(err)
 	}
@@ -219,7 +219,7 @@ func TestProcessKafkaMsg(t *testing.T) {
 		Partition:      1,
 	}
 
-	msg, err := processKafkaMsg(msgKafka, conf, "test", threshold)
+	msg, err := processKafkaMsg(msgKafka, conf, threshold)
 	if err != nil {
 		t.Error(err)
 	}

@@ -1,8 +1,8 @@
 package sources
 
 import (
-	"github.com/spf13/viper"
 	"github.com/Pirionfr/lookatch-common/events"
+	"github.com/spf13/viper"
 	"testing"
 )
 

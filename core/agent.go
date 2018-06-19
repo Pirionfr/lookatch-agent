@@ -3,16 +3,16 @@ package core
 import (
 	"bytes"
 
+	"github.com/Pirionfr/lookatch-agent/sinks"
+	"github.com/Pirionfr/lookatch-agent/sources"
+	"github.com/Pirionfr/lookatch-common/control"
+	"github.com/Pirionfr/lookatch-common/events"
 	"github.com/juju/errors"
 	"github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"net/http"
 	"os"
-	"github.com/Pirionfr/lookatch-agent/sinks"
-	"github.com/Pirionfr/lookatch-agent/sources"
-	"github.com/Pirionfr/lookatch-common/control"
-	"github.com/Pirionfr/lookatch-common/events"
 	"strconv"
 	"sync"
 	"time"
@@ -416,7 +416,7 @@ func (a *Agent) healtCheckChecker() {
 		http.ListenAndServe(":8080", nil)
 	}()
 	wg.Wait()
-	request, err := http.NewRequest("GET", "http://localhost:8080/health/status", nil)
+	request, _ := http.NewRequest("GET", "http://localhost:8080/health/status", nil)
 	client := &http.Client{}
 	resp, err := client.Do(request)
 	if err != nil && resp == nil {

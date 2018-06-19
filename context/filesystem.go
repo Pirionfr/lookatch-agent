@@ -22,7 +22,7 @@ func NewFSContext(dir, prefix string) *FSContext {
 
 func (ctx *FSContext) Store(name, value string) error {
 	err := ioutil.WriteFile(ctx.filename(name), []byte(value), 0666)
-	return errors.Annotate(err, "error writting file")
+	return errors.Annotate(err, "error writing file")
 }
 
 func (ctx *FSContext) Load(name string) (string, error) {

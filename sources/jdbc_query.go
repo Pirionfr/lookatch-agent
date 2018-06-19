@@ -3,10 +3,10 @@ package sources
 import (
 	"database/sql"
 	"encoding/json"
-	log "github.com/sirupsen/logrus"
-	"regexp"
 	"github.com/Pirionfr/lookatch-common/control"
 	"github.com/Pirionfr/lookatch-common/events"
+	log "github.com/sirupsen/logrus"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -113,7 +113,7 @@ func (j *JDBCQuery) GetAvailableActions() map[string]*control.ActionDescription 
 }
 
 func (j *JDBCQuery) QuerySchema(q string) (err error) {
-	//check conection
+	//check connection
 	err = j.db.Ping()
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -153,12 +153,12 @@ func (j *JDBCQuery) QuerySchema(q string) (err error) {
 			previousTableName = cs.TableName
 		}
 
-		if t, ok := j.schemas[cs.TableSchema]; !ok {
-			t = make(map[string]map[string]*ColumnSchema)
+		if _, ok := j.schemas[cs.TableSchema]; !ok {
+			t := make(map[string]map[string]*ColumnSchema)
 			j.schemas[cs.TableSchema] = t
 		}
-		if c, ok := j.schemas[cs.TableSchema][cs.TableName]; !ok {
-			c = make(map[string]*ColumnSchema)
+		if _, ok := j.schemas[cs.TableSchema][cs.TableName]; !ok {
+			c := make(map[string]*ColumnSchema)
 			j.schemas[cs.TableSchema][cs.TableName] = c
 		}
 
@@ -277,10 +277,8 @@ func (j *JDBCQuery) MarshallWorker(mapchan chan map[string]interface{}, database
 	iterator := 0
 	for colmap := range mapchan {
 
-		statement, err := json.Marshal(colmap)
-		if err != nil {
+		statement, _ := json.Marshal(colmap)
 
-		}
 		ev := &events.LookatchEvent{
 			Header: &events.LookatchHeader{
 				EventType: MysqlQueryType,

@@ -1,8 +1,8 @@
 package core
 
 import (
-	"reflect"
 	"github.com/Pirionfr/lookatch-common/events"
+	"reflect"
 	"testing"
 )
 

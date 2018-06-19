@@ -1,10 +1,10 @@
 package sources
 
 import (
-	"github.com/juju/errors"
-	"github.com/spf13/viper"
 	"github.com/Pirionfr/lookatch-common/control"
 	"github.com/Pirionfr/lookatch-common/events"
+	"github.com/juju/errors"
+	"github.com/spf13/viper"
 )
 
 type (
@@ -44,15 +44,13 @@ type (
 type sourceCreatorT func(*Source) (SourceI, error)
 
 var factory = map[string]sourceCreatorT{
-	DummyType:              newDummy,
-	RandomType:             newRandom,
-	MysqlQueryType:         newMysqlQuery,
-	MysqlCDCType:           newMysqlCdc,
-	PostgreSQLQueryType:    newPostgreSQLQuery,
-	PostgreSQLCDCType:      newPostgreSQLCdc,
-	MysqlInternalQueryType: newMysqlInternalQuery,
-	MysqlInternalCDCType:   newMysqlInternalCDC,
-	MSSQLQueryType:         newMSSQLQuery,
+	DummyType:           newDummy,
+	RandomType:          newRandom,
+	MysqlQueryType:      newMysqlQuery,
+	MysqlCDCType:        newMysqlCdc,
+	PostgreSQLQueryType: newPostgreSQLQuery,
+	PostgreSQLCDCType:   newPostgreSQLCdc,
+	MSSQLQueryType:      newMSSQLQuery,
 }
 
 func New(name string, sourceType string, config *viper.Viper, eventChan chan *events.LookatchEvent) (s SourceI, err error) {

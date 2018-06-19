@@ -4,9 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/Pirionfr/lookatch-common/control"
 	_ "github.com/denisenkom/go-mssqldb"
 	log "github.com/sirupsen/logrus"
-	"github.com/Pirionfr/lookatch-common/control"
 )
 
 const MSSQLQueryType = "MSSQL"
@@ -64,7 +64,7 @@ func (m *MSSQLQuery) HealtCheck() bool {
 
 func (m *MSSQLQuery) Connect() {
 
-	dsn := fmt.Sprintf("server=%s;user id=%s;password=%s;port=%s;database=%s",
+	dsn := fmt.Sprintf("server=%s;user id=%s;password=%s;port=%d;database=%s",
 		m.config.Host,
 		m.config.User,
 		m.config.Password,
