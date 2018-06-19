@@ -1,0 +1,19 @@
+{
+  "agent": {
+    "loglevel": "debug"
+  },
+  "auth": {
+    "service": "http://localhost:8080/auth/token"
+  },
+  "controller": {
+    "address": "localhost",
+    "port": 8081,
+    "secure": false
+  },
+  "sinks": {
+
+  },
+  "sources": {
+
+  }
+}

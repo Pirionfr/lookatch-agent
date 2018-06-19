@@ -1,0 +1,25 @@
+{
+  "agent": {
+    "env": "test",
+    "loglevel": "debug",
+    "tenant": "test",
+    "hostname": "test",
+    "uuid": "test"
+  },
+  "sinks": {
+    "default": {
+      "enabled": true,
+      "type" : "stdout"
+    }
+  },
+  "sources": {
+    "default": {
+      "autostart": true,
+      "enabled": true,
+      "type" : "random",
+      "sinks": ["default"],
+      "wait" : "1s"
+
+    }
+  }
+}

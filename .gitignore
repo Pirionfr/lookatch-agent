@@ -1,0 +1,6 @@
+.idea
+.idea/*
+*.iml
+lookatch-agent.iml
+vendor
+vendor/**
