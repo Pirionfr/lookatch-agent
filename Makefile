@@ -58,7 +58,7 @@ testrun:
 
 .PHONY: cover
 cover:
-	$(GOPATH)/bin/gover ./... coverage.txt
+	$(GOPATH)/bin/gover . coverage.txt
 
 
 .PHONY: dev
