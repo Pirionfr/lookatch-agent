@@ -3,6 +3,8 @@
 [![version](https://img.shields.io/badge/status-alpha-orange.svg)](https://github.com/Pirionfr/**lookatch-agent**)
 [![Build Status](https://travis-ci.org/Pirionfr/lookatch-agent.svg?branch=master)](https://travis-ci.org/Pirionfr/lookatch-agent)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Pirionfr/lookatch-agent)](https://goreportcard.com/report/github.com/Pirionfr/lookatch-agent)
+[![codecov](https://codecov.io/gh/Pirionfr/lookatch-agent/branch/master/graph/badge.svg)](https://codecov.io/gh/Pirionfr/lookatch-agent)
+
 
 
 lookatch allows you to replicate and synchronize your database

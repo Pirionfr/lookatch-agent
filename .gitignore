@@ -7,3 +7,4 @@ vendor/**
 build
 *.coverprofile
 */*.coverprofile
+coverage.txt
