@@ -4,7 +4,7 @@ go:
   - 1.10.x
 
 # this is necessary for fork builds to work
-go_import_path: github.com/Pirionfr/lookatch-client
+go_import_path: github.com/Pirionfr/lookatch-agent
 
 before_install:
   - make init
