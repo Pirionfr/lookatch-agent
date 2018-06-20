@@ -5,4 +5,5 @@ lookatch-agent.iml
 vendor
 vendor/**
 build
+*.coverprofile
 */*.coverprofile
