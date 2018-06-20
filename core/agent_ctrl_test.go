@@ -202,7 +202,7 @@ func TestSendAgentStatus(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	agentCtrl := &control.Agent{}
-	msgA := agentCtrl.NewMessage(a.tenant.Id, a.uuid.String(), control.AgentStatus).WithPayload(control.AgentStatusOnline)
+	msgA := agentCtrl.NewMessage(a.tenant.Id, a.uuid.String(), control.AgentStatus).WithPayload(control.AgentStatusStarting)
 	payload, err := json.Marshal(&msgA)
 	if err != nil {
 		t.Fail()

@@ -213,7 +213,7 @@ func TestGetSourceMeta(t *testing.T) {
 
 	json.Unmarshal(ctrlAgent.Payload, &sourceMeta)
 
-	if len(sourceMeta["default"].Data) != 0 {
+	if len(sourceMeta["default"].Data) == 0 {
 		t.Fail()
 	}
 
@@ -249,7 +249,7 @@ func TestGetSourceSchema(t *testing.T) {
 
 	log.Debug(sourceSchema["default"].Raw)
 
-	if sourceSchema["default"].Raw != nil {
+	if sourceSchema["default"].Raw == nil {
 		t.Fail()
 	}
 
