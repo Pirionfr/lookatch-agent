@@ -11,14 +11,17 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// KafkaType type of sink
 const KafkaType = "kafka"
 
 type (
+	// kafkaUser representation of kafka User
 	kafkaUser struct {
 		User     string `json:"user"`
 		Password string `json:"password"`
 	}
 
+	// kafkaSinkConfig representation of kafka sink config
 	kafkaSinkConfig struct {
 		Tls          bool       `json:"tls"`
 		Topic        string     `json:"topic"`
@@ -32,12 +35,14 @@ type (
 		Secret       string     `json:"secret"`
 	}
 
+	// Kafka representation of kafka sink
 	Kafka struct {
 		*Sink
 		kafkaConf *kafkaSinkConfig
 	}
 )
 
+// newKafka create new kafka sink
 func newKafka(s *Sink) (SinkI, error) {
 
 	ksConf := &kafkaSinkConfig{}
@@ -49,6 +54,7 @@ func newKafka(s *Sink) (SinkI, error) {
 	}, nil
 }
 
+// Start kafka sink
 func (k *Kafka) Start(_ ...interface{}) error {
 
 	resendChan := make(chan *sarama.ProducerMessage, 10000)
@@ -71,10 +77,12 @@ func (k *Kafka) Start(_ ...interface{}) error {
 	return nil
 }
 
+//GetInputChan return input channel attach to sink
 func (k *Kafka) GetInputChan() chan *events.LookatchEvent {
 	return k.in
 }
 
+// startConsumer consume input chan
 func startConsumer(conf *kafkaSinkConfig, input chan *events.LookatchEvent, threshold int, kafkaChan chan *sarama.ProducerMessage) {
 	for {
 		for eventMsg := range input {
@@ -82,7 +90,7 @@ func startConsumer(conf *kafkaSinkConfig, input chan *events.LookatchEvent, thre
 			//id event is too heavy it wont fit in kafka threshold so we have to skip it
 			switch typedMsg := eventMsg.Payload.(type) {
 			case *events.SqlEvent:
-				producerMsg, err := processSqlEvent(typedMsg, conf, threshold)
+				producerMsg, err := processSQLEvent(typedMsg, conf, threshold)
 				if err != nil {
 					break
 				}
@@ -108,6 +116,7 @@ func startConsumer(conf *kafkaSinkConfig, input chan *events.LookatchEvent, thre
 	}
 }
 
+// processGenericEvent process Generic Event
 func processGenericEvent(genericMsg *events.GenericEvent, conf *kafkaSinkConfig, threshold int) (*sarama.ProducerMessage, error) {
 	var topic string
 	if len(conf.Topic) == 0 {
@@ -151,7 +160,8 @@ func processGenericEvent(genericMsg *events.GenericEvent, conf *kafkaSinkConfig,
 
 }
 
-func processSqlEvent(sqlEvent *events.SqlEvent, conf *kafkaSinkConfig, threshold int) (*sarama.ProducerMessage, error) {
+// processSQLEvent process Sql Event
+func processSQLEvent(sqlEvent *events.SqlEvent, conf *kafkaSinkConfig, threshold int) (*sarama.ProducerMessage, error) {
 	var topic string
 	if len(conf.Topic) == 0 {
 		topic = conf.Topic_prefix + sqlEvent.Environment + "_" + sqlEvent.Database
@@ -192,6 +202,7 @@ func processSqlEvent(sqlEvent *events.SqlEvent, conf *kafkaSinkConfig, threshold
 	return &sarama.ProducerMessage{Topic: topic, Key: sarama.StringEncoder(key), Value: sarama.StringEncoder(string(serializedEventPayload))}, nil
 }
 
+// processKafkaMsg process Kafka Msg
 func processKafkaMsg(kafkaMsg *sarama.ConsumerMessage, conf *kafkaSinkConfig, threshold int) (*sarama.ProducerMessage, error) {
 	log.WithFields(log.Fields{
 		"topic": kafkaMsg.Topic,
@@ -230,6 +241,7 @@ func processKafkaMsg(kafkaMsg *sarama.ConsumerMessage, conf *kafkaSinkConfig, th
 	return &sarama.ProducerMessage{Topic: topic, Key: sarama.ByteEncoder(kafkaMsg.Key), Value: sarama.StringEncoder(msgToSend)}, nil
 }
 
+// startProducer send message to kafka
 func startProducer(conf *kafkaSinkConfig, in chan *sarama.ProducerMessage, stop chan error) {
 	retries := 0
 	saramaConf := sarama.NewConfig()
@@ -291,7 +303,7 @@ ProducerLoop:
 					err := producer.SendMessages(msgs)
 					if err != nil {
 						producerErr := err.(sarama.ProducerErrors)
-						for len(producerErr) > 0 && retries < 20 {
+						for len(producerErr) > 0 && retries < 10 {
 							log.Warn("basicProducer: failed to push to kafka, try to resend")
 							//TODO check if fisrt error is first event
 							for i, v := range msgs {

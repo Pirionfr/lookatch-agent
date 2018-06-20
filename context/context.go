@@ -9,11 +9,13 @@ import (
 	"strings"
 )
 
+//Context context representation
 type Context interface {
 	Store(name, value string) error
 	Load(name string) (string, error)
 }
 
+//NewContext create a new context
 func NewContext(dsn string) (Context, error) {
 	u, err := url.Parse(dsn)
 	if err != nil {

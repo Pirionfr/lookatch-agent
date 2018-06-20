@@ -5,16 +5,19 @@ import (
 )
 
 type (
+	//Filter representation of source filter
 	Filter struct {
 		Filter_policy string                 `json:"filter_policy"`
 		Filter        map[string]interface{} `json:"filter"`
 	}
 )
 
+// isAccept returns true if policy is accept
 func (f *Filter) isAccept() bool {
 	return f.Filter_policy == "accept"
 }
 
+// IsFilteredDatabase check if database is filtered
 func (f *Filter) IsFilteredDatabase(database string) bool {
 	found := false
 	if tableFilter, ok := f.Filter[strings.ToLower(database)]; ok {
@@ -30,6 +33,7 @@ func (f *Filter) IsFilteredDatabase(database string) bool {
 	return !f.isAccept()
 }
 
+// IsFilteredTable check if table is filtered
 func (f *Filter) IsFilteredTable(database string, table string) bool {
 	found := false
 	if tableFilter, ok := f.Filter[strings.ToLower(database)].(map[string]interface{}); ok {
@@ -48,6 +52,7 @@ func (f *Filter) IsFilteredTable(database string, table string) bool {
 
 }
 
+// IsFilteredColumn check if column is filtered
 func (f *Filter) IsFilteredColumn(database string, table string, column string) bool {
 	found := false
 	if tableFilter, ok := f.Filter[strings.ToLower(database)].(map[string]interface{}); ok {
@@ -62,6 +67,7 @@ func (f *Filter) IsFilteredColumn(database string, table string, column string) 
 	return !f.isAccept()
 }
 
+// contains check if e is contain in s
 func contains(s []interface{}, e string) bool {
 	for _, a := range s {
 		if a == e {

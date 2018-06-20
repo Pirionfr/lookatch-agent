@@ -43,8 +43,8 @@ func initializeConfig() (*viper.Viper, error) {
 		m["tenant"] = tenant
 	}
 
-	if EnvUuid := os.Getenv("UUID"); EnvUuid != "" {
-		m["uuid"] = EnvUuid
+	if EnvUUID := os.Getenv("UUID"); EnvUUID != "" {
+		m["uuid"] = EnvUUID
 	}
 	if env := os.Getenv("ENV"); env != "" {
 		m["env"] = env

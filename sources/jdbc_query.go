@@ -14,6 +14,7 @@ import (
 )
 
 type (
+	// JDBCQuery representation of JDBC query
 	JDBCQuery struct {
 		*Source
 		Config  JDBCQueryConfig
@@ -21,6 +22,7 @@ type (
 		schemas SqlSchema
 	}
 
+	// JDBCQueryConfig representation of JDBC query configuration
 	JDBCQueryConfig struct {
 		Host      string `json:"host"`
 		Port      int    `json:"port"`
@@ -30,6 +32,7 @@ type (
 		NbWorker  int    `json:"nbworker"`
 	}
 
+	// ColumnSchema representation of schema
 	ColumnSchema struct {
 		TableDatabase          string
 		TableSchema            string
@@ -44,13 +47,15 @@ type (
 		ColumnType             string
 		ColumnKey              string
 	}
+	// Query representation of query action
 	Query struct {
 		Query string `description:"SQL query to execute on agent" required:"true"`
 	}
-	//           schema      table    Position
+	// SqlSchema  schema     table     Position
 	SqlSchema map[string]map[string]map[string]*ColumnSchema
 )
 
+// NewJDBCQuery create new JDBC query client
 func NewJDBCQuery(s *Source) JDBCQuery {
 	jdbcQueryConfig := JDBCQueryConfig{}
 	s.Conf.UnmarshalKey("sources."+s.Name, &jdbcQueryConfig)
@@ -61,35 +66,43 @@ func NewJDBCQuery(s *Source) JDBCQuery {
 	}
 }
 
+// Stop source
 func (j *JDBCQuery) Stop() error {
 	return nil
 }
 
+// Start source
 func (j *JDBCQuery) Start(i ...interface{}) (err error) {
 	return
 }
 
+// GetName get name of source
 func (j *JDBCQuery) GetName() string {
 	return j.Name
 }
 
+//GetOutputChan get output channel
 func (j *JDBCQuery) GetOutputChan() chan *events.LookatchEvent {
 	return j.OutputChannel
 }
 
+// GetMeta returns source meta
 func (j *JDBCQuery) GetMeta() map[string]interface{} {
 	meta := make(map[string]interface{})
 	return meta
 }
 
+// IsEnable check if source is enable
 func (j *JDBCQuery) IsEnable() bool {
 	return true
 }
 
+// GetSchema returns schema
 func (j *JDBCQuery) GetSchema() interface{} {
 	return j.schemas
 }
 
+// GetStatus get source status
 func (j *JDBCQuery) GetStatus() interface{} {
 	if j.HealthCheck() {
 		return control.SourceStatusRunning
@@ -97,6 +110,7 @@ func (j *JDBCQuery) GetStatus() interface{} {
 	return control.SourceStatusOnError
 }
 
+// HealthCheck return true if ok
 func (j *JDBCQuery) HealthCheck() bool {
 	err := j.db.Ping()
 	if err != nil || j.db.Stats().OpenConnections == 0 {
@@ -106,12 +120,14 @@ func (j *JDBCQuery) HealthCheck() bool {
 
 }
 
+// GetAvailableActions returns available actions
 func (j *JDBCQuery) GetAvailableActions() map[string]*control.ActionDescription {
 	availableAction := make(map[string]*control.ActionDescription)
 	availableAction[control.SourceQuery] = control.DeclareNewAction(Query{}, "query Jdbc Source")
 	return availableAction
 }
 
+// QuerySchema query schema
 func (j *JDBCQuery) QuerySchema(q string) (err error) {
 	//check connection
 	err = j.db.Ping()
@@ -169,6 +185,7 @@ func (j *JDBCQuery) QuerySchema(q string) (err error) {
 	return
 }
 
+//Query execute query
 func (j *JDBCQuery) Query(database string, query string) {
 
 	//parse query
@@ -269,10 +286,7 @@ func (j *JDBCQuery) Query(database string, query string) {
 	close(marshallChan)
 }
 
-/**
-this worker goroutine is just in charge of marshalling statement into json
-then it is sent to output sink
-*/
+// MarshallWorker marshalling statement into json and sent to output sink
 func (j *JDBCQuery) MarshallWorker(mapchan chan map[string]interface{}, database string, schema string, table string) {
 	iterator := 0
 	for colmap := range mapchan {
@@ -304,10 +318,7 @@ func (j *JDBCQuery) MarshallWorker(mapchan chan map[string]interface{}, database
 
 }
 
-/**
-goroutine which process bunch of lines from resultset to map : column -> value
-map is then sent to marshall goroutine
-*/
+// ProcessLines process bunch of lines  from resultset to map and sent to marshall goroutine
 func (j *JDBCQuery) ProcessLines(columns []string, lines [][]interface{}, mapchan chan map[string]interface{}, wg *sync.WaitGroup) {
 
 	log.Debug("PROCESSING")
@@ -336,6 +347,7 @@ func (j *JDBCQuery) ProcessLines(columns []string, lines [][]interface{}, mapcha
 	wg.Done()
 }
 
+// QueryMeta execute query metadata
 func (j *JDBCQuery) QueryMeta(query string, table string, db string, mapAdd map[string]interface{}) map[string]interface{} {
 
 	err := j.db.Ping()
@@ -377,6 +389,7 @@ func (j *JDBCQuery) QueryMeta(query string, table string, db string, mapAdd map[
 	return mapAdd
 }
 
+// ExtractDatabaseTable Extract Database and Table from query
 func (j *JDBCQuery) ExtractDatabaseTable(query string) (string, string) {
 	r, _ := regexp.Compile(`(?i)from\s(\S+)(\swhere)?`)
 	result := r.FindStringSubmatch(query)
@@ -391,8 +404,9 @@ func (j *JDBCQuery) ExtractDatabaseTable(query string) (string, string) {
 
 }
 
-func (j *JDBCQuery) isPrimary(schema, table, columnIdStr string) bool {
-	if columnSchema, ok := j.schemas[schema][table][columnIdStr]; ok {
+// isPrimary check if columns is primary key
+func (j *JDBCQuery) isPrimary(schema, table, columnIDStr string) bool {
+	if columnSchema, ok := j.schemas[schema][table][columnIDStr]; ok {
 		if columnSchema.ColumnKey == "PRI" {
 			return true
 		}

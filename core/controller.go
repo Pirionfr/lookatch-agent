@@ -15,12 +15,14 @@ import (
 )
 
 type (
+	// ControllerConfig representation of controller config
 	ControllerConfig struct {
 		Address string `json:"address"`
 		Port    int    `json:"port"`
 		Secure  bool   `json:"secure"`
 	}
 
+	// Controller representation of controller
 	Controller struct {
 		client rpc.ControllerClient
 		stream rpc.Controller_ChannelClient
@@ -32,6 +34,7 @@ type (
 	}
 )
 
+// NewControllerClient create new controller client
 func NewControllerClient(conf *viper.Viper, auth *Auth) *Controller {
 
 	var conn *grpc.ClientConn
@@ -79,6 +82,7 @@ func NewControllerClient(conf *viper.Viper, auth *Auth) *Controller {
 	return ctrl
 }
 
+// StartChannel start channel
 func (c *Controller) StartChannel() {
 
 	var err error
@@ -107,6 +111,7 @@ func (c *Controller) StartChannel() {
 	log.Info("Channel Started")
 }
 
+// RecvMessage receive message from  channel
 func (c *Controller) RecvMessage(async chan *rpc.Message) {
 	for {
 		req, err := c.stream.Recv()

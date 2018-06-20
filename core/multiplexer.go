@@ -2,11 +2,13 @@ package core
 
 import "github.com/Pirionfr/lookatch-common/events"
 
+// Multiplexer representation of Multiplexer
 type Multiplexer struct {
 	in   chan *events.LookatchEvent
 	outs []chan *events.LookatchEvent
 }
 
+//NewMultiplexer create new multiplexer
 func NewMultiplexer(in chan *events.LookatchEvent, outs []chan *events.LookatchEvent) (multiplexer *Multiplexer) {
 	multiplexer = &Multiplexer{
 		in:   in,
@@ -16,6 +18,7 @@ func NewMultiplexer(in chan *events.LookatchEvent, outs []chan *events.LookatchE
 	return
 }
 
+// consumer send event from source to sink
 func (a *Multiplexer) consumer() {
 	for event := range a.in {
 

@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+// Random representation of Random
 type Random struct {
 	*Source
 	config     RandomConfig
@@ -17,13 +18,16 @@ type Random struct {
 	metaMutex  sync.RWMutex
 }
 
+// RandomConfig representation of Random Config
 type RandomConfig struct {
 	Enabled bool   `json:"enabled"`
 	Wait    string `json:"wait"`
 }
 
+// RandomType type of source
 const RandomType = "random"
 
+// create new Random source
 func newRandom(s *Source) (SourceI, error) {
 
 	randomConfig := RandomConfig{}
@@ -35,77 +39,89 @@ func newRandom(s *Source) (SourceI, error) {
 	}, nil
 }
 
-func (d *Random) Init() {
+// Init source
+func (r *Random) Init() {
 
 }
 
-func (d *Random) Stop() error {
+// Stop source
+func (r *Random) Stop() error {
 	return nil
 }
 
-func (d *Random) Start(i ...interface{}) error {
+// Start source
+func (r *Random) Start(i ...interface{}) error {
 	go func() {
-		wait, _ := time.ParseDuration(d.config.Wait)
+		wait, _ := time.ParseDuration(r.config.Wait)
 		for {
 			randomData := randomdata.Paragraph()
 			log.WithFields(log.Fields{
 				"data": randomData,
 			}).Debug("random.Run()")
-			d.OutputChannel <- &events.LookatchEvent{
+			r.OutputChannel <- &events.LookatchEvent{
 				Header: &events.LookatchHeader{
 					EventType: RandomType,
 				},
 				Payload: &events.GenericEvent{
-					Tenant:      d.AgentInfo.tenant.Id,
-					AgentId:     d.AgentInfo.uuid,
+					Tenant:      r.AgentInfo.tenant.Id,
+					AgentId:     r.AgentInfo.uuid,
 					Timestamp:   strconv.Itoa(int(time.Now().Unix())),
-					Environment: d.AgentInfo.tenant.Env,
+					Environment: r.AgentInfo.tenant.Env,
 					Value:       randomData,
 				},
 			}
-			d.metaMutex.Lock()
-			d.NbMessages += 1
-			d.metaMutex.Unlock()
+			r.metaMutex.Lock()
+			r.NbMessages++
+			r.metaMutex.Unlock()
 			time.Sleep(wait)
 		}
 	}()
 	return nil
 }
 
-func (d *Random) GetName() string {
-	return d.Name
+// GetName get source name
+func (r *Random) GetName() string {
+	return r.Name
 }
 
-func (d *Random) GetOutputChan() chan *events.LookatchEvent {
-	return d.OutputChannel
+// GetOutputChan get output channel
+func (r *Random) GetOutputChan() chan *events.LookatchEvent {
+	return r.OutputChannel
 }
 
-func (d *Random) IsEnable() bool {
+// IsEnable check if source is enable
+func (r *Random) IsEnable() bool {
 	return true
 }
 
-func (d *Random) HealthCheck() bool {
+// HealthCheck return true if ok
+func (r *Random) HealthCheck() bool {
 	return true
 }
 
+// GetMeta get source meta
 func (r *Random) GetMeta() map[string]interface{} {
 	meta := make(map[string]interface{})
 	meta["nbMessages"] = r.NbMessages
 	return meta
 }
 
+// GetSchema Get source Schema
 func (r *Random) GetSchema() interface{} {
 	return "String"
 }
 
+// GetStatus Get source status
 func (r *Random) GetStatus() interface{} {
 	return control.SourceStatusRunning
 }
 
-func (m *Random) GetAvailableActions() map[string]*control.ActionDescription {
+// GetAvailableActions returns available actions
+func (r *Random) GetAvailableActions() map[string]*control.ActionDescription {
 	return nil
 }
 
+// Process action
 func (r *Random) Process(action string, params ...interface{}) interface{} {
 	return nil
 }

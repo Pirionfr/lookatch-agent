@@ -30,7 +30,7 @@ func init() {
 		uuid:      "test",
 		secretkey: "test",
 		hostname:  "test",
-		authUrl:   "test",
+		authURL:   "test",
 	}
 
 }

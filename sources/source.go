@@ -8,6 +8,7 @@ import (
 )
 
 type (
+	// AgentHeader representation of Agent Header
 	AgentHeader struct {
 		tenant   events.LookatchTenantInfo
 		hostname string
@@ -16,6 +17,7 @@ type (
 )
 
 type (
+	// SourceI interface
 	SourceI interface {
 		Init()
 		Stop() error
@@ -31,6 +33,7 @@ type (
 		Process(string, ...interface{}) interface{}
 	}
 
+	// Source representation of source
 	Source struct {
 		Name          string
 		OutputChannel chan *events.LookatchEvent
@@ -41,8 +44,10 @@ type (
 	}
 )
 
+// sourceCreatorT source Creator func
 type sourceCreatorT func(*Source) (SourceI, error)
 
+// factory source factory
 var factory = map[string]sourceCreatorT{
 	DummyType:           newDummy,
 	RandomType:          newRandom,
@@ -53,6 +58,7 @@ var factory = map[string]sourceCreatorT{
 	MSSQLQueryType:      newMSSQLQuery,
 }
 
+// New create new source
 func New(name string, sourceType string, config *viper.Viper, eventChan chan *events.LookatchEvent) (s SourceI, err error) {
 
 	//setup agentHeader

@@ -18,6 +18,7 @@ import (
 )
 
 type (
+	// PostgreSQLCDC representation of PostgreSQL change data capture
 	PostgreSQLCDC struct {
 		*Source
 		config  PostgreSQLCDCConf
@@ -27,6 +28,8 @@ type (
 		status  string
 		meta    Meta
 	}
+
+	// PostgreSQLCDCConf representation of PostgreSQL change data capture configuration
 	PostgreSQLCDCConf struct {
 		Host          string                 `json:"host"`
 		Port          int                    `json:"port"`
@@ -42,10 +45,12 @@ type (
 		Enabled       bool                   `json:"enabled"`
 	}
 
+	// Messages representation of messages
 	Messages struct {
 		Change []Message `json:"change"`
 	}
 
+	// Message representation of message
 	Message struct {
 		Columnnames  []string      `json:"columnnames"`
 		Columntypes  []string      `json:"columntypes"`
@@ -56,20 +61,24 @@ type (
 		Oldkeys      Oldkeys       `json:"oldkeys"`
 	}
 
+	// Oldkeys representation of old event
 	Oldkeys struct {
 		Keynames  []string      `json:"keynames"`
 		Keytypes  []string      `json:"keytypes"`
 		Keyvalues []interface{} `json:"keyvalues"`
 	}
 
+	// Meta representation of metadata
 	Meta struct {
 		LastState string `json:"message"`
 		Lsn       uint64 `json:"offset"`
 	}
 )
 
+// PostgreSQLCDCType type of source
 const PostgreSQLCDCType = "postgresqlCDC"
 
+// newPostgreSQLCdc create new PostgreSQL CDC source
 func newPostgreSQLCdc(s *Source) (SourceI, error) {
 	postgreSQLCDCConf := PostgreSQLCDCConf{}
 	s.Conf.UnmarshalKey("sources."+s.Name, &postgreSQLCDCConf)
@@ -104,6 +113,7 @@ func newPostgreSQLCdc(s *Source) (SourceI, error) {
 	return p, nil
 }
 
+// Init source
 func (p *PostgreSQLCDC) Init() {
 
 	//start bi Query Schema
@@ -116,10 +126,12 @@ func (p *PostgreSQLCDC) Init() {
 	}
 }
 
+// Stop source
 func (p *PostgreSQLCDC) Stop() error {
 	return nil
 }
 
+// Start source
 func (p *PostgreSQLCDC) Start(i ...interface{}) (err error) {
 	log.WithFields(log.Fields{
 		"type": PostgreSQLCDCType,
@@ -153,14 +165,17 @@ func (p *PostgreSQLCDC) Start(i ...interface{}) (err error) {
 	return nil
 }
 
+// GetName get source name
 func (p *PostgreSQLCDC) GetName() string {
 	return p.Name
 }
 
+// GetOutputChan get output channel
 func (p *PostgreSQLCDC) GetOutputChan() chan *events.LookatchEvent {
 	return p.OutputChannel
 }
 
+// GetMeta get metadata
 func (p *PostgreSQLCDC) GetMeta() map[string]interface{} {
 	meta := make(map[string]interface{})
 	if p.status != control.SourceStatusWaitingForMETA {
@@ -171,27 +186,33 @@ func (p *PostgreSQLCDC) GetMeta() map[string]interface{} {
 	return meta
 }
 
+// IsEnable check if source is enable
 func (p *PostgreSQLCDC) IsEnable() bool {
 	return p.config.Enabled
 }
 
+// GetSchema get schema
 func (p *PostgreSQLCDC) GetSchema() interface{} {
 	return p.query.schemas
 }
 
+// GetStatus get status
 func (p *PostgreSQLCDC) GetStatus() interface{} {
 	return p.status
 }
 
+// HealthCheck returns true if ok
 func (p *PostgreSQLCDC) HealthCheck() bool {
 	return p.status == control.SourceStatusRunning
 }
 
+// GetAvailableActions returns available actions
 func (p *PostgreSQLCDC) GetAvailableActions() map[string]*control.ActionDescription {
 	availableAction := make(map[string]*control.ActionDescription)
 	return availableAction
 }
 
+// Process action
 func (p *PostgreSQLCDC) Process(action string, params ...interface{}) interface{} {
 
 	switch action {
@@ -223,6 +244,7 @@ func (p *PostgreSQLCDC) Process(action string, params ...interface{}) interface{
 	return nil
 }
 
+// NewReplicator create new pg logical decoding connection
 func (p *PostgreSQLCDC) NewReplicator() (*pgx.ReplicationConn, error) {
 
 	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s", p.config.Host, p.config.Port, p.config.User, p.config.Password, p.config.Database, p.config.SslMode)
@@ -262,6 +284,7 @@ func (p *PostgreSQLCDC) NewReplicator() (*pgx.ReplicationConn, error) {
 
 }
 
+// checkStatus check Status
 func (p *PostgreSQLCDC) checkStatus() {
 	var err error
 	defer log.WithFields(log.Fields{
@@ -294,9 +317,7 @@ func (p *PostgreSQLCDC) checkStatus() {
 	}
 }
 
-/**
- * Send all statement for this transaction
- */
+// decodeEvents Send all statement for this transaction
 func (p *PostgreSQLCDC) decodeEvents() {
 
 	var fields string
@@ -360,7 +381,7 @@ func (p *PostgreSQLCDC) decodeEvents() {
 						continue
 					}
 
-					err, fields = p.fieldsToJson(msg, &key)
+					fields, err = p.fieldsToJSON(msg, &key)
 					if err != nil {
 						log.WithFields(log.Fields{
 							"error": err,
@@ -413,10 +434,8 @@ func (p *PostgreSQLCDC) decodeEvents() {
 
 }
 
-/**
-map fields to json
-*/
-func (p *PostgreSQLCDC) fieldsToJson(msg Message, key *string) (error, string) {
+// fieldsToJSON map fields to json
+func (p *PostgreSQLCDC) fieldsToJSON(msg Message, key *string) (string, error) {
 
 	var columnnames []string
 	var columnvalues []interface{}
@@ -441,10 +460,8 @@ func (p *PostgreSQLCDC) fieldsToJson(msg Message, key *string) (error, string) {
 	return fieldsMap2Json(m)
 }
 
-/**
- * Convert a map key -> value into json
- */
-func fieldsMap2Json(i map[string]interface{}) (error, string) {
+// fieldsMap2Json Convert a map key -> value into json
+func fieldsMap2Json(i map[string]interface{}) (string, error) {
 
 	j, err := json.Marshal(i)
 	if err != nil {
@@ -452,5 +469,5 @@ func fieldsMap2Json(i map[string]interface{}) (error, string) {
 			"error": err,
 		}).Error("Failed to parse map statement")
 	}
-	return err, string(j)
+	return string(j), err
 }

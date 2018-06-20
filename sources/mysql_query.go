@@ -5,18 +5,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Pirionfr/lookatch-common/control"
+	// driver
 	_ "github.com/siddontang/go-mysql/driver"
 	log "github.com/sirupsen/logrus"
 )
 
+// MysqlQueryType type of source
 const MysqlQueryType = "MysqlQuery"
 
 type (
+	// MySQLQuery representation of MySQL Query source
 	MySQLQuery struct {
 		*JDBCQuery
 		config MysqlQueryConfig
 	}
 
+	// MysqlQueryConfig representation MySQL Query configuration
 	MysqlQueryConfig struct {
 		*JDBCQueryConfig
 		Schema  string   `json:"schema"`
@@ -24,6 +28,7 @@ type (
 	}
 )
 
+// newMysqlQuery create a Mysql Query source
 func newMysqlQuery(s *Source) (SourceI, error) {
 	jdbcQuery := NewJDBCQuery(s)
 
@@ -37,6 +42,7 @@ func newMysqlQuery(s *Source) (SourceI, error) {
 	}, nil
 }
 
+// Init initialisation of Mysql Query source
 func (m *MySQLQuery) Init() {
 
 	//start bi Query Schema
@@ -50,18 +56,21 @@ func (m *MySQLQuery) Init() {
 	log.Debug("Init Done")
 }
 
+// GetStatus returns current status of connexion
 func (m *MySQLQuery) GetStatus() interface{} {
 	m.Connect("information_schema")
 	defer m.db.Close()
 	return m.JDBCQuery.GetStatus()
 }
 
+// HealthCheck returns true if source is ok
 func (m *MySQLQuery) HealthCheck() bool {
 	m.Connect("information_schema")
 	defer m.db.Close()
 	return m.JDBCQuery.HealthCheck()
 }
 
+// Connect connection to database
 func (m *MySQLQuery) Connect(schema string) {
 
 	dsn := fmt.Sprintf("%s:%s@%s:%d?%s", m.config.User, m.config.Password, m.config.Host, m.config.Port, schema)
@@ -85,19 +94,20 @@ func (m *MySQLQuery) Connect(schema string) {
 
 }
 
+// Process process an action
 func (m *MySQLQuery) Process(action string, params ...interface{}) interface{} {
 
 	switch action {
 	case control.SourceQuery:
-		evSqlQuery := &Query{}
+		evSQLQuery := &Query{}
 		payload := params[0].([]byte)
-		err := json.Unmarshal(payload, evSqlQuery)
+		err := json.Unmarshal(payload, evSQLQuery)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error": err,
 			}).Fatal("Unable to unmarshal MySQL Query Statement event")
 		} else {
-			m.Query(evSqlQuery.Query)
+			m.Query(evSQLQuery.Query)
 		}
 		break
 	default:
@@ -108,6 +118,7 @@ func (m *MySQLQuery) Process(action string, params ...interface{}) interface{} {
 	return nil
 }
 
+// QuerySchema extract schema from database
 func (m *MySQLQuery) QuerySchema() (err error) {
 
 	m.Connect("information_schema")
@@ -131,12 +142,14 @@ func (m *MySQLQuery) QuerySchema() (err error) {
 	return
 }
 
+// Query execute query string
 func (m *MySQLQuery) Query(query string) {
 	m.Connect("information_schema")
 	defer m.db.Close()
 	m.JDBCQuery.Query("", query)
 }
 
+// QueryMeta execute query meta string
 func (m *MySQLQuery) QueryMeta(query string, table string, db string, mapAdd map[string]interface{}) map[string]interface{} {
 	m.Connect("information_schema")
 	defer m.db.Close()

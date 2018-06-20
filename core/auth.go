@@ -10,18 +10,20 @@ import (
 	"net/url"
 )
 
+// Auth representation of auth
 type Auth struct {
 	tenant    string
 	uuid      string
 	secretkey string
 	hostname  string
-	authUrl   string
+	authURL   string
 	client    *http.Client
 }
 
-func newAuth(tenant string, uuid string, secretkey string, hostname string, authUrl string) *Auth {
+// newAuth create new auth
+func newAuth(tenant string, uuid string, secretkey string, hostname string, authURL string) *Auth {
 
-	u, err := url.Parse(authUrl)
+	u, err := url.Parse(authURL)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
@@ -38,7 +40,7 @@ func newAuth(tenant string, uuid string, secretkey string, hostname string, auth
 		uuid:      uuid,
 		secretkey: secretkey,
 		hostname:  hostname,
-		authUrl:   authUrl,
+		authURL:   authURL,
 		client: &http.Client{
 			Transport: ht,
 		},
@@ -46,9 +48,10 @@ func newAuth(tenant string, uuid string, secretkey string, hostname string, auth
 
 }
 
+//GetToken get new token
 func (a *Auth) GetToken() (token string, err error) {
 
-	req, err := http.NewRequest("GET", a.authUrl, nil)
+	req, err := http.NewRequest("GET", a.authURL, nil)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
@@ -79,7 +82,7 @@ func (a *Auth) GetToken() (token string, err error) {
 			"error": err,
 			"body":  string(body),
 		}).Error("unmarshal error")
-		return token, errors.Annotate(err, "error unmarshaling response body")
+		return token, errors.Annotate(err, "error unmarshal response body")
 	}
 
 	if auth["error"] != "" {

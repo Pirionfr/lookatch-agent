@@ -5,14 +5,12 @@ import (
 	"reflect"
 )
 
-/**
-Reflect Call
-*/
+// Call reflect call
 func Call(m map[string]interface{}, sourceType string, params ...interface{}) (result interface{}, err error) {
 	f := reflect.ValueOf(m[sourceType])
 
 	if len(params) != f.Type().NumIn() {
-		err = errors.New("The number of params is not adapted.")
+		err = errors.New("The number of params is not adapted")
 		return
 	}
 	in := make([]reflect.Value, len(params))

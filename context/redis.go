@@ -10,11 +10,13 @@ const (
 	redisDefaultExpirationSeconds = 604800 // 1 week
 )
 
+// RedisContext is context using Redis store
 type RedisContext struct {
 	rdpool *pool.Pool
 	prefix string
 }
 
+// NewRedisContext create a new Redis context
 func NewRedisContext(addr, prefix string) (*RedisContext, error) {
 	p, err := pool.New("tcp", addr, redisPoolSize)
 	if err != nil {
@@ -26,6 +28,7 @@ func NewRedisContext(addr, prefix string) (*RedisContext, error) {
 	}, nil
 }
 
+// Store write a key/value in redis
 func (ctx *RedisContext) Store(name, value string) (err error) {
 	defer errors.DeferredAnnotatef(&err, "failed to store on redis")
 	conn, err := ctx.rdpool.Get()
@@ -37,6 +40,7 @@ func (ctx *RedisContext) Store(name, value string) (err error) {
 	return conn.Cmd("SET", ctx.prefix+":"+name, value, "EX", redisDefaultExpirationSeconds).Err
 }
 
+// Load read a key/value in redis
 func (ctx *RedisContext) Load(name string) (_ string, err error) {
 	defer errors.DeferredAnnotatef(&err, "failed to load on redis")
 	conn, err := ctx.rdpool.Get()
@@ -53,6 +57,7 @@ func (ctx *RedisContext) Load(name string) (_ string, err error) {
 	return r.Str()
 }
 
+// Close redis context
 func (ctx *RedisContext) Close() {
 	ctx.rdpool.Empty()
 }

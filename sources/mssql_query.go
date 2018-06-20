@@ -5,18 +5,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Pirionfr/lookatch-common/control"
+	// driver
 	_ "github.com/denisenkom/go-mssqldb"
 	log "github.com/sirupsen/logrus"
 )
 
+// MSSQLQueryType type of source
 const MSSQLQueryType = "MSSQL"
 
 type (
+	// MSSQLQuery representation of MSSQL Query source
 	MSSQLQuery struct {
 		*JDBCQuery
 		config MSSQLQueryConfig
 	}
 
+	// MSSQLQueryConfig representation MSSQL Query configuration
 	MSSQLQueryConfig struct {
 		*JDBCQueryConfig
 		SslMode  string `json:"sslmode"`
@@ -24,6 +28,7 @@ type (
 	}
 )
 
+// newMSSQLQuery create a MSSQL Query source
 func newMSSQLQuery(s *Source) (SourceI, error) {
 	jdbcQuery := NewJDBCQuery(s)
 
@@ -37,6 +42,7 @@ func newMSSQLQuery(s *Source) (SourceI, error) {
 	}, nil
 }
 
+// Init initialisation of MSSQL Query source
 func (m *MSSQLQuery) Init() {
 
 	//start bi Query Schema
@@ -50,18 +56,21 @@ func (m *MSSQLQuery) Init() {
 	log.Debug("Init Done")
 }
 
+// GetStatus returns current status of connexion
 func (m *MSSQLQuery) GetStatus() interface{} {
 	m.Connect()
 	defer m.db.Close()
 	return m.JDBCQuery.GetStatus()
 }
 
+// HealthCheck returns true if source is ok
 func (m *MSSQLQuery) HealthCheck() bool {
 	m.Connect()
 	defer m.db.Close()
 	return m.JDBCQuery.HealthCheck()
 }
 
+// Connect connection to database
 func (m *MSSQLQuery) Connect() {
 
 	dsn := fmt.Sprintf("server=%s;user id=%s;password=%s;port=%d;database=%s",
@@ -89,17 +98,18 @@ func (m *MSSQLQuery) Connect() {
 
 }
 
+// Process process an action
 func (m *MSSQLQuery) Process(action string, params ...interface{}) interface{} {
 
 	switch action {
 	case control.SourceQuery:
-		evSqlQuery := &Query{}
+		evSQLQuery := &Query{}
 		payload := params[0].([]byte)
-		err := json.Unmarshal(payload, evSqlQuery)
+		err := json.Unmarshal(payload, evSQLQuery)
 		if err != nil {
 			log.Fatal("Unable to unmarshal MySQL Query Statement event :", err)
 		} else {
-			m.Query(evSqlQuery.Query)
+			m.Query(evSQLQuery.Query)
 		}
 		break
 	default:
@@ -110,6 +120,7 @@ func (m *MSSQLQuery) Process(action string, params ...interface{}) interface{} {
 	return nil
 }
 
+// QuerySchema extract schema from database
 func (m *MSSQLQuery) QuerySchema() (err error) {
 
 	m.Connect()
@@ -142,12 +153,14 @@ func (m *MSSQLQuery) QuerySchema() (err error) {
 	return
 }
 
+// Query execute query string
 func (m *MSSQLQuery) Query(query string) {
 	m.Connect()
 	defer m.db.Close()
 	m.JDBCQuery.Query(m.config.Database, query)
 }
 
+// QueryMeta execute query meta string
 func (m *MSSQLQuery) QueryMeta(query string, table string, db string, mapAdd map[string]interface{}) map[string]interface{} {
 	m.Connect()
 	defer m.db.Close()

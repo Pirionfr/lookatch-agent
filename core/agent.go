@@ -18,6 +18,7 @@ import (
 	"time"
 )
 
+// Agent representation of agent
 type Agent struct {
 	sync.RWMutex
 	config       *viper.Viper
@@ -35,6 +36,7 @@ type Agent struct {
 	status       string
 }
 
+// Agent create new agent
 func newAgent(config *viper.Viper, s chan error) (a *Agent, err error) {
 	var controller *Controller
 	status := control.AgentStatusStarting
@@ -90,6 +92,7 @@ func newAgent(config *viper.Viper, s chan error) (a *Agent, err error) {
 	return
 }
 
+// Run run agent
 func Run(config *viper.Viper, s chan error) (err error) {
 	a, err := newAgent(config, s)
 	if err != nil {
@@ -100,11 +103,12 @@ func Run(config *viper.Viper, s chan error) (err error) {
 	} else {
 		err = a.InitConfig()
 	}
-	a.healtCheckChecker()
+	a.healthCheckChecker()
 
 	return
 }
 
+// ControllerStart Start Controller
 func (a *Agent) ControllerStart() error {
 
 	a.controller.StartChannel()
@@ -122,6 +126,7 @@ func (a *Agent) ControllerStart() error {
 	return nil
 }
 
+// updateConfig update Config
 func (a *Agent) updateConfig(b []byte) (err error) {
 	err = a.config.MergeConfig(bytes.NewReader(b))
 
@@ -134,6 +139,7 @@ func (a *Agent) updateConfig(b []byte) (err error) {
 	return
 }
 
+// InitConfig Init Config
 func (a *Agent) InitConfig() (err error) {
 	//multiplexer prepare
 	multiplexer := make(map[string][]string)
@@ -158,6 +164,7 @@ func (a *Agent) InitConfig() (err error) {
 	return
 }
 
+// LoadSources Load Sources
 func (a *Agent) LoadSources(multiplexer *map[string][]string) (err error) {
 	//load sources
 	for name := range a.config.GetStringMap("sources") {
@@ -184,6 +191,7 @@ func (a *Agent) LoadSources(multiplexer *map[string][]string) (err error) {
 	return err
 }
 
+// LoadSource Load Source from name
 func (a *Agent) LoadSource(sourceName string, sourceType string, eventChan chan *events.LookatchEvent) (err error) {
 	defer errors.DeferredAnnotatef(&err, "LoadSource()")
 
@@ -201,6 +209,7 @@ func (a *Agent) LoadSource(sourceName string, sourceType string, eventChan chan 
 	return
 }
 
+// LoadSinks Load Sinks
 func (a *Agent) LoadSinks() (err error) {
 	for name := range a.config.GetStringMap("sinks") {
 		eventChan := make(chan *events.LookatchEvent, 10000)
@@ -226,6 +235,7 @@ func (a *Agent) LoadSinks() (err error) {
 	return
 }
 
+// LoadSink Load Sinks from name
 func (a *Agent) LoadSink(sinkName string, sinkType string, eventChan chan *events.LookatchEvent) (err error) {
 	defer errors.DeferredAnnotatef(&err, "LoadSink()")
 	//check source
@@ -249,6 +259,7 @@ func (a *Agent) LoadSink(sinkName string, sinkType string, eventChan chan *event
 	return
 }
 
+// LoadMultiplexer Load Multiplexer
 func (a *Agent) LoadMultiplexer(multiplexer *map[string][]string) error {
 
 	for sourceName, sinkList := range *multiplexer {
@@ -272,6 +283,7 @@ func (a *Agent) LoadMultiplexer(multiplexer *map[string][]string) error {
 	return nil
 }
 
+// getSources get all sources
 func (a *Agent) getSources() map[string]sources.SourceI {
 	a.srcMutex.RLock()
 	src := a.sources
@@ -279,6 +291,7 @@ func (a *Agent) getSources() map[string]sources.SourceI {
 	return src
 }
 
+// getSources get initialised source from name
 func (a *Agent) getSource(sourceName string) (sources.SourceI, bool) {
 	a.srcMutex.RLock()
 	src, ok := a.sources[sourceName]
@@ -286,18 +299,21 @@ func (a *Agent) getSource(sourceName string) (sources.SourceI, bool) {
 	return src, ok
 }
 
+// setSources add new source
 func (a *Agent) setSource(sourceName string, src sources.SourceI) {
 	a.srcMutex.Lock()
 	a.sources[sourceName] = src
 	a.srcMutex.Unlock()
 }
 
+// delSource delete source from name
 func (a *Agent) delSource(sourceName string) {
 	a.srcMutex.Lock()
 	delete(a.sources, sourceName)
 	a.srcMutex.Unlock()
 }
 
+// getSinks get all sinks
 func (a *Agent) getSinks() map[string]sinks.SinkI {
 	a.sinksMutex.RLock()
 	sink := a.sinks
@@ -305,6 +321,7 @@ func (a *Agent) getSinks() map[string]sinks.SinkI {
 	return sink
 }
 
+// getSink from name
 func (a *Agent) getSink(sinkName string) (sinks.SinkI, bool) {
 	a.sinksMutex.RLock()
 	sink, ok := a.sinks[sinkName]
@@ -312,18 +329,21 @@ func (a *Agent) getSink(sinkName string) (sinks.SinkI, bool) {
 	return sink, ok
 }
 
+// setSink add new sink
 func (a *Agent) setSink(sinkName string, s sinks.SinkI) {
 	a.sinksMutex.Lock()
 	a.sinks[sinkName] = s
 	a.sinksMutex.Unlock()
 }
 
+// delSink delete sink from name
 func (a *Agent) delSink(sinkName string) {
 	a.sinksMutex.Lock()
 	delete(a.sinks, sinkName)
 	a.sinksMutex.Unlock()
 }
 
+// HealthCheck returns true if agent and all source are up
 func (a *Agent) HealthCheck() (alive bool) {
 	alive = true
 	sourceList := a.getSources()
@@ -338,6 +358,7 @@ func (a *Agent) HealthCheck() (alive bool) {
 	return alive
 }
 
+// getSourceAvailableAction create message of source action
 func (a *Agent) getSourceAvailableAction() *control.Agent {
 	var sourceAction = make(map[string]map[string]*control.ActionDescription)
 	sourceList := a.getSources()
@@ -349,6 +370,7 @@ func (a *Agent) getSourceAvailableAction() *control.Agent {
 
 }
 
+// getAvailableAction create message of agent action
 func (a *Agent) getAvailableAction() *control.Agent {
 	var action = make(map[string]*control.ActionDescription)
 	action[control.AgentStart] = control.DeclareNewAction(nil, "Start agent")
@@ -359,6 +381,7 @@ func (a *Agent) getAvailableAction() *control.Agent {
 
 }
 
+// getSourceMeta create message of source metadata
 func (a *Agent) getSourceMeta() *control.Agent {
 	var sourceMeta = make(map[string]*control.Meta)
 	sourceList := a.getSources()
@@ -373,6 +396,7 @@ func (a *Agent) getSourceMeta() *control.Agent {
 
 }
 
+// getSourceStatus create message of source status
 func (a *Agent) getSourceStatus() *control.Agent {
 	var sourceStatus = make(map[string]control.Status)
 	sourceList := a.getSources()
@@ -386,6 +410,7 @@ func (a *Agent) getSourceStatus() *control.Agent {
 
 }
 
+// GetSchemas create message of schemas
 func (a *Agent) GetSchemas() *control.Agent {
 	var sourceStatus = make(map[string]control.Schema)
 	sourceList := a.getSources()
@@ -399,8 +424,9 @@ func (a *Agent) GetSchemas() *control.Agent {
 	return agentCtrl.NewMessage(a.tenant.Id, a.uuid.String(), control.SourceSchema).WithPayload(sourceStatus)
 }
 
-func (a *Agent) healtCheckChecker() {
-	log.Debug("Stating healthcheck Checker")
+// healthCheckChecker start health check endpoint
+func (a *Agent) healthCheckChecker() {
+	log.Debug("Starting healthcheck Checker")
 	var wg sync.WaitGroup
 	wg.Add(1)
 	http.HandleFunc("/health/status", func(w http.ResponseWriter, r *http.Request) {

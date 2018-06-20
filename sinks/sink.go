@@ -8,10 +8,12 @@ import (
 )
 
 type (
+	// SinkI sink interface
 	SinkI interface {
 		Start(...interface{}) error
 		GetInputChan() chan *events.LookatchEvent
 	}
+	// Sink representation of sink
 	Sink struct {
 		in   chan *events.LookatchEvent
 		stop chan error
@@ -20,14 +22,17 @@ type (
 	}
 )
 
+//sinkCreator sink Creator func
 type sinkCreator func(*Sink) (SinkI, error)
 
+// factory sink factory
 var factory = map[string]sinkCreator{
 	StdoutType:   newStdout,
 	KafkaType:    newKafka,
 	OvhKafkaType: newOvhKafka,
 }
 
+// New create new sink
 func New(name string, sinkType string, conf *viper.Viper, stop chan error, eventChan chan *events.LookatchEvent) (SinkI, error) {
 	//create sink from name
 	sinkCreatorFunc, found := factory[sinkType]

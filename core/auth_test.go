@@ -24,7 +24,7 @@ func TestNewAuth(t *testing.T) {
 		t.Fail()
 	}
 
-	if auth.authUrl != "url" {
+	if auth.authURL != "url" {
 		t.Fail()
 	}
 }

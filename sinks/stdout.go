@@ -6,16 +6,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Stdout representation of sink
 type Stdout struct {
 	*Sink
 }
 
+// StdoutType type of sink
 const StdoutType = "stdout"
 
+// newStdout create new stdout sink
 func newStdout(s *Sink) (SinkI, error) {
 	return &Stdout{s}, nil
 }
 
+// Start stdout sink
 func (s *Stdout) Start(i ...interface{}) (err error) {
 	go func(messages chan *events.LookatchEvent) {
 		for message := range messages {
@@ -41,6 +45,7 @@ func (s *Stdout) Start(i ...interface{}) (err error) {
 	return
 }
 
+//GetInputChan return input channel attach to sink
 func (s *Stdout) GetInputChan() chan *events.LookatchEvent {
 	return s.in
 }

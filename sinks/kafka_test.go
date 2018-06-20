@@ -178,7 +178,7 @@ func TestProcessSqlEvent(t *testing.T) {
 
 	conf := ksink.(*Kafka).kafkaConf
 
-	msgSql := &events.SqlEvent{
+	msgSQL := &events.SqlEvent{
 		Environment: "Envtest",
 		Tenant:      "faketenant",
 		Table:       "testTable",
@@ -189,7 +189,7 @@ func TestProcessSqlEvent(t *testing.T) {
 		Statement:   "test",
 	}
 
-	msg, err := processSqlEvent(msgSql, conf, threshold)
+	msg, err := processSQLEvent(msgSQL, conf, threshold)
 	if err != nil {
 		t.Error(err)
 	}

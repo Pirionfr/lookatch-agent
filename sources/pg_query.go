@@ -5,18 +5,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Pirionfr/lookatch-common/control"
+	// driver
 	_ "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
 )
 
+// PostgreSQLQueryType type of source
 const PostgreSQLQueryType = "postgresqlQuery"
 
 type (
+	// PostgreSQLQuery representation of PostgreSQL Query source
 	PostgreSQLQuery struct {
 		*JDBCQuery
 		config PostgreSQLQueryConfig
 	}
 
+	//PostgreSQLQueryConfig representation PostgreSQL Query configuration
 	PostgreSQLQueryConfig struct {
 		*JDBCQueryConfig
 		SslMode  string `json:"sslmode"`
@@ -24,6 +28,7 @@ type (
 	}
 )
 
+// newPostgreSQLQuery create a PostgreSQL Query source
 func newPostgreSQLQuery(s *Source) (SourceI, error) {
 	jdbcQuery := NewJDBCQuery(s)
 
@@ -37,6 +42,7 @@ func newPostgreSQLQuery(s *Source) (SourceI, error) {
 	}, nil
 }
 
+// Init initialisation of PostgreSQL Query source
 func (p *PostgreSQLQuery) Init() {
 
 	//start bi Query Schema
@@ -50,18 +56,21 @@ func (p *PostgreSQLQuery) Init() {
 	log.Debug("Init Done")
 }
 
+// GetStatus returns current status of connexion
 func (p *PostgreSQLQuery) GetStatus() interface{} {
 	p.Connect()
 	defer p.db.Close()
 	return p.JDBCQuery.GetStatus()
 }
 
+// HealthCheck returns true if source is ok
 func (p *PostgreSQLQuery) HealthCheck() bool {
 	p.Connect()
 	defer p.db.Close()
 	return p.JDBCQuery.HealthCheck()
 }
 
+// Connect connection to database
 func (p *PostgreSQLQuery) Connect() {
 
 	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s", p.config.Host, p.config.Port, p.config.User, p.config.Password, p.config.Database, p.config.SslMode)
@@ -84,19 +93,20 @@ func (p *PostgreSQLQuery) Connect() {
 
 }
 
+// Process process an action
 func (p *PostgreSQLQuery) Process(action string, params ...interface{}) interface{} {
 
 	switch action {
 	case control.SourceQuery:
-		evSqlQuery := &Query{}
+		evSQLQuery := &Query{}
 		payload := params[0].([]byte)
-		err := json.Unmarshal(payload, evSqlQuery)
+		err := json.Unmarshal(payload, evSQLQuery)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error": err,
 			}).Fatal("Unable to unmarshal MySQL Query Statement event :")
 		} else {
-			p.Query(evSqlQuery.Query)
+			p.Query(evSQLQuery.Query)
 		}
 		break
 	default:
@@ -107,6 +117,7 @@ func (p *PostgreSQLQuery) Process(action string, params ...interface{}) interfac
 	return nil
 }
 
+// QuerySchema extract schema from database
 func (p *PostgreSQLQuery) QuerySchema() (err error) {
 
 	p.Connect()
@@ -144,12 +155,14 @@ func (p *PostgreSQLQuery) QuerySchema() (err error) {
 	return
 }
 
+// Query execute query string
 func (p *PostgreSQLQuery) Query(query string) {
 	p.Connect()
 	defer p.db.Close()
 	p.JDBCQuery.Query(p.config.Database, query)
 }
 
+// QueryMeta execute query meta string
 func (p *PostgreSQLQuery) QueryMeta(query string, table string, db string, mapAdd map[string]interface{}) map[string]interface{} {
 	p.Connect()
 	defer p.db.Close()

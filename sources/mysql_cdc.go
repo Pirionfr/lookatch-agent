@@ -18,9 +18,11 @@ import (
 	"time"
 )
 
+// MysqlCDCType type of source
 const MysqlCDCType = "MysqlCDC"
 
 type (
+	// MysqlCDC representation of Mysql change data capture
 	MysqlCDC struct {
 		*Source
 		config      MysqlCDCConfig
@@ -32,6 +34,7 @@ type (
 		status      string
 	}
 
+	// MysqlCDCConfig representation of Mysql change data capture configuration
 	MysqlCDCConfig struct {
 		Host          string                 `json:"host"`
 		Port          int                    `json:"port"`
@@ -47,6 +50,7 @@ type (
 	}
 )
 
+// newMysqlCdc create new mysql CDC source
 func newMysqlCdc(s *Source) (SourceI, error) {
 	mysqlCDCConfig := MysqlCDCConfig{}
 	s.Conf.UnmarshalKey("sources."+s.Name, &mysqlCDCConfig)
@@ -85,6 +89,7 @@ func newMysqlCdc(s *Source) (SourceI, error) {
 	return m, nil
 }
 
+// Init source
 func (m *MysqlCDC) Init() {
 
 	//start bi Query Schema
@@ -98,10 +103,12 @@ func (m *MysqlCDC) Init() {
 
 }
 
+// Stop source
 func (m *MysqlCDC) Stop() error {
 	return nil
 }
 
+// Start source
 func (m *MysqlCDC) Start(i ...interface{}) (err error) {
 	log.WithFields(log.Fields{
 		"type": MysqlCDCType,
@@ -144,14 +151,17 @@ func (m *MysqlCDC) Start(i ...interface{}) (err error) {
 	return
 }
 
+// GetName get source source
 func (m *MysqlCDC) GetName() string {
 	return m.Name
 }
 
+// GetOutputChan get output channel
 func (m *MysqlCDC) GetOutputChan() chan *events.LookatchEvent {
 	return m.OutputChannel
 }
 
+// GetMeta get metadata
 func (m *MysqlCDC) GetMeta() map[string]interface{} {
 	meta := make(map[string]interface{})
 	if m.status != control.SourceStatusWaitingForMETA {
@@ -162,27 +172,33 @@ func (m *MysqlCDC) GetMeta() map[string]interface{} {
 	return meta
 }
 
+// IsEnable check if source is enable
 func (m *MysqlCDC) IsEnable() bool {
 	return m.config.Enabled
 }
 
+// GetSchema get schema
 func (m *MysqlCDC) GetSchema() interface{} {
 	return m.query.schemas
 }
 
+// GetStatus get status
 func (m *MysqlCDC) GetStatus() interface{} {
 	return m.status
 }
 
+// HealthCheck returns true if ok
 func (m *MysqlCDC) HealthCheck() bool {
 	return m.status == control.SourceStatusRunning
 }
 
+// GetAvailableActions returns available actions
 func (m *MysqlCDC) GetAvailableActions() map[string]*control.ActionDescription {
 	availableAction := make(map[string]*control.ActionDescription)
 	return availableAction
 }
 
+// Process action
 func (m *MysqlCDC) Process(action string, params ...interface{}) interface{} {
 
 	switch action {
@@ -214,6 +230,7 @@ func (m *MysqlCDC) Process(action string, params ...interface{}) interface{} {
 	return nil
 }
 
+// decodeBinlog decode Binlog event
 func (m *MysqlCDC) decodeBinlog(streamer *replication.BinlogStreamer) {
 	defer func() {
 		err := recover()
@@ -285,6 +302,7 @@ func (m *MysqlCDC) decodeBinlog(streamer *replication.BinlogStreamer) {
 	}
 }
 
+// getRows decode rows
 func (m *MysqlCDC) getRows(timestamp int64, row []interface{}, schema, table, method string) {
 
 	//log.Debug("getRows(): event: ",method,schema,table)
@@ -295,18 +313,18 @@ func (m *MysqlCDC) getRows(timestamp int64, row []interface{}, schema, table, me
 
 	for i, col := range row {
 
-		columnIdStr := strconv.Itoa(i)
+		columnIDStr := strconv.Itoa(i)
 		columnValue := col
 
 		columnName := ""
-		if columnSchema, ok := m.query.schemas[schema][table][columnIdStr]; ok {
+		if columnSchema, ok := m.query.schemas[schema][table][columnIDStr]; ok {
 			columnName = columnSchema.ColumnName
 
 			if !m.filter.IsFilteredColumn(schema, table, columnName) {
 				//Output row number, column number, column type and column value
 
 				colmap[columnName] = columnValue
-				if ok := m.query.isPrimary(schema, table, columnIdStr); ok && key == "" {
+				if ok := m.query.isPrimary(schema, table, columnIDStr); ok && key == "" {
 					key = columnName
 				}
 			}
@@ -343,6 +361,7 @@ func (m *MysqlCDC) getRows(timestamp int64, row []interface{}, schema, table, me
 
 }
 
+// getRowsWithOldValue decode old row value
 func (m *MysqlCDC) getRowsWithOldValue(timestamp int64, rows [][]interface{}, schema, table, method string) {
 
 	//log.Debug("getRows(): event: ",method,schema,table)
@@ -352,7 +371,7 @@ func (m *MysqlCDC) getRowsWithOldValue(timestamp int64, rows [][]interface{}, sc
 	var key string
 
 	for i, col := range rows[1] {
-		columnIdStr := strconv.Itoa(i)
+		columnIDStr := strconv.Itoa(i)
 		columnValue := col
 		columnValueOld := rows[0][i]
 		columnName := string(m.query.schemas[schema][table][strconv.Itoa(i)].ColumnName)
@@ -363,7 +382,7 @@ func (m *MysqlCDC) getRowsWithOldValue(timestamp int64, rows [][]interface{}, sc
 			//log.Printf("%v=%v", columnName, columnValue)
 			colmap[columnName] = columnValue
 			colmapOld[columnName] = columnValueOld
-			if ok := m.query.isPrimary(schema, table, columnIdStr); ok && key == "" {
+			if ok := m.query.isPrimary(schema, table, columnIDStr); ok && key == "" {
 				key = columnName
 			}
 
@@ -405,6 +424,7 @@ func (m *MysqlCDC) getRowsWithOldValue(timestamp int64, rows [][]interface{}, sc
 
 }
 
+// GetFirstBinlog Get First Binlog offset
 func (m *MysqlCDC) GetFirstBinlog() (string, uint32) {
 	m.query.Connect("information_schema")
 	defer m.query.db.Close()
@@ -426,6 +446,7 @@ func (m *MysqlCDC) GetFirstBinlog() (string, uint32) {
 	return "", 0
 }
 
+// GetlastBinlog Get last Binlog offset
 func (m *MysqlCDC) GetlastBinlog() (string, uint32) {
 	m.query.Connect("information_schema")
 	defer m.query.db.Close()
@@ -447,6 +468,7 @@ func (m *MysqlCDC) GetlastBinlog() (string, uint32) {
 	return "", 0
 }
 
+// readValidOffset read Valid Offset
 func (m *MysqlCDC) readValidOffset() (err error) {
 	//err = m.getOffset()
 	if err != nil {
@@ -494,6 +516,8 @@ func (m *MysqlCDC) readValidOffset() (err error) {
 
 	return nil
 }
+
+//getOffset read offset
 func (m *MysqlCDC) getOffset() string {
 	position := m.logPosition.Load().(uint32)
 	logFilename := m.logFilename.Load().(string)
@@ -501,6 +525,7 @@ func (m *MysqlCDC) getOffset() string {
 	return m.config.Offset
 }
 
+// readOffset decode offset
 func (m *MysqlCDC) readOffset(offset string) {
 	tabFile := strings.Split(offset, ":")
 

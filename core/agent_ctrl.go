@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+//dispatchAgentFactory dispatch agent factory
 var dispatchAgentFactory = map[string]func(*Agent, *control.Agent) error{
 	control.AgentStatus:           (*Agent).SendStatus,
 	control.AgentConfigure:        (*Agent).UpdateConfig,
@@ -16,6 +17,7 @@ var dispatchAgentFactory = map[string]func(*Agent, *control.Agent) error{
 	control.SourceAvailableAction: (*Agent).SendAvailableAction,
 }
 
+// HandleMessage Handle Message from rpc
 func (a *Agent) HandleMessage(async chan *rpc.Message) {
 
 	for {
@@ -49,9 +51,7 @@ func (a *Agent) HandleMessage(async chan *rpc.Message) {
 	}
 }
 
-/**
-dispatch agent message
-*/
+// DispatchAgent dispatch agent message
 func (a *Agent) DispatchAgent(agentMsg *control.Agent) error {
 	fn, found := dispatchAgentFactory[agentMsg.Action]
 	if !found {
@@ -63,6 +63,7 @@ func (a *Agent) DispatchAgent(agentMsg *control.Agent) error {
 	return fn(a, agentMsg)
 }
 
+// DispatchSource dispatch source message
 func (a *Agent) DispatchSource(payload *rpc.Message, sourceName string) {
 	s, ok := a.getSource(sourceName)
 	if !ok {
@@ -103,15 +104,14 @@ func (a *Agent) DispatchSource(payload *rpc.Message, sourceName string) {
 	}
 }
 
+// DispatchSink dispatch sink message
 func (a *Agent) DispatchSink(payload *rpc.Message, sinkName string) {
 
 	//@TODO add a control of sinks
 
 }
 
-/**
-Get Source Available Action
-*/
+// GetSourceAvailableAction Controller asked for Available Actions, sending it
 func (a *Agent) GetSourceAvailableAction(sourceName string, srcCtrl *control.Source) {
 	log.Debug("Controller asked for Available Actions, sending it")
 	aAction := a.getSources()[sourceName].GetAvailableActions()
@@ -120,18 +120,14 @@ func (a *Agent) GetSourceAvailableAction(sourceName string, srcCtrl *control.Sou
 	a.SendEncapsMessage(msg, control.TypeSource)
 }
 
-/**
-Get Configuration from server
-*/
+// GetConfig Get Configuration from server
 func (a *Agent) GetConfig() error {
 	agentCtrl := &control.Agent{}
 	msg := agentCtrl.NewMessage(a.tenant.Id, a.uuid.String(), control.AgentStatus).WithPayload(control.AgentStatusWaitingForConf)
 	return a.SendEncapsMessage(msg, control.TypeAgent)
 }
 
-/**
-Send all available to server
-*/
+// SendAvailableAction send all available action
 func (a *Agent) SendAvailableAction(agentCtrl *control.Agent) (err error) {
 	log.Debug("Controller asked for Available Action, sending it")
 
@@ -142,19 +138,19 @@ func (a *Agent) SendAvailableAction(agentCtrl *control.Agent) (err error) {
 	return a.SendAgentAvailableAction(agentCtrl)
 }
 
+// SendAgentAvailableAction send agent action
 func (a *Agent) SendAgentAvailableAction(agentCtrl *control.Agent) error {
 	msg := a.getAvailableAction()
 	return a.SendEncapsMessage(msg, control.TypeAgent)
 }
 
+// SendSourceAvailableAction send source action
 func (a *Agent) SendSourceAvailableAction(agentCtrl *control.Agent) error {
 	msg := a.getSourceAvailableAction()
 	return a.SendEncapsMessage(msg, control.TypeAgent)
 }
 
-/**
-Send all meta schema to server
-*/
+// SendMeta Send all meta schema
 func (a *Agent) SendMeta(agentCtrl *control.Agent) error {
 	//log.Debug("Controller asked for meta, sending it")
 	msg := a.getSourceMeta()
@@ -162,17 +158,13 @@ func (a *Agent) SendMeta(agentCtrl *control.Agent) error {
 
 }
 
-/**
-Send all sources schema to server
-*/
+//SendSchema send all sources schema
 func (a *Agent) SendSchema(agentCtrl *control.Agent) error {
 	msg := a.GetSchemas()
 	return a.SendEncapsMessage(msg, control.TypeAgent)
 }
 
-/**
-send agent status and source status
-*/
+//SendStatus send agent status and source status
 func (a *Agent) SendStatus(agentCtrl *control.Agent) (err error) {
 
 	//First send agent status
@@ -186,6 +178,7 @@ func (a *Agent) SendStatus(agentCtrl *control.Agent) (err error) {
 
 }
 
+// UpdateConfig Update agent Config
 func (a *Agent) UpdateConfig(agentCtrl *control.Agent) (err error) {
 	err = a.updateConfig(agentCtrl.Payload)
 	if err != nil {
@@ -194,13 +187,13 @@ func (a *Agent) UpdateConfig(agentCtrl *control.Agent) (err error) {
 	return
 }
 
+// SendAgentStatus send agent status
 func (a *Agent) SendAgentStatus(agentCtrl *control.Agent) error {
-	//send agent status
-	//send hearbeat when status ask
 	msg := agentCtrl.NewMessage(a.tenant.Id, a.uuid.String(), control.AgentStatus).WithPayload(a.status)
 	return a.SendEncapsMessage(msg, control.TypeAgent)
 }
 
+//SendSourceStatus send source status
 func (a *Agent) SendSourceStatus(agentCtrl *control.Agent) error {
 	//send sources status
 	//log.Debug("Controller asked for status, sending it")
@@ -208,6 +201,7 @@ func (a *Agent) SendSourceStatus(agentCtrl *control.Agent) error {
 	return a.SendEncapsMessage(msg, control.TypeAgent)
 }
 
+// SendEncapsMessage encaspule message and send to rpc
 func (a *Agent) SendEncapsMessage(msg interface{}, typeMessage string) (err error) {
 	payload, err := json.Marshal(&msg)
 	if err != nil {
