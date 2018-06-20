@@ -6,10 +6,6 @@ go:
 # this is necessary for fork builds to work
 go_import_path: github.com/Pirionfr/lookatch-client
 
- before_install:
-  - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-  - dep ensure
-
 before_install:
   - make init
 
