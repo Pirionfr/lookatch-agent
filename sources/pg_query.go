@@ -56,10 +56,10 @@ func (p *PostgreSQLQuery) GetStatus() interface{} {
 	return p.JDBCQuery.GetStatus()
 }
 
-func (p *PostgreSQLQuery) HealtCheck() bool {
+func (p *PostgreSQLQuery) HealthCheck() bool {
 	p.Connect()
 	defer p.db.Close()
-	return p.JDBCQuery.HealtCheck()
+	return p.JDBCQuery.HealthCheck()
 }
 
 func (p *PostgreSQLQuery) Connect() {
@@ -79,7 +79,7 @@ func (p *PostgreSQLQuery) Connect() {
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
-		}).Fatal("Connection is dead")
+		}).Error("Connection is dead")
 	}
 
 }

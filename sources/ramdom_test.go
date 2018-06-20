@@ -130,7 +130,7 @@ func TestRandomHealtCheck(t *testing.T) {
 		t.Fail()
 	}
 
-	if Random.HealtCheck() != true {
+	if Random.HealthCheck() != true {
 		t.Fail()
 	}
 }

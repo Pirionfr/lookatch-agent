@@ -56,10 +56,10 @@ func (m *MySQLQuery) GetStatus() interface{} {
 	return m.JDBCQuery.GetStatus()
 }
 
-func (m *MySQLQuery) HealtCheck() bool {
+func (m *MySQLQuery) HealthCheck() bool {
 	m.Connect("information_schema")
 	defer m.db.Close()
-	return m.JDBCQuery.HealtCheck()
+	return m.JDBCQuery.HealthCheck()
 }
 
 func (m *MySQLQuery) Connect(schema string) {
@@ -80,7 +80,7 @@ func (m *MySQLQuery) Connect(schema string) {
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
-		}).Fatal("Connection is dead")
+		}).Error("Connection is dead")
 	}
 
 }

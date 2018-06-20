@@ -51,7 +51,7 @@ func (d *Dummy) IsEnable() bool {
 	return true
 }
 
-func (d *Dummy) HealtCheck() bool {
+func (d *Dummy) HealthCheck() bool {
 	return true
 }
 

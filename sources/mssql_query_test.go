@@ -135,7 +135,7 @@ func TestMSSQLQueryHealtCheck(t *testing.T) {
 		t.Fail()
 	}
 
-	if MSSQLQuery.HealtCheck() != false {
+	if MSSQLQuery.HealthCheck() != false {
 		t.Fail()
 	}
 }

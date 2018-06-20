@@ -130,7 +130,7 @@ func TestDummyHealtCheck(t *testing.T) {
 		t.Fail()
 	}
 
-	if dummy.HealtCheck() != true {
+	if dummy.HealthCheck() != true {
 		t.Fail()
 	}
 }

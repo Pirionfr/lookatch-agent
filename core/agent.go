@@ -324,11 +324,11 @@ func (a *Agent) delSink(sinkName string) {
 	a.sinksMutex.Unlock()
 }
 
-func (a *Agent) healtCheck() (alive bool) {
+func (a *Agent) HealthCheck() (alive bool) {
 	alive = true
 	sourceList := a.getSources()
 	for _, source := range sourceList {
-		if !source.HealtCheck() {
+		if !source.HealthCheck() {
 			return false
 		}
 	}
@@ -405,7 +405,7 @@ func (a *Agent) healtCheckChecker() {
 	wg.Add(1)
 	http.HandleFunc("/health/status", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Server", "A Go Web Server")
-		if a.healtCheck() {
+		if a.HealthCheck() {
 			w.WriteHeader(200)
 		} else {
 			w.WriteHeader(400)

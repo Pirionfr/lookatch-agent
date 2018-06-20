@@ -174,7 +174,7 @@ func (m *MysqlCDC) GetStatus() interface{} {
 	return m.status
 }
 
-func (m *MysqlCDC) HealtCheck() bool {
+func (m *MysqlCDC) HealthCheck() bool {
 	return m.status == control.SourceStatusRunning
 }
 
@@ -412,7 +412,7 @@ func (m *MysqlCDC) GetFirstBinlog() (string, uint32) {
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
-		}).Fatal("Connection is dead")
+		}).Error("Connection is dead")
 	}
 	q := "SHOW BINLOG EVENTS limit 1"
 
@@ -433,7 +433,7 @@ func (m *MysqlCDC) GetlastBinlog() (string, uint32) {
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
-		}).Fatal("Connection is dead")
+		}).Error("Connection is dead")
 	}
 	q := "SHOW MASTER STATUS"
 

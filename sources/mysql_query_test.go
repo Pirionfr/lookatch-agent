@@ -135,7 +135,7 @@ func TestMysqlQueryHealtCheck(t *testing.T) {
 		t.Fail()
 	}
 
-	if MysqlQuery.HealtCheck() != false {
+	if MysqlQuery.HealthCheck() != false {
 		t.Fail()
 	}
 }

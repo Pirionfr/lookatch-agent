@@ -91,13 +91,13 @@ func (j *JDBCQuery) GetSchema() interface{} {
 }
 
 func (j *JDBCQuery) GetStatus() interface{} {
-	if j.HealtCheck() {
+	if j.HealthCheck() {
 		return control.SourceStatusRunning
 	}
 	return control.SourceStatusOnError
 }
 
-func (j *JDBCQuery) HealtCheck() bool {
+func (j *JDBCQuery) HealthCheck() bool {
 	err := j.db.Ping()
 	if err != nil || j.db.Stats().OpenConnections == 0 {
 		return false
@@ -183,7 +183,7 @@ func (j *JDBCQuery) Query(database string, query string) {
 	if errdb != nil {
 		log.WithFields(log.Fields{
 			"error": errdb,
-		}).Fatal("Connection is dead")
+		}).Error("Connection is dead")
 		return
 	}
 
@@ -342,13 +342,13 @@ func (j *JDBCQuery) QueryMeta(query string, table string, db string, mapAdd map[
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
-		}).Fatal("Connection is dead")
+		}).Error("Connection is dead")
 	}
 	rows, err := j.db.Query(query)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
-		}).Debug("Connection is dead")
+		}).Error("Connection is dead")
 	}
 
 	columns, _ := rows.Columns()

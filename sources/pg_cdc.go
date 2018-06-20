@@ -183,7 +183,7 @@ func (p *PostgreSQLCDC) GetStatus() interface{} {
 	return p.status
 }
 
-func (p *PostgreSQLCDC) HealtCheck() bool {
+func (p *PostgreSQLCDC) HealthCheck() bool {
 	return p.status == control.SourceStatusRunning
 }
 

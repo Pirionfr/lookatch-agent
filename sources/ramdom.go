@@ -6,6 +6,7 @@ import (
 	"github.com/Pirionfr/lookatch-common/events"
 	log "github.com/sirupsen/logrus"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -13,6 +14,7 @@ type Random struct {
 	*Source
 	config     RandomConfig
 	NbMessages int
+	metaMutex  sync.RWMutex
 }
 
 type RandomConfig struct {
@@ -61,7 +63,9 @@ func (d *Random) Start(i ...interface{}) error {
 					Value:       randomData,
 				},
 			}
+			d.metaMutex.Lock()
 			d.NbMessages += 1
+			d.metaMutex.Unlock()
 			time.Sleep(wait)
 		}
 	}()
@@ -80,7 +84,7 @@ func (d *Random) IsEnable() bool {
 	return true
 }
 
-func (d *Random) HealtCheck() bool {
+func (d *Random) HealthCheck() bool {
 	return true
 }
 

@@ -26,7 +26,7 @@ type (
 		GetSchema() interface{}
 		GetStatus() interface{}
 		IsEnable() bool
-		HealtCheck() bool
+		HealthCheck() bool
 		GetAvailableActions() map[string]*control.ActionDescription
 		Process(string, ...interface{}) interface{}
 	}

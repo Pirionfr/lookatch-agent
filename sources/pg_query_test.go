@@ -135,7 +135,7 @@ func TestPostgreSQLQueryHealtCheck(t *testing.T) {
 		t.Fail()
 	}
 
-	if PostgreSQLQuery.HealtCheck() != false {
+	if PostgreSQLQuery.HealthCheck() != false {
 		t.Fail()
 	}
 }

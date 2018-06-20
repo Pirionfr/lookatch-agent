@@ -145,7 +145,7 @@ func TestMysqlcdcHealtCheck(t *testing.T) {
 		t.Fail()
 	}
 
-	if Mysqlcdc.HealtCheck() != false {
+	if Mysqlcdc.HealthCheck() != false {
 		t.Fail()
 	}
 }

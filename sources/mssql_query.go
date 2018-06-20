@@ -56,10 +56,10 @@ func (m *MSSQLQuery) GetStatus() interface{} {
 	return m.JDBCQuery.GetStatus()
 }
 
-func (m *MSSQLQuery) HealtCheck() bool {
+func (m *MSSQLQuery) HealthCheck() bool {
 	m.Connect()
 	defer m.db.Close()
-	return m.JDBCQuery.HealtCheck()
+	return m.JDBCQuery.HealthCheck()
 }
 
 func (m *MSSQLQuery) Connect() {
@@ -84,7 +84,7 @@ func (m *MSSQLQuery) Connect() {
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
-		}).Fatal("Connection is dead")
+		}).Error("Connection is dead")
 	}
 
 }

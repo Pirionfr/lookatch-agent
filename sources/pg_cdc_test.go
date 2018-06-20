@@ -145,7 +145,7 @@ func TestPgcdcHealtCheck(t *testing.T) {
 		t.Fail()
 	}
 
-	if Pgcdc.HealtCheck() != false {
+	if Pgcdc.HealthCheck() != false {
 		t.Fail()
 	}
 }
