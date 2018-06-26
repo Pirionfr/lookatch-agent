@@ -7,12 +7,12 @@ LINT_PATHS		:= ./...
 FORMAT_PATHS 	:= .
 
 # Compilation variables
-CC 						:= go build
+CC 					:= go build
 DFLAGS 				:= -race
-CFLAGS 				:= -X 'github.com/Pirionfr/lookatch-agent/commands.githash=$(GITHASH)' \
-	-X 'github.com/Pirionfr/lookatch-agent/commands.date=$(DATE)' \
-	-X 'github.com/Pirionfr/lookatch-agent/commands.version=$(VERSION)'
-CROSS					:= GOOS=linux GOARCH=amd64
+CFLAGS 				:= -X 'main.githash=$(GITHASH)' \
+            -X 'main.date=$(DATE)' \
+            -X 'main.version=$(VERSION)'
+CROSS				:= GOOS=linux GOARCH=amd64
 
 # Makefile variables
 VPATH 				:= $(BUILD_DIR)
