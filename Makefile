@@ -70,11 +70,11 @@ build:
 
 .PHONY: release
 release:
-	$(CC) $(DFLAGS) -ldflags "-s -w $(CFLAGS)" -o $(BUILD_DIR)/lookatch-agent
+	$(CC) -ldflags "-s -w $(CFLAGS)" -o $(BUILD_DIR)/lookatch-agent
 
 .PHONY: dist
 dist:
-	$(CC) $(DFLAGS) -ldflags "-s -w $(CFLAGS)" -o $(BUILD_DIR)/lookatch-agent
+	$(CROSS) $(CC) -ldflags "-s -w $(CFLAGS)" -o $(BUILD_DIR)/lookatch-agent
 
 .PHONY: install
 install: release
