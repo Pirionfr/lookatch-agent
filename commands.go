@@ -39,8 +39,8 @@ var (
 		Use:   "version",
 		Short: "Show version",
 		Run: func(cmd *cobra.Command, arguments []string) {
-			fmt.Printf("metronome-aggregator version %s %s\n", version, githash)
-			fmt.Printf("metronome-aggregator build date %s\n", date)
+			fmt.Printf("lookatch-agent version %s %s\n", version, githash)
+			fmt.Printf("lookatch-agent build date %s\n", date)
 			fmt.Printf("go version %s %s/%s\n", runtime.Version(), runtime.GOOS, runtime.GOARCH)
 		},
 	}
