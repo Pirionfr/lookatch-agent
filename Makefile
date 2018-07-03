@@ -87,7 +87,7 @@ deb:
 		  --description "replicate and synchronize your data" \
 			--url "https://github.com/Pirionfr/lookatch-agent" \
 			--license "Apache-2.0" \
-			--version "0.0.1" \
+			--version $(shell echo $$(./build/lookatch-agent version| head -1 | awk '{print $$2}')) \
 			-n lookatch-agent \
 			-d logrotate \
 			-d postgresql-server-dev-9.4 \
@@ -97,7 +97,7 @@ deb:
 			--deb-user lookatch \
 			--deb-group lookatch \
 			--deb-no-default-config-files \
-			--config-files package/deb/config.json \
+			--config-files /etc/lookatch/config.json \
 			--deb-init package/deb/lookatch-agent.init \
 			--directories /var/log/lookatch-agent \
 			--before-install package/deb/before-install.sh \
@@ -107,3 +107,29 @@ deb:
 			--before-remove package/deb/before-remove.sh \
 			--after-remove package/deb/after-remove.sh \
 			--inputs package/deb/input
+
+.PHONY: rpm
+rpm:
+		rm -f lookatch-agent*.rpm
+		fpm -m "<Pirionfr>" \
+		  --description "replicate and synchronize your data" \
+			--url "https://github.com/Pirionfr/lookatch-agent" \
+			--license "Apache-2.0" \
+			--version $(shell echo $$(./build/lookatch-agent version| head -1 | awk '{print $$2}')) \
+			-n lookatch-agent \
+			-d logrotate \
+			-d postgresql-server-dev-9.4 \
+            -d libpq-dev \
+			-s dir -t rpm \
+			-a all \
+			--rpm-user lookatch \
+			--rpm-group lookatch \
+			--config-files /etc/lookatch/config.json \
+			--rpm-init  package/rrpm/lookatch-agent.init \
+			--before-install package/rpm/before-install.sh \
+			--after-install package/rpm/after-install.sh \
+			--before-upgrade package/rpm/before-upgrade.sh \
+			--after-upgrade package/rpm/after-upgrade.sh \
+			--before-remove package/rpm/before-remove.sh \
+			--after-remove package/rpm/after-remove.sh \
+			--inputs package/rpm/input
