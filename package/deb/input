@@ -1,0 +1,3 @@
+build/lookatch-agent=/usr/bin/
+package/deb/config.json=/etc/lookatch/config.json
+package/deb/logrotate=/etc/logrotate.d/lookatch-agent

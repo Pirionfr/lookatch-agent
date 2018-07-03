@@ -79,3 +79,31 @@ dist:
 .PHONY: install
 install: release
 	cp -v $(BUILD_DIR)/lookatch-agent $(GOPATH)/bin/lookatch-agent
+
+.PHONY: deb
+deb:
+		rm -f lookatch-agent*.deb
+		fpm -m "<Pirionfr>" \
+		  --description "replicate and synchronize your data" \
+			--url "https://github.com/Pirionfr/lookatch-agent" \
+			--license "Apache-2.0" \
+			--version "0.0.1" \
+			-n lookatch-agent \
+			-d logrotate \
+			-d postgresql-server-dev-9.4 \
+			-d libpq-dev \
+			-s dir -t deb \
+			-a all \
+			--deb-user lookatch \
+			--deb-group lookatch \
+			--deb-no-default-config-files \
+			--config-files package/deb/config.json \
+			--deb-init package/deb/lookatch-agent.init \
+			--directories /var/log/lookatch-agent \
+			--before-install package/deb/before-install.sh \
+			--after-install package/deb/after-install.sh \
+			--before-upgrade package/deb/before-upgrade.sh \
+			--after-upgrade package/deb/after-upgrade.sh \
+			--before-remove package/deb/before-remove.sh \
+			--after-remove package/deb/after-remove.sh \
+			--inputs package/deb/input
