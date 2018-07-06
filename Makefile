@@ -90,8 +90,6 @@ deb:
 			--version $(shell echo $$(./build/lookatch-agent version| head -1 | awk '{print $$2}')) \
 			-n lookatch-agent \
 			-d logrotate \
-			-d postgresql-server-dev-9.4 \
-			-d libpq-dev \
 			-s dir -t deb \
 			-a all \
 			--deb-user lookatch \
@@ -115,17 +113,15 @@ rpm:
 		  --description "replicate and synchronize your data" \
 			--url "https://github.com/Pirionfr/lookatch-agent" \
 			--license "Apache-2.0" \
-			--version $(shell echo $$(./build/lookatch-agent version| head -1 | awk '{print $$2}')) \
+			--version "0.0.1" \
 			-n lookatch-agent \
 			-d logrotate \
-			-d postgresql-server-dev-9.4 \
-            -d libpq-dev \
 			-s dir -t rpm \
 			-a all \
 			--rpm-user lookatch \
 			--rpm-group lookatch \
 			--config-files /etc/lookatch/config.json \
-			--rpm-init  package/rrpm/lookatch-agent.init \
+			--rpm-init  package/rpm/lookatch-agent.init \
 			--before-install package/rpm/before-install.sh \
 			--after-install package/rpm/after-install.sh \
 			--before-upgrade package/rpm/before-upgrade.sh \

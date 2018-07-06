@@ -1,2 +1,2 @@
 build/lookatch-agent=/usr/bin/
-rpm/config.json=/etc/lookatch/config.json
+package/rpm/config.json=/etc/lookatch/config.json
