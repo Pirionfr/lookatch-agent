@@ -90,8 +90,9 @@ deb:
 			--version $(shell echo $$(./build/lookatch-agent version| head -1 | awk '{print $$2}')) \
 			-n lookatch-agent \
 			-d logrotate \
-			-s dir -t deb \
-			-a all \
+			-s dir \
+			-t deb \
+			-a amd64 \
 			--deb-user lookatch \
 			--deb-group lookatch \
 			--deb-no-default-config-files \
@@ -111,17 +112,18 @@ rpm:
 		rm -f lookatch-agent*.rpm
 		fpm -m "<Pirionfr>" \
 		  --description "replicate and synchronize your data" \
-			--url "https://github.com/Pirionfr/lookatch-agent" \
+		    --url "https://github.com/Pirionfr/lookatch-agent" \
 			--license "Apache-2.0" \
-			--version "0.0.1" \
+			--version $(shell echo $$(./build/lookatch-agent version| head -1 | awk '{print $$2}')) \
 			-n lookatch-agent \
 			-d logrotate \
-			-s dir -t rpm \
+			-s dir \
+			-t rpm \
 			-a all \
 			--rpm-user lookatch \
 			--rpm-group lookatch \
 			--config-files /etc/lookatch/config.json \
-			--rpm-init  package/rpm/lookatch-agent.init \
+			--rpm-init package/rpm/lookatch-agent.init \
 			--before-install package/rpm/before-install.sh \
 			--after-install package/rpm/after-install.sh \
 			--before-upgrade package/rpm/before-upgrade.sh \
