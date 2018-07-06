@@ -87,7 +87,7 @@ deb:
 		  --description "replicate and synchronize your data" \
 			--url "https://github.com/Pirionfr/lookatch-agent" \
 			--license "Apache-2.0" \
-			--version $(shell echo $$(./build/lookatch-agent version| head -1 | awk '{print $$2}')) \
+			--version $(shell echo $$(./build/lookatch-agent version| head -1 | awk '{print $$3}')) \
 			-n lookatch-agent \
 			-d logrotate \
 			-s dir \
@@ -114,7 +114,7 @@ rpm:
 		  --description "replicate and synchronize your data" \
 		    --url "https://github.com/Pirionfr/lookatch-agent" \
 			--license "Apache-2.0" \
-			--version $(shell echo $$(./build/lookatch-agent version| head -1 | awk '{print $$2}')) \
+			--version $(shell echo $$(./build/lookatch-agent version | head -1 | awk '{print $$3}')) \
 			-n lookatch-agent \
 			-d logrotate \
 			-s dir \

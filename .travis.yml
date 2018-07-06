@@ -16,7 +16,6 @@ script:
   - make release
   - make test
   - make cover
-  - make deb
 
 after_success:
 - bash <(curl -s https://codecov.io/bash)
