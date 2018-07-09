@@ -1,7 +1,5 @@
 FROM golang:1.9
 
-
-
 # install fpm, git, gpg
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ruby \
