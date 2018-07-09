@@ -13,7 +13,7 @@ pipeline {
         }
         stage("build artifacts") {
             steps {
-               sh '''
+               sh '''#!/bin/bash -xe
                     make VERSION=${params.lkVersion} deb
                     make VERSION=${params.lkVersion} rpm
                     gpg --import ${gpgprivatekey}
