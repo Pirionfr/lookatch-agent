@@ -17,4 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # some gpg commands here, just to initialize the .gnupg directory.
 RUN gpg --list-keys
 
+WORKDIR /root
+VOLUME "/root/.gnupg/"
+
 CMD ["bash"]
