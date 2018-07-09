@@ -3,7 +3,7 @@ FROM golang:latest
 
 
 # install fpm, git, gpg
-RUN apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
         ruby \
         ruby-dev \
         gcc \
@@ -13,5 +13,7 @@ RUN apt-get install -y --no-install-recommends \
         rpm \
         gnupg \
         git \
+    && rm -rf /var/lib/apt/lists/* \
     && gem install --no-ri --no-rdoc fpm
 
+CMD ["bash"]
