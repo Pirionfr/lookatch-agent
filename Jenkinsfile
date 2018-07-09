@@ -14,8 +14,8 @@ pipeline {
         stage("build artifacts") {
             steps {
                sh '''#!/bin/bash -xe
-                    make VERSION=${params.lkVersion} deb
-                    make VERSION=${params.lkVersion} rpm
+                    make deb
+                    make rpm
                     gpg --import ${gpgprivatekey}
                     chmod +x package/rpm-sign
                     ./package/rpm-sign ${gpgname} ${rpmpass} lookatch-agent*.rpm
