@@ -16,8 +16,7 @@ pipeline {
                sh '''
                     make VERSION=${params.lkVersion} deb
                     make VERSION=${params.lkVersion} rpm
-                    echo ${gpgprivatekey} > private.key
-                    gpg --import private.key
+                    gpg --import ${gpgprivatekey}
                     chmod +x package/rpm-sign
                     ./package/rpm-sign ${gpgname} ${rpmpass} lookatch-agent*.rpm
                 '''
