@@ -14,4 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && gem install --no-ri --no-rdoc fpm
 
+# some gpg commands here, just to initialize the .gnupg directory.
+RUN gpg --list-keys
+
 CMD ["bash"]
