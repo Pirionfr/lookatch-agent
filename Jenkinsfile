@@ -14,7 +14,6 @@ pipeline {
         stage("build artifacts") {
             steps {
                sh '''#!/bin/bash -xe
-                    whoami
                     make deb
                     make rpm
                     gpg --import ${gpgprivatekey}
