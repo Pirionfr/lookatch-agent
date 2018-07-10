@@ -28,13 +28,15 @@ pipeline {
         }
         stage("build artifacts") {
             steps {
-                sh '''#!/bin/bash -xe
-                    export GPG_TTY=$(tty)
-                    make deb
-                    make rpm
-                    gpg --list-keys ${gpgname}
-                    ./package/rpm-sign ${gpgname} ${rpmpass} lookatch-agent*.rpm
-                '''
+                withCredentials([string(credentialsId: '${rpmpass}', variable: 'GPGTOKEN')]) {
+                    sh '''#!/bin/bash -xe
+                        export GPG_TTY=$(tty)
+                        make deb
+                        make rpm
+                        gpg --list-keys ${gpgname}
+                        ./package/rpm-sign ${gpgname} $GPGTOKEN lookatch-agent*.rpm
+                    '''
+                }
             }
         }
     }
