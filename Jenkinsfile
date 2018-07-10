@@ -38,5 +38,14 @@ pipeline {
                 }
             }
         }
+        stage("deploy artifacts") {
+            steps {
+                withCredentials([string(credentialsId: '${apirpmpass}', variable: 'apipass')]) {
+                    sh '''#!/bin/bash -xe
+
+                    '''
+                }
+            }
+        }
     }
 }
