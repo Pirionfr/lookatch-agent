@@ -32,6 +32,7 @@ pipeline {
                     export GPG_TTY=$(tty)
                     make deb
                     make rpm
+                    gpg --list-keys ${gpgname}
                     ./package/rpm-sign ${gpgname} ${rpmpass} lookatch-agent*.rpm
                 '''
             }
