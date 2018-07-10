@@ -17,14 +17,15 @@ pipeline {
         }
         stage("build artifacts") {
             steps {
-               sh '''#!/bin/bash -xe
-                    make deb
-                    make rpm
-                    `cat ${gpgprivatekey}` > private.key
-                    gpg --import private.key
-                    chmod +x package/rpm-sign
-                    ./package/rpm-sign ${gpgname} ${rpmpass} lookatch-agent*.rpm
-                '''
+                withCredentials([file(credentialsId: '${gpgprivatekey}', variable: 'FILE')]) {
+                   sh '''#!/bin/bash -xe
+                        make deb
+                        make rpm
+                        gpg --import private.key
+                        chmod +x package/rpm-sign
+                        ./package/rpm-sign ${gpgname} ${rpmpass} lookatch-agent*.rpm
+                    '''
+                }
             }
         }
     }
