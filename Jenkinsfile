@@ -8,7 +8,7 @@ pipeline {
          stage('Init') {
             steps {
                 withCredentials([file(credentialsId: '${gpgprivatekey}', variable: 'FILE')]) {
-                    sh '''
+                    sh '''#!/bin/bash -xe
                         export GPG_TTY=$(tty)
                         echo "$FILE" | gpg --batch --import
                         chmod +x package/rpm-sign
