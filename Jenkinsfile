@@ -10,7 +10,7 @@ pipeline {
                 withCredentials([file(credentialsId: '${gpgprivatekey}', variable: 'FILE')]) {
                     sh '''#!/bin/bash -xe
                         export GPG_TTY=$(tty)
-                        cat "$FILE" | gpg --batch --import
+                        gpg --batch --import $FILE
                         chmod +x package/rpm-sign
                     '''
                 }
