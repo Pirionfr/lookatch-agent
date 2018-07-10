@@ -21,7 +21,8 @@ pipeline {
                    sh '''#!/bin/bash -xe
                         make deb
                         make rpm
-                        gpg --import $FILE
+                        cat $FILE
+                        cat $FILE | base64 --decode | gpg --import --no-tty --batch --yes
                         chmod +x package/rpm-sign
                         ./package/rpm-sign ${gpgname} ${rpmpass} lookatch-agent*.rpm
                     '''
