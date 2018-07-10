@@ -18,4 +18,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN gpg --list-keys
 
+RUN echo "pinentry-program /usr/bin/pinentry-tty" > ~/.gnupg/gpg-agent.conf \
+    && gpg-connect-agent reloadagent /bye
+
+
+
 CMD []
