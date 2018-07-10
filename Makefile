@@ -130,4 +130,5 @@ rpm:
 			--after-upgrade package/rpm/after-upgrade.sh \
 			--before-remove package/rpm/before-remove.sh \
 			--after-remove package/rpm/after-remove.sh \
-			--inputs package/rpm/input
+			--inputs package/rpm/input \
+			--rpm-sign

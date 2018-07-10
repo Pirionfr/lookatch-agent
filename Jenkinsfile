@@ -31,10 +31,9 @@ pipeline {
                 withCredentials([string(credentialsId: '${rpmpass}', variable: 'GPGTOKEN')]) {
                     sh '''#!/bin/bash -xe
                         export GPG_TTY=$(tty)
+                        echo "%_gpg_name C4F21B73" > ~/.rpmmacros
                         make deb
                         make rpm
-                        gpg --list-keys ${gpgname}
-                        ./package/rpm-sign ${gpgname} $GPGTOKEN lookatch-agent*.rpm
                     '''
                 }
             }
