@@ -22,7 +22,7 @@ pipeline {
                         make deb
                         make rpm
                         export GPG_TTY=$(tty)
-                        gpg --import $FILE
+                        echo "$FILE" | gpg --batch --import
                         chmod +x package/rpm-sign
                         ./package/rpm-sign ${gpgname} ${rpmpass} lookatch-agent*.rpm
                     '''
