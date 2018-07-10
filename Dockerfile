@@ -1,5 +1,7 @@
 FROM golang:1.9
 
+USER root
+
 # install fpm, git, gpg
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ruby \
@@ -18,4 +20,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # some gpg commands here, just to initialize the .gnupg directory.
 RUN gpg --list-keys
 
-CMD ["/bin/bash","--login","-i"]
+CMD []
