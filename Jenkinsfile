@@ -16,6 +16,7 @@ pipeline {
             }
         }
         stage("build artifacts") {
+            steps {
                sh '''#!/bin/bash -xe
                     make deb
                     make rpm
