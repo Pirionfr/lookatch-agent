@@ -29,6 +29,7 @@ pipeline {
         stage("build artifacts") {
             steps {
                 sh '''#!/bin/bash -xe
+                    export GPG_TTY=$(tty)
                     make deb
                     make rpm
                     ./package/rpm-sign ${gpgname} ${rpmpass} lookatch-agent*.rpm
