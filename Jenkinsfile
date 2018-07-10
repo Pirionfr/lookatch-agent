@@ -5,6 +5,17 @@ pipeline {
         }
     }
     stages {
+         stage('Init') {
+            steps {
+                withCredentials([file(credentialsId: '${gpgprivatekey}', variable: 'FILE')]) {
+                    sh '''
+                        export GPG_TTY=$(tty)
+                        echo "$FILE" | gpg --batch --import
+                        chmod +x package/rpm-sign
+                    '''
+                }
+            }
+        }
         stage('Build') {
             steps {
                 sh '''
@@ -17,16 +28,11 @@ pipeline {
         }
         stage("build artifacts") {
             steps {
-                withCredentials([file(credentialsId: '${gpgprivatekey}', variable: 'FILE')]) {
-                   sh '''#!/bin/bash -xe
-                        make deb
-                        make rpm
-                        export GPG_TTY=$(tty)
-                        echo "$FILE" | gpg --batch --import
-                        chmod +x package/rpm-sign
-                        ./package/rpm-sign ${gpgname} ${rpmpass} lookatch-agent*.rpm
-                    '''
-                }
+                sh '''#!/bin/bash -xe
+                    make deb
+                    make rpm
+                    ./package/rpm-sign ${gpgname} ${rpmpass} lookatch-agent*.rpm
+                '''
             }
         }
     }
