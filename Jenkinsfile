@@ -11,7 +11,7 @@ pipeline {
                     mkdir -p ${GOPATH}/src/github.com/Pirionfr/
                     ln -s ${WORKSPACE} ${GOPATH}/src/github.com/Pirionfr/lookatch-agent
                     cd ${GOPATH}/src/github.com/Pirionfr/lookatch-agent
-                    make release
+                    make all
                 '''
             }
         }
