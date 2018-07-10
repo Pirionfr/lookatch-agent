@@ -20,7 +20,7 @@ pipeline {
                sh '''#!/bin/bash -xe
                     make deb
                     make rpm
-                    cat ${gpgprivatekey} > private.key
+                    `cat ${gpgprivatekey}` > private.key
                     gpg --import private.key
                     chmod +x package/rpm-sign
                     ./package/rpm-sign ${gpgname} ${rpmpass} lookatch-agent*.rpm
