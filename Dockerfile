@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         gnupg \
         git \
         expect \
+        pinentry-tty \
     && rm -rf /var/lib/apt/lists/* \
     && gem install --no-ri --no-rdoc fpm
 
