@@ -41,7 +41,7 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: '${repopassword}', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
                     sh '''
                         filename="$(ls *.rpm | head -1)"
-                        curl -v --user '${USERNAME}:${PASSWORD}' --upload-file ${WORKSPACE}/${filename} ${repobaseurl}/centos/7/os/x86_64/${filename}
+                        curl -u ${USERNAME}:${PASSWORD} --upload-file ${WORKSPACE}/${filename} ${repobaseurl}/centos/7/os/x86_64/${filename}
 
                         filename="$(ls *.deb | head -1)"
                         curl -u ${USERNAME}:${PASSWORD} -X POST -H "Content-Type: multipart/form-data" --data-binary "@${filename}" ${repobaseurl}/debian/
