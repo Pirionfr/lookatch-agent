@@ -22,7 +22,7 @@ pipeline {
                     mkdir -p ${GOPATH}/src/github.com/Pirionfr/
                     ln -s ${WORKSPACE} ${GOPATH}/src/github.com/Pirionfr/lookatch-agent
                     cd ${GOPATH}/src/github.com/Pirionfr/lookatch-agent
-                    make all
+                    make release
                 '''
             }
         }
@@ -32,7 +32,7 @@ pipeline {
                     sh '''#!/bin/bash -xe
                         make deb
                         make rpm
-                        keygrip=$(gpg --with-keygrip -K C4F21B73 | grep Keygrip | head -1 | sed "s/ = /\n/g" | tail -1)
+                        keygrip=$(gpg --with-keygrip -K C4F21B73 | grep Keygrip | head -1 | sed "s/ = /\\n/g" | tail -1)
                         gpg-preset-passphrase --passphrase ${GPGTOKEN} --preset ${keygrip}
                         rpm --resign -D "_signature gpg" -D "_gpg_name C4F21B73" lookatch-agent*.rpm
                     '''
