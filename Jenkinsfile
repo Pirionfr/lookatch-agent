@@ -38,7 +38,7 @@ pipeline {
         }
         stage("deploy artifacts") {
             steps {
-                withCredentials([usernamePassword(credentialsId: '${repoPassword}', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                withCredentials([usernamePassword(credentialsId: '${repopassword}', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
                     sh '''
                         filename="$(ls *.rpm | head -1)"
                         IFS='.' read -ra ARCH <<< "$filename"
