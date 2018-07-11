@@ -31,7 +31,7 @@ pipeline {
                 withCredentials([string(credentialsId: '${rpmpass}', variable: 'GPGTOKEN')]) {
                     sh '''#!/bin/bash -xe
                         export GPG_TTY=$(tty)
-                        echo "%_gpg_name C4F21B73" > ~/.rpmmacros
+                        echo "%_gpg_name C4F21B73" >> ~/.rpmmacros
                         make deb
                         make rpm
                     '''
@@ -40,9 +40,14 @@ pipeline {
         }
         stage("deploy artifacts") {
             steps {
-                withCredentials([string(credentialsId: '${apirpmpass}', variable: 'apipass')]) {
-                    sh '''#!/bin/bash -xe
+                withCredentials([string(credentialsId: '${repoPassword}', variable: 'password')]) {
+                    sh '''
+                        filename="$(ls *.rpm | head -1)"
+                        IFS='.' read -ra ARCH <<< "$filename"
+                        curl -v --user 'jenkins-upload:${password}' --upload-file ${WORKSPACE}/${filename} ${repobaseurl}/centos/7/os/${ADDR[-2]}/${filename}
 
+                        filename="$(ls *.deb | head -1)"
+                        curl -u jenkins-upload:${password} -X POST -H "Content-Type: multipart/form-data" --data-binary "@${filename}" ${repobaseurl}/debian/
                     '''
                 }
             }
