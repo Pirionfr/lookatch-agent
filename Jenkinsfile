@@ -10,8 +10,8 @@ pipeline {
                 withCredentials([file(credentialsId: '${gpgprivatekey}', variable: 'FILE')]) {
                     sh '''#!/bin/bash -xe
                         export GPG_TTY=$(tty)
+                        gpg-connect-agent reloadagent /bye
                         gpg --batch --import $FILE
-                        chmod +x package/rpm-sign
                     '''
                 }
             }
@@ -32,6 +32,9 @@ pipeline {
                     sh '''#!/bin/bash -xe
                         make deb
                         make rpm
+                        keygrip=$(gpg --with-keygrip -K C4F21B73 | grep Keygrip | head -1 | sed 's/ = /\n/g' | tail -1)
+                        gpg-preset-passphrase --passphrase ${GPGTOKEN} --preset ${keygrip}
+                        rpm --resign -D "_signature gpg" -D "_gpg_name C4F21B73" lookatch-agent-0.0.1-1.x86_64.rpm
                     '''
                 }
             }
