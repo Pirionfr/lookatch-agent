@@ -97,7 +97,7 @@ deb:
 			--deb-group lookatch \
 			--deb-no-default-config-files \
 			--config-files /etc/lookatch/config.json \
-			--deb-init package/deb/lookatch-agent.init \
+			--deb-systemd package/rpm/lookatch-agent.service \
 			--directories /var/log/lookatch-agent \
 			--before-install package/deb/before-install.sh \
 			--after-install package/deb/after-install.sh \
@@ -123,7 +123,6 @@ rpm:
 			--rpm-user lookatch \
 			--rpm-group lookatch \
 			--config-files /etc/lookatch/config.json \
-			--rpm-init package/rpm/lookatch-agent.init \
 			--before-install package/rpm/before-install.sh \
 			--after-install package/rpm/after-install.sh \
 			--before-upgrade package/rpm/before-upgrade.sh \

@@ -11,4 +11,5 @@ cat << EOF > /etc/logrotate.d/lookatch-agent
 }
 EOF
 
-/etc/init.d/lookatch-agent start
+systemctl enable lookatch-agent.service
+systemctl start lookatch-agent.service

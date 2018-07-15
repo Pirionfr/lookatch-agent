@@ -1,3 +1,3 @@
 #!/bin/bash
-/etc/init.d/lookatch-agent stop
+systemctl stop lookatch-agent.service
 update-rc.d -f lookatch-agent remove

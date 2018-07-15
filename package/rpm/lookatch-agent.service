@@ -1,0 +1,18 @@
+[Unit]
+Description=Lookatch agent
+After=network.target
+ConditionPathExists=/etc/lookatch/config.json
+
+[Service]
+Type=simple
+User=lookatch
+SyslogIdentifier=lookatch
+WorkingDirectory=/tmp
+ExecStart=/usr/bin/lookatch-agent run -c /etc/lookatch/config.json >> /var/log/lookatch/lookatch-agent.log 2>&1
+KillMode=process
+KillSignal=SIGIN
+Restart=on-failure
+LimitNOFILE=512000
+
+[Install]
+WantedBy=multi-user.target
