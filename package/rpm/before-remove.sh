@@ -1,3 +1,3 @@
 #!/bin/bash
-/etc/init.d/lookatch-agent stop
-chkconfig --del lookatch-agent
+systemctl stop lookatch-agent.service
+systemctl disable lookatch-agent.service

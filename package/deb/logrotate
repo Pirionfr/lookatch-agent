@@ -1,8 +1,0 @@
-/var/log/lookatch/lookatch-agent.out /var/log/lookatch/lookatch-agent.err {
-  daily
-  missingok
-  copytruncate
-  rotate 7
-  compress
-  delaycompress
-}
