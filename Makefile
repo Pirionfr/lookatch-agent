@@ -116,7 +116,6 @@ rpm:
 			--license "Apache-2.0" \
 			--version $(VERSION) \
 			-n lookatch-agent \
-			-d logrotate \
 			-s dir \
 			-t rpm \
 			-a amd64 \

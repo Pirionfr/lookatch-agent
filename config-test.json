@@ -2,9 +2,9 @@
   "agent": {
     "env": "test",
     "loglevel": "debug",
-    "tenant": "test",
-    "hostname": "test",
-    "uuid": "test"
+    "tenant": "358b2ec0-a2a3-46f0-aa5d-b671f3156e36",
+    "secretkey": "2v6MGDUkLUGwIi9qlPuZixr9rgCB5NEpoZz6VrUziLn3f5kpguwUxsegZQTy7Di3",
+    "uuid": "d9b4cc7d-61ed-4792-aa51-c83dfd333923"
   },
   "sinks": {
     "default": {
