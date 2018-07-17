@@ -7,3 +7,7 @@ vendor/**
 build
 *.coverprofile
 */*.coverprofile
+coverage.txt
+*.log
+*.deb
+*.rpm
