@@ -16,10 +16,16 @@
     "default": {
       "autostart": true,
       "enabled": true,
-      "type" : "random",
+      "type" : "postgresqlCDC",
       "sinks": ["default"],
-      "wait" : "1s"
-
+      "filter": null,
+      "filter_policy": "accept",
+      "database": "test",
+      "host": "217.182.93.191",
+      "password": "slavepass",
+      "port": 5432,
+      "slot_name": "opendata_test",
+      "user": "debian"
     }
   }
 }

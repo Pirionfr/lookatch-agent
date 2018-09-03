@@ -161,8 +161,8 @@ func (m *MSSQLQuery) Query(query string) {
 }
 
 // QueryMeta execute query meta string
-func (m *MSSQLQuery) QueryMeta(query string, table string, db string, mapAdd map[string]interface{}) map[string]interface{} {
+func (m *MSSQLQuery) QueryMeta(query string) []map[string]interface{} {
 	m.Connect()
 	defer m.db.Close()
-	return m.JDBCQuery.QueryMeta(query, table, db, mapAdd)
+	return m.JDBCQuery.QueryMeta(query)
 }

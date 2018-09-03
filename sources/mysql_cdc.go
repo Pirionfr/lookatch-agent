@@ -436,12 +436,15 @@ func (m *MysqlCDC) GetFirstBinlog() (string, uint32) {
 	}
 	q := "SHOW BINLOG EVENTS limit 1"
 
-	colmap := make(map[string]interface{})
-	colmap = m.query.QueryMeta(q, "", "", colmap)
+	result := m.query.QueryMeta(q)
+	if result == nil {
+		log.Error("Querying first binlog failed")
+		return "", 0
+	}
 
-	if colmap["Log_name"] != nil && colmap["Pos"] != nil {
-		pos, _ := colmap["Pos"].(uint64)
-		return colmap["Log_name"].(string), uint32(pos)
+	if result[0]["Log_name"] != nil && result[0]["Pos"] != nil {
+		pos, _ := result[0]["Pos"].(uint64)
+		return result[0]["Log_name"].(string), uint32(pos)
 	}
 	return "", 0
 }
@@ -458,12 +461,15 @@ func (m *MysqlCDC) GetlastBinlog() (string, uint32) {
 	}
 	q := "SHOW MASTER STATUS"
 
-	colmap := make(map[string]interface{})
-	colmap = m.query.QueryMeta(q, "", "", colmap)
+	result := m.query.QueryMeta(q)
+	if result == nil {
+		log.Error("Querying first binlog failed")
+		return "", 0
+	}
 
-	if colmap["File"] != nil && colmap["Position"] != nil {
-		pos, _ := colmap["Position"].(uint64)
-		return colmap["File"].(string), uint32(pos)
+	if result[0]["File"] != nil && result[0]["Position"] != nil {
+		pos, _ := result[0]["Position"].(uint64)
+		return result[0]["File"].(string), uint32(pos)
 	}
 	return "", 0
 }
@@ -541,4 +547,20 @@ func (m *MysqlCDC) readOffset(offset string) {
 		}
 		m.logFilename.Store(tabFile[0])
 	}
+}
+
+//get slot status
+func (p *PostgreSQLCDC) getSlotStatus() bool {
+	// Fetch the restart LSN of the slot, to establish a starting point
+	query := fmt.Sprintf("select active from pg_replication_slots where slot_name='%s'", p.config.Slot_name)
+	result := p.query.QueryMeta(query)
+	if result == nil {
+		log.Error("Error while getting Slot Status")
+		return false
+	}
+
+	if !result[0]["active"].(bool) {
+		return false
+	}
+	return true
 }

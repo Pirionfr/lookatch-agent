@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"fmt"
 )
 
 // Agent representation of agent
@@ -426,23 +427,26 @@ func (a *Agent) GetSchemas() *control.Agent {
 
 // healthCheckChecker start health check endpoint
 func (a *Agent) healthCheckChecker() {
-	log.Debug("Starting healthcheck Checker")
+	port := a.config.GetInt("agent.healthport")
+	log.WithFields(log.Fields{
+		"port": port,
+	}).Debug("Starting health check")
 	var wg sync.WaitGroup
 	wg.Add(1)
 	http.HandleFunc("/health/status", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Server", "A Go Web Server")
 		if a.HealthCheck() {
 			w.WriteHeader(200)
 		} else {
-			w.WriteHeader(400)
+			w.WriteHeader(503)
 		}
 	})
 	go func() {
 		wg.Done()
-		http.ListenAndServe(":8080", nil)
+		http.ListenAndServe(":"+ strconv.Itoa(port), nil)
 	}()
 	wg.Wait()
-	request, _ := http.NewRequest("GET", "http://localhost:8080/health/status", nil)
+	url := fmt.Sprintf("http://localhost:%d/health/status", port)
+	request, _ := http.NewRequest("GET", url, nil)
 	client := &http.Client{}
 	resp, err := client.Do(request)
 	if err != nil && resp == nil {

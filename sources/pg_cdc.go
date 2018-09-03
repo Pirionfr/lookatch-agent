@@ -70,8 +70,9 @@ type (
 
 	// Meta representation of metadata
 	Meta struct {
-		LastState string `json:"message"`
-		Lsn       uint64 `json:"offset"`
+		LastState  string `json:"laststate"`
+		Lsn        uint64 `json:"offset"`
+		slotStatus bool   `json:"slotstatus"`
 	}
 )
 
@@ -158,6 +159,7 @@ func (p *PostgreSQLCDC) Start(i ...interface{}) (err error) {
 			"error": err,
 		}).Fatal("NewReplicator error")
 	}
+	p.StartReplication()
 	// consume events
 	go p.checkStatus()
 	go p.decodeEvents()
@@ -181,6 +183,7 @@ func (p *PostgreSQLCDC) GetMeta() map[string]interface{} {
 	if p.status != control.SourceStatusWaitingForMETA {
 		meta["offset"] = p.meta.Lsn
 		meta["offset_agent"] = p.Offset
+		meta["slot_status"] = p.meta.slotStatus
 	}
 
 	return meta
@@ -203,7 +206,7 @@ func (p *PostgreSQLCDC) GetStatus() interface{} {
 
 // HealthCheck returns true if ok
 func (p *PostgreSQLCDC) HealthCheck() bool {
-	return p.status == control.SourceStatusRunning
+	return p.status == control.SourceStatusRunning && p.meta.slotStatus
 }
 
 // GetAvailableActions returns available actions
@@ -260,28 +263,30 @@ func (p *PostgreSQLCDC) NewReplicator() (*pgx.ReplicationConn, error) {
 	if conn.IsAlive() {
 		log.Debug("connection OK")
 	}
+	return conn, nil
 
+}
+
+func (p *PostgreSQLCDC) StartReplication() {
 	// start replication
 	log.WithFields(log.Fields{
 		"offset": p.meta.Lsn,
 	}).Debug("StartReplication")
-	err = conn.StartReplication(p.config.Slot_name, p.meta.Lsn, -1)
+
+	err := p.repConn.StartReplication(p.config.Slot_name, p.meta.Lsn, -1)
 	if err != nil {
 		//slot not created waiting for event
 		for strings.Contains(err.Error(), "SQLSTATE 42704") {
 			log.Warn("NewReplicator()", err.Error())
 			log.Warn("Waiting 5 seconds to try again")
 			time.Sleep(5 * time.Second)
-			err = conn.StartReplication(p.config.Slot_name, p.meta.Lsn, -1)
+			err = p.repConn.StartReplication(p.config.Slot_name, p.meta.Lsn, -1)
 		}
 		log.WithFields(log.Fields{
 			"error": err,
 		}).Fatal("Unable to StartReplication")
 		os.Exit(1)
 	}
-
-	return conn, nil
-
 }
 
 // checkStatus check Status
@@ -290,8 +295,8 @@ func (p *PostgreSQLCDC) checkStatus() {
 	defer log.WithFields(log.Fields{
 		"LastOffset": err,
 	}).Info("Stop writing Lsn on file")
-
 	for range (time.NewTicker(time.Second * 10)).C {
+
 		// Stream closed
 		if !p.repConn.IsAlive() {
 			//reconnect
@@ -302,10 +307,18 @@ func (p *PostgreSQLCDC) checkStatus() {
 					"error": err,
 				}).Fatal("NewReplicator()")
 			}
+
 		}
+
+		p.meta.slotStatus = p.getSlotStatus()
+		if !p.meta.slotStatus {
+			p.StartReplication()
+		}
+
 		//send standbyStatus
 		log.WithFields(log.Fields{
-			"offset": err,
+			"offset": p.meta.Lsn,
+			"slotStatus": p.meta.slotStatus,
 		}).Info("Send agent Status")
 		standbyStatus, _ := pgx.NewStandbyStatus(p.meta.Lsn)
 		err := p.repConn.SendStandbyStatus(standbyStatus)
@@ -340,6 +353,7 @@ func (p *PostgreSQLCDC) decodeEvents() {
 					errMsg := "NewReplicator() : "
 					log.Fatal(errMsg, err.Error())
 				}
+				p.StartReplication()
 			}
 			log.WithFields(log.Fields{
 				"error": err,

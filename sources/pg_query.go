@@ -163,8 +163,8 @@ func (p *PostgreSQLQuery) Query(query string) {
 }
 
 // QueryMeta execute query meta string
-func (p *PostgreSQLQuery) QueryMeta(query string, table string, db string, mapAdd map[string]interface{}) map[string]interface{} {
+func (p *PostgreSQLQuery) QueryMeta(query string) []map[string]interface{} {
 	p.Connect()
 	defer p.db.Close()
-	return p.JDBCQuery.QueryMeta(query, table, db, mapAdd)
+	return p.JDBCQuery.QueryMeta(query)
 }

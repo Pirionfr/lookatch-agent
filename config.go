@@ -54,6 +54,12 @@ func initializeConfig() (*viper.Viper, error) {
 		m["secretkey"] = key
 	}
 
+	if port := v.GetInt("agent.healthport"); port != 0 {
+		m["healthport"] = port
+	} else {
+		m["healthport"] = 8080
+	}
+
 	hostname, err := os.Hostname()
 	if err != nil {
 		return v, fmt.Errorf("Unable to get hostname : %v", err)

@@ -348,26 +348,28 @@ func (j *JDBCQuery) ProcessLines(columns []string, lines [][]interface{}, mapcha
 }
 
 // QueryMeta execute query metadata
-func (j *JDBCQuery) QueryMeta(query string, table string, db string, mapAdd map[string]interface{}) map[string]interface{} {
+func (j *JDBCQuery) QueryMeta(query string) []map[string]interface{} {
 
+	var result []map[string]interface{}
 	err := j.db.Ping()
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
-		}).Error("Connection is dead")
+		}).Fatal("Connection is dead")
 	}
 	rows, err := j.db.Query(query)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
-		}).Error("Connection is dead")
+		}).Error("query failed")
+		return result
 	}
 
 	columns, _ := rows.Columns()
 	count := len(columns)
 	values := make([]interface{}, count)
 	valuePtrs := make([]interface{}, count)
-	//colmap := make(map[string]interface{})
+	colmap := make(map[string]interface{})
 
 	for rows.Next() {
 		for i := range columns {
@@ -383,10 +385,11 @@ func (j *JDBCQuery) QueryMeta(query string, table string, db string, mapAdd map[
 			} else {
 				v = val
 			}
-			mapAdd[col] = v
+			colmap[col] = v
 		}
+		result = append(result, colmap)
 	}
-	return mapAdd
+	return result
 }
 
 // ExtractDatabaseTable Extract Database and Table from query

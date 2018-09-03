@@ -150,9 +150,9 @@ func (m *MySQLQuery) Query(query string) {
 }
 
 // QueryMeta execute query meta string
-func (m *MySQLQuery) QueryMeta(query string, table string, db string, mapAdd map[string]interface{}) map[string]interface{} {
+func (m *MySQLQuery) QueryMeta(query string) []map[string]interface{} {
 	m.Connect("information_schema")
 	defer m.db.Close()
-	return m.JDBCQuery.QueryMeta(query, table, db, mapAdd)
+	return m.JDBCQuery.QueryMeta(query)
 
 }
