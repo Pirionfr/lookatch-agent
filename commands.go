@@ -20,7 +20,7 @@ var (
 	agentCmd = &cobra.Command{
 		Use:   "run",
 		Short: "run agent",
-		Long:  `run an instance of an agent.`,
+		Long:  `run an instance of an agent`,
 		Run: func(cmd *cobra.Command, args []string) {
 			runAgent(cmd, args)
 		},
@@ -29,7 +29,7 @@ var (
 	statusCmd = &cobra.Command{
 		Use:   "status",
 		Short: "get status",
-		Long:  `get metrics and status for the running instance. `,
+		Long:  `get metrics and status for the running instance`,
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Println("todo")
 		},

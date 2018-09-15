@@ -44,7 +44,7 @@ func runAgent(cmd *cobra.Command, s []string) {
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": errors.ErrorStack(err),
-		}).Error("There was an error:")
+		}).Error("There was an error")
 	}
 	log.Info("Closing, Bye !")
 }
@@ -60,7 +60,7 @@ func init() {
 	signal.Notify(signalCh, os.Interrupt)
 	go func() {
 		<-signalCh
-		log.Info("Got SIGINT  signal, I quit")
+		log.Info("Got SIGINT signal, I quit")
 		close(closing)
 	}()
 }

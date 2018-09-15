@@ -36,3 +36,17 @@ That way, you can process data no matter the backend it comes from and feed any 
   }
 }
 ``` 
+
+## Run
+
+Export your credentials as environment variables.
+
+```
+export TENANT=xxxxx
+export UUID=xxxxx
+export SECRETKEY=xxxxx
+```
+
+```
+lookatch-agent run -c config.json
+```
