@@ -1,6 +1,7 @@
 {
   "agent": {
-    "loglevel": "debug"
+    "loglevel": "debug",
+    "healthport" : 8080
   },
   "auth": {
     "service": "https://datacollector.ovh.com/auth/token"
