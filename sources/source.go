@@ -56,6 +56,7 @@ var factory = map[string]sourceCreatorT{
 	PostgreSQLQueryType: newPostgreSQLQuery,
 	PostgreSQLCDCType:   newPostgreSQLCdc,
 	MSSQLQueryType:      newMSSQLQuery,
+	SyslogType:			 newSyslog,
 }
 
 // New create new source
