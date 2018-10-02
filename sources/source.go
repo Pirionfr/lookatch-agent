@@ -49,14 +49,15 @@ type sourceCreatorT func(*Source) (SourceI, error)
 
 // factory source factory
 var factory = map[string]sourceCreatorT{
-	DummyType:           newDummy,
-	RandomType:          newRandom,
-	MysqlQueryType:      newMysqlQuery,
-	MysqlCDCType:        newMysqlCdc,
-	PostgreSQLQueryType: newPostgreSQLQuery,
-	PostgreSQLCDCType:   newPostgreSQLCdc,
-	MSSQLQueryType:      newMSSQLQuery,
-	SyslogType:			 newSyslog,
+	DummyType:               newDummy,
+	RandomType:              newRandom,
+	MysqlQueryType:          newMysqlQuery,
+	MysqlCDCType:            newMysqlCdc,
+	PostgreSQLQueryType:     newPostgreSQLQuery,
+	PostgreSQLCDCType:       newPostgreSQLCdc,
+	MSSQLQueryType:          newMSSQLQuery,
+	SyslogType:              newSyslog,
+	FileReadingFollowerType: newFileReadingFollower,
 }
 
 // New create new source
