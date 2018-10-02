@@ -247,6 +247,14 @@
   revision = "bb74f1db0675b241733089d5a1faa5dd8b0ef57b"
 
 [[projects]]
+  branch = "master"
+  digest = "1:9771d1a1fc63bfbc8bc2b66d68d69c772afb480a4c3c2f5af9d741b50ab4da14"
+  name = "github.com/papertrail/go-tail"
+  packages = ["follower"]
+  pruneopts = ""
+  revision = "973c153b04319fc4604d847b09861a5730cbbde2"
+
+[[projects]]
   digest = "1:894aef961c056b6d85d12bac890bf60c44e99b46292888bfa66caf529f804457"
   name = "github.com/pelletier/go-toml"
   packages = ["."]
@@ -548,6 +556,7 @@
     "github.com/juju/errors",
     "github.com/lib/pq",
     "github.com/mediocregopher/radix.v2/pool",
+    "github.com/papertrail/go-tail/follower",
     "github.com/satori/go.uuid",
     "github.com/siddontang/go-mysql/driver",
     "github.com/siddontang/go-mysql/mysql",
