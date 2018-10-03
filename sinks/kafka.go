@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"encoding/binary"
 	"github.com/Pirionfr/lookatch-common/events"
 	"github.com/Pirionfr/lookatch-common/util"
 	"github.com/Shopify/sarama"
@@ -23,16 +24,16 @@ type (
 
 	// kafkaSinkConfig representation of kafka sink config
 	kafkaSinkConfig struct {
-		Tls          bool       `json:"tls"`
-		Topic        string     `json:"topic"`
-		Topic_prefix string     `json:"topic_prefix"`
-		Client_id    string     `json:"client_id"`
-		Brokers      []string   `json:"brokers"`
-		Producer     *kafkaUser `json:"producer"`
-		Consumer     *kafkaUser `json:"consumer"`
-		BatchSize    int        `json:"batchsize"`
-		NbProducer   int        `json:"nbproducer"`
-		Secret       string     `json:"secret"`
+		Tls             bool       `json:"tls"`
+		Topic           string     `json:"topic"`
+		Topic_prefix    string     `json:"topic_prefix"`
+		Client_id       string     `json:"client_id"`
+		Brokers         []string   `json:"brokers"`
+		Producer        *kafkaUser `json:"producer"`
+		Consumer        *kafkaUser `json:"consumer"`
+		MaxMessageBytes int        `json:"maxmessagebytes"`
+		NbProducer      int        `json:"nbproducer"`
+		Secret          string     `json:"secret"`
 	}
 
 	// Kafka representation of kafka sink
@@ -243,10 +244,12 @@ func processKafkaMsg(kafkaMsg *sarama.ConsumerMessage, conf *kafkaSinkConfig, th
 
 // startProducer send message to kafka
 func startProducer(conf *kafkaSinkConfig, in chan *sarama.ProducerMessage, stop chan error) {
-	retries := 0
+
 	saramaConf := sarama.NewConfig()
 	saramaConf.Producer.Retry.Max = 5
 	saramaConf.Producer.Return.Successes = true
+	saramaConf.Producer.MaxMessageBytes = conf.MaxMessageBytes
+
 	if len(conf.Client_id) == 0 {
 		log.Debug("No client id")
 		saramaConf.Net.SASL.Enable = true
@@ -289,54 +292,43 @@ func startProducer(conf *kafkaSinkConfig, in chan *sarama.ProducerMessage, stop 
 		msg                *sarama.ProducerMessage
 		msgs               []*sarama.ProducerMessage
 		lastSend, timepass int64
+		msgsSize, msgSize  int
 	)
 	lastSend = time.Now().Unix()
 ProducerLoop:
 	for {
 		select {
 		case msg = <-in:
-			if msg.Value.Length() != 0 {
-				msgs = append(msgs, msg)
-				enqueued++
-				timepass = time.Now().Unix() - lastSend
-				if timepass >= 1 || len(msgs) >= conf.BatchSize {
-					err := producer.SendMessages(msgs)
-					if err != nil {
-						producerErr := err.(sarama.ProducerErrors)
-						for len(producerErr) > 0 && retries < 10 {
-							log.Warn("basicProducer: failed to push to kafka, try to resend")
-							//TODO check if fisrt error is first event
-							for i, v := range msgs {
-								if v.Value == producerErr[0].Msg.Value {
-									msgs = msgs[i:]
-								}
-							}
-							retries++
-							//resend
-							err = producer.SendMessages(msgs)
-							if err != nil {
-								producerErr = err.(sarama.ProducerErrors)
-							} else {
-								continue
-							}
-
-						}
-						if retries >= 20 {
-							log.WithFields(log.Fields{
-								"nbRetry": retries,
-							}).Panic("Failed to push event to kafka. Stopping agent.")
-						}
-					}
-
-					log.WithFields(log.Fields{
-						"size":     len(msgs),
-						"Timepass": timepass,
-						"enqueued": enqueued,
-					}).Debug("basic producer length")
+			if msg.Value.Length() == 0 {
+				log.Debug("Receive empty Path")
+				if len(msgs) >= 1 {
+					lastSend = sendMsg(msgs, producer)
 					msgs = []*sarama.ProducerMessage{}
-					retries = 0
-					enqueued = 0
+					msgsSize = 0
+				}
+			} else {
 
+				//calcul size
+				msgSize = msgByteSize(msg)
+				if msgSize > conf.MaxMessageBytes {
+					log.Warn("Skip Message")
+
+				} else if msgsSize+msgSize < conf.MaxMessageBytes {
+					msgs = append(msgs, msg)
+					msgsSize += msgSize
+				} else {
+					lastSend = sendMsg(msgs, producer)
+					msgs = []*sarama.ProducerMessage{}
+					msgs = append(msgs, msg)
+					msgsSize = msgSize
+				}
+
+				//use to clear slice
+				timepass = time.Now().Unix() - lastSend
+				if timepass >= 1 {
+					lastSend = sendMsg(msgs, producer)
+					msgs = []*sarama.ProducerMessage{}
+					msgsSize = 0
 				}
 			}
 		case <-stop:
@@ -347,4 +339,43 @@ ProducerLoop:
 	log.WithFields(log.Fields{
 		"Enqueued": enqueued,
 	}).Info("startProducer")
+}
+
+func sendMsg(msgs []*sarama.ProducerMessage, producer sarama.SyncProducer) int64 {
+	retries := 0
+	err := producer.SendMessages(msgs)
+	for err != nil {
+		producerErrs := err.(sarama.ProducerErrors)
+		msgs = []*sarama.ProducerMessage{}
+		for _, v := range producerErrs {
+			log.WithFields(log.Fields{
+				"error": v.Err,
+			}).Warn("failed to push to kafka")
+			msgs = append(msgs, v.Msg)
+		}
+
+		if retries > 20 {
+			log.WithFields(log.Fields{
+				"nbRetry": retries,
+			}).Panic("Failed to push event to kafka. Stopping agent.")
+		}
+		retries++
+		err = producer.SendMessages(msgs)
+	}
+	return time.Now().Unix()
+}
+
+func msgByteSize(msg *sarama.ProducerMessage) int {
+	// the metadata overhead of CRC, flags, etc.
+	size := 26
+	for _, h := range msg.Headers {
+		size += len(h.Key) + len(h.Value) + 2*binary.MaxVarintLen32
+	}
+	if msg.Key != nil {
+		size += msg.Key.Length()
+	}
+	if msg.Value != nil {
+		size += msg.Value.Length()
+	}
+	return size
 }
