@@ -65,11 +65,10 @@ func (a *Auth) GetToken() (token string, err error) {
 	req.Header.Add("X-OVH-HOST", a.hostname)
 
 	resp, err := a.client.Do(req)
+	defer resp.Body.Close()
 	if err != nil {
 		return token, err
 	}
-
-	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {

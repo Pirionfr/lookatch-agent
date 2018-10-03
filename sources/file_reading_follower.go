@@ -39,6 +39,7 @@ func newFileReadingFollower(s *Source) (SourceI, error) {
 	return &FileReadingFollower{
 		Source: s,
 		config: fileReadingFollowerConfig,
+		status: control.SourceStatusWaitingForMETA,
 	}, nil
 }
 
@@ -114,7 +115,8 @@ func (f *FileReadingFollower) GetStatus() interface{} {
 
 // GetAvailableActions returns available actions
 func (f *FileReadingFollower) GetAvailableActions() map[string]*control.ActionDescription {
-	return nil
+	availableAction := make(map[string]*control.ActionDescription)
+	return availableAction
 }
 
 // Process action
@@ -127,14 +129,14 @@ func (f *FileReadingFollower) Process(action string, params ...interface{}) inte
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error": err,
-			}).Fatal("Unable to unmarshal MySQL Query Statement event")
+			}).Fatal("Unable to unmarshal meta event")
 		} else {
-			if val, ok := meta.Data["offset"].(string); ok {
-				f.config.Offset, _ = strconv.ParseInt(val, 10, 64)
+			if val, ok := meta.Data["offset"].(float64); ok {
+				f.config.Offset = int64(val)
 			}
 
-			if val, ok := meta.Data["offset_agent"].(string); ok {
-				f.Offset, _ = strconv.ParseInt(val, 10, 64)
+			if val, ok := meta.Data["offset_agent"].(float64); ok {
+				f.Offset = int64(val)
 			}
 
 			f.status = control.SourceStatusRunning
@@ -174,6 +176,7 @@ func (f *FileReadingFollower) read(){
 			},
 		}
 		f.config.Offset++
+		f.Offset++
 	}
 
 	if t.Err() != nil {

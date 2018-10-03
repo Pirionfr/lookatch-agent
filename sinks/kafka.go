@@ -68,7 +68,7 @@ func (k *Kafka) Start(_ ...interface{}) error {
 	}
 
 	//current kafka threshold is 10MB
-	threshold := 10 << 20
+	threshold := k.kafkaConf.MaxMessageBytes
 	log.WithFields(log.Fields{
 		"threshold": threshold,
 	}).Debug("KafkaSink: started with threshold")
