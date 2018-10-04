@@ -24,7 +24,7 @@ func TestSourcesNew(t *testing.T) {
 
 	eventChan := make(chan *events.LookatchEvent, 1)
 
-	source, ok := New("default", DummyType, vSource, eventChan)
+	source, ok := New("default", RandomType, vSource, eventChan)
 	if ok != nil {
 		t.Fail()
 	}
