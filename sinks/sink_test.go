@@ -1,10 +1,11 @@
 package sinks
 
 import (
-	"github.com/Pirionfr/lookatch-common/events"
-	"github.com/spf13/viper"
 	"reflect"
 	"testing"
+
+	"github.com/Pirionfr/lookatch-common/events"
+	"github.com/spf13/viper"
 )
 
 var (

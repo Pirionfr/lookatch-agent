@@ -7,14 +7,14 @@ import (
 type (
 	//Filter representation of source filter
 	Filter struct {
-		Filter_policy string                 `json:"filter_policy"`
-		Filter        map[string]interface{} `json:"filter"`
+		FilterPolicy string                 `json:"filter_policy" mapstructure:"filter_policy"`
+		Filter       map[string]interface{} `json:"filter"`
 	}
 )
 
 // isAccept returns true if policy is accept
 func (f *Filter) isAccept() bool {
-	return f.Filter_policy == "accept"
+	return f.FilterPolicy == "accept"
 }
 
 // IsFilteredDatabase check if database is filtered

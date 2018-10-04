@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+
 	"github.com/Pirionfr/lookatch-common/control"
+
 	// driver
 	_ "github.com/siddontang/go-mysql/driver"
 	log "github.com/sirupsen/logrus"
@@ -109,7 +111,7 @@ func (m *MySQLQuery) Process(action string, params ...interface{}) interface{} {
 		} else {
 			m.Query(evSQLQuery.Query)
 		}
-		break
+
 	default:
 		log.WithFields(log.Fields{
 			"action": action,

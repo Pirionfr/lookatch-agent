@@ -1,31 +1,31 @@
 package sources
 
 import (
-	log "github.com/sirupsen/logrus"
-	"github.com/Pirionfr/lookatch-common/control"
-	"github.com/Pirionfr/lookatch-common/events"
-	"github.com/papertrail/go-tail/follower"
-	"github.com/Pirionfr/lookatch-common/util"
+	"encoding/json"
 	"io"
 	"strconv"
-	"time"
-	"encoding/json"
 	"sync"
+	"time"
+
+	"github.com/Pirionfr/lookatch-common/control"
+	"github.com/Pirionfr/lookatch-common/events"
+	"github.com/Pirionfr/lookatch-common/util"
+	"github.com/papertrail/go-tail/follower"
+	log "github.com/sirupsen/logrus"
 )
 
 // FileReadingFollower representation of FileReadingFollower
 type FileReadingFollower struct {
 	*Source
-	config     FileReadingFollowerConfig
-	status     string
+	config FileReadingFollowerConfig
+	status string
 }
 
-// SyslogConfig representation of FileReadingFollower Config
+// FileReadingFollowerConfig representation of FileReadingFollower Config
 type FileReadingFollowerConfig struct {
-	Path    string   `json:"path"`
-	Offset  int64    `json:"offset"`
+	Path   string `json:"path"`
+	Offset int64  `json:"offset"`
 }
-
 
 // FileReadingFollowerType type of source
 const FileReadingFollowerType = "fileReadingFollower"
@@ -141,7 +141,7 @@ func (f *FileReadingFollower) Process(action string, params ...interface{}) inte
 
 			f.status = control.SourceStatusRunning
 		}
-		break
+
 	default:
 		log.WithFields(log.Fields{
 			"action": action,
@@ -150,8 +150,7 @@ func (f *FileReadingFollower) Process(action string, params ...interface{}) inte
 	return nil
 }
 
-
-func (f *FileReadingFollower) read(){
+func (f *FileReadingFollower) read() {
 	t, err := follower.New(f.config.Path, follower.Config{
 		Whence: io.SeekCurrent,
 		Offset: f.config.Offset,

@@ -1,13 +1,19 @@
 {
+  "Test": true,
   "Vendor": true,
   "DeadLine": "180s",
   "Enable": [
+    "deadcode",
     "gofmt",
-    "vet",
+    "goimports",
+    "golint",
+    "gosimple",
     "ineffassign",
-    "misspell",
-    "staticcheck",
     "interfacer",
-    "deadcode"
+    "misspell",
+    "unconvert",
+    "unparam",
+    "unused",
+    "vet"
   ]
 }

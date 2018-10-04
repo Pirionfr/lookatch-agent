@@ -2,11 +2,12 @@ package sources
 
 import (
 	"fmt"
+	"reflect"
+	"testing"
+
 	"github.com/Pirionfr/lookatch-common/control"
 	"github.com/Pirionfr/lookatch-common/events"
 	"github.com/spf13/viper"
-	"reflect"
-	"testing"
 )
 
 var vPostgreSQLQuery *viper.Viper
@@ -124,7 +125,7 @@ func TestPostgreSQLQueryIsEnable(t *testing.T) {
 		t.Fail()
 	}
 
-	if PostgreSQLQuery.IsEnable() != true {
+	if !PostgreSQLQuery.IsEnable() {
 		t.Fail()
 	}
 }
@@ -135,7 +136,7 @@ func TestPostgreSQLQueryHealtCheck(t *testing.T) {
 		t.Fail()
 	}
 
-	if PostgreSQLQuery.HealthCheck() != false {
+	if PostgreSQLQuery.HealthCheck() {
 		t.Fail()
 	}
 }

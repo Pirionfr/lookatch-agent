@@ -3,6 +3,13 @@ package core
 import (
 	"bytes"
 
+	"fmt"
+	"net/http"
+	"os"
+	"strconv"
+	"sync"
+	"time"
+
 	"github.com/Pirionfr/lookatch-agent/sinks"
 	"github.com/Pirionfr/lookatch-agent/sources"
 	"github.com/Pirionfr/lookatch-common/control"
@@ -11,12 +18,6 @@ import (
 	"github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"net/http"
-	"os"
-	"strconv"
-	"sync"
-	"time"
-	"fmt"
 )
 
 // Agent representation of agent
@@ -38,14 +39,14 @@ type Agent struct {
 }
 
 // Agent create new agent
-func newAgent(config *viper.Viper, s chan error) (a *Agent, err error) {
+func newAgent(config *viper.Viper, s chan error) (a *Agent) {
 	var controller *Controller
 	status := control.AgentStatusStarting
 
 	log.SetOutput(os.Stdout)
 	//check log level
 	level := config.GetString("agent.loglevel")
-	if err != nil {
+	if level != "" {
 		log.WithFields(log.Fields{
 			"level": config.Get("agent.loglevel"),
 		}).Error("Error while retrieving LogLevel")
@@ -95,10 +96,8 @@ func newAgent(config *viper.Viper, s chan error) (a *Agent, err error) {
 
 // Run run agent
 func Run(config *viper.Viper, s chan error) (err error) {
-	a, err := newAgent(config, s)
-	if err != nil {
-		return
-	}
+	a := newAgent(config, s)
+
 	if config.Get("auth") != nil {
 		err = a.ControllerStart()
 	} else {
@@ -307,13 +306,6 @@ func (a *Agent) setSource(sourceName string, src sources.SourceI) {
 	a.srcMutex.Unlock()
 }
 
-// delSource delete source from name
-func (a *Agent) delSource(sourceName string) {
-	a.srcMutex.Lock()
-	delete(a.sources, sourceName)
-	a.srcMutex.Unlock()
-}
-
 // getSinks get all sinks
 func (a *Agent) getSinks() map[string]sinks.SinkI {
 	a.sinksMutex.RLock()
@@ -334,13 +326,6 @@ func (a *Agent) getSink(sinkName string) (sinks.SinkI, bool) {
 func (a *Agent) setSink(sinkName string, s sinks.SinkI) {
 	a.sinksMutex.Lock()
 	a.sinks[sinkName] = s
-	a.sinksMutex.Unlock()
-}
-
-// delSink delete sink from name
-func (a *Agent) delSink(sinkName string) {
-	a.sinksMutex.Lock()
-	delete(a.sinks, sinkName)
 	a.sinksMutex.Unlock()
 }
 
@@ -442,7 +427,7 @@ func (a *Agent) healthCheckChecker() {
 	})
 	go func() {
 		wg.Done()
-		http.ListenAndServe(":"+ strconv.Itoa(port), nil)
+		http.ListenAndServe(":"+strconv.Itoa(port), nil)
 	}()
 	wg.Wait()
 	url := fmt.Sprintf("http://localhost:%d/health/status", port)

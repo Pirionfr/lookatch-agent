@@ -1,13 +1,15 @@
 package sinks
 
 import (
-	"github.com/Pirionfr/lookatch-common/events"
-	"github.com/spf13/viper"
 	"testing"
 
-	"github.com/Shopify/sarama"
+	"github.com/Pirionfr/lookatch-common/events"
+	"github.com/spf13/viper"
+
 	"strconv"
 	"time"
+
+	"github.com/Shopify/sarama"
 )
 
 var (
@@ -64,7 +66,7 @@ func TestBuildKafkaSinkConfig(t *testing.T) {
 		t.Fail()
 	}
 
-	if conf.Topic_prefix != "lookatch.test_batch" {
+	if conf.TopicPrefix != "lookatch.test_batch" {
 		t.Fail()
 	}
 
@@ -101,7 +103,7 @@ func TestBuildKafkaSinktls(t *testing.T) {
 	}
 	conf := ksink.(*Kafka).kafkaConf
 
-	if conf.Tls != false {
+	if conf.TLS {
 		t.Fail()
 	}
 }
@@ -117,7 +119,7 @@ func TestBuildKafkaSinkClientID(t *testing.T) {
 	}
 	conf := ksink.(*Kafka).kafkaConf
 
-	if conf.Client_id != "test" {
+	if conf.ClientID != "test" {
 		t.Fail()
 	}
 }

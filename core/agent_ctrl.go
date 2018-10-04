@@ -4,6 +4,7 @@ import "github.com/Pirionfr/lookatch-common/control"
 
 import (
 	"encoding/json"
+
 	"github.com/Pirionfr/lookatch-common/rpc"
 	log "github.com/sirupsen/logrus"
 )
@@ -20,33 +21,30 @@ var dispatchAgentFactory = map[string]func(*Agent, *control.Agent) error{
 // HandleMessage Handle Message from rpc
 func (a *Agent) HandleMessage(async chan *rpc.Message) {
 
-	for {
-		select {
-		case request := <-async:
-			//log.Debug("got event type : ", request.Type)
-			switch request.Type {
-			case control.TypeAgent:
-				//handle agent message
-				agentCtrl := &control.Agent{}
-				json.Unmarshal(request.Payload, agentCtrl)
-				a.DispatchAgent(agentCtrl)
-				break
-			case control.TypeSink:
-				sinkCtrl := &control.Sink{}
-				json.Unmarshal(request.Payload, sinkCtrl)
-				log.WithFields(log.Fields{
-					"sink": sinkCtrl,
-				}).Debug("Got Sink message, dispatching")
-				a.DispatchSink(request, sinkCtrl.GetName())
-				break
-			case control.TypeSource:
-				sourceCtrl := &control.Source{}
-				json.Unmarshal(request.Payload, sourceCtrl)
-				log.WithFields(log.Fields{
-					"action": sourceCtrl.Action,
-				}).Debug("Got Source message, dispatching")
-				a.DispatchSource(request, sourceCtrl.GetName())
-			}
+	for request := range async {
+		//log.Debug("got event type : ", request.Type)
+		switch request.Type {
+		case control.TypeAgent:
+			//handle agent message
+			agentCtrl := &control.Agent{}
+			json.Unmarshal(request.Payload, agentCtrl)
+			a.DispatchAgent(agentCtrl)
+
+		case control.TypeSink:
+			sinkCtrl := &control.Sink{}
+			json.Unmarshal(request.Payload, sinkCtrl)
+			log.WithFields(log.Fields{
+				"sink": sinkCtrl,
+			}).Debug("Got Sink message, dispatching")
+			a.DispatchSink(request, sinkCtrl.GetName())
+
+		case control.TypeSource:
+			sourceCtrl := &control.Source{}
+			json.Unmarshal(request.Payload, sourceCtrl)
+			log.WithFields(log.Fields{
+				"action": sourceCtrl.Action,
+			}).Debug("Got Source message, dispatching")
+			a.DispatchSource(request, sourceCtrl.GetName())
 		}
 	}
 }
@@ -87,17 +85,17 @@ func (a *Agent) DispatchSource(payload *rpc.Message, sourceName string) {
 	switch srcCtrl.Action {
 	case control.SourceStart:
 		s.Start()
-		break
+
 	case control.SourceStop:
 		s.Stop()
-		break
+
 	case control.SourceRestart:
 		s.Stop()
 		s.Start()
-		break
+
 	case control.SourceAvailableAction:
 		a.GetSourceAvailableAction(sourceName, &srcCtrl)
-		break
+
 	default:
 		log.Debug("Controller asked for action, sending it")
 		a.getSources()[sourceName].Process(srcCtrl.Action, srcCtrl.Payload)

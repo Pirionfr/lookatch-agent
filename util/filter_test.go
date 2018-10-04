@@ -2,14 +2,15 @@ package util
 
 import (
 	"bytes"
-	"github.com/spf13/viper"
 	"testing"
+
+	"github.com/spf13/viper"
 )
 
 func TestIsAccept(t *testing.T) {
 	filter := &Filter{
-		Filter_policy: "drop",
-		Filter:        nil,
+		FilterPolicy: "drop",
+		Filter:       nil,
 	}
 	if filter.isAccept() {
 		t.Fail()
@@ -17,8 +18,8 @@ func TestIsAccept(t *testing.T) {
 }
 func TestIsAccept2(t *testing.T) {
 	filter := &Filter{
-		Filter_policy: "accept",
-		Filter:        nil,
+		FilterPolicy: "accept",
+		Filter:       nil,
 	}
 	if !filter.isAccept() {
 		t.Fail()
@@ -27,8 +28,8 @@ func TestIsAccept2(t *testing.T) {
 
 func TestDrop(t *testing.T) {
 	filter := &Filter{
-		Filter_policy: "drop",
-		Filter:        nil,
+		FilterPolicy: "drop",
+		Filter:       nil,
 	}
 	if !filter.IsFilteredDatabase("test") {
 		t.Fail()
@@ -37,8 +38,8 @@ func TestDrop(t *testing.T) {
 
 func TestAccept(t *testing.T) {
 	filter := &Filter{
-		Filter_policy: "accept",
-		Filter:        nil,
+		FilterPolicy: "accept",
+		Filter:       nil,
 	}
 	if filter.IsFilteredDatabase("test") {
 		t.Fail()
@@ -52,8 +53,8 @@ func TestDatabaseDropNull(t *testing.T) {
 	aViper.ReadConfig(bytes.NewBuffer([]byte(`{"filter" :{"test":null}}`)))
 	aViper.UnmarshalKey("filter", &filters)
 	filter := &Filter{
-		Filter_policy: "drop",
-		Filter:        filters,
+		FilterPolicy: "drop",
+		Filter:       filters,
 	}
 	if filter.IsFilteredDatabase("test") {
 		t.Fail()
@@ -67,8 +68,8 @@ func TestDatabaseDropNull2(t *testing.T) {
 	aViper.ReadConfig(bytes.NewBuffer([]byte(`{"filter" :{"test":null}}`)))
 	aViper.UnmarshalKey("filter", &filters)
 	filter := &Filter{
-		Filter_policy: "drop",
-		Filter:        filters,
+		FilterPolicy: "drop",
+		Filter:       filters,
 	}
 	if !filter.IsFilteredDatabase("test2") {
 		t.Fail()
@@ -82,8 +83,8 @@ func TestDatabaseAcceptNull(t *testing.T) {
 	aViper.ReadConfig(bytes.NewBuffer([]byte(`{"filter" :{"test":null}}`)))
 	aViper.UnmarshalKey("filter", &filters)
 	filter := &Filter{
-		Filter_policy: "accept",
-		Filter:        filters,
+		FilterPolicy: "accept",
+		Filter:       filters,
 	}
 	if !filter.IsFilteredDatabase("test") {
 		t.Fail()
@@ -97,8 +98,8 @@ func TestDatabaseAccept2(t *testing.T) {
 	aViper.ReadConfig(bytes.NewBuffer([]byte(`{"filter" :{"test":null}}`)))
 	aViper.UnmarshalKey("filter", &filters)
 	filter := &Filter{
-		Filter_policy: "accept",
-		Filter:        filters,
+		FilterPolicy: "accept",
+		Filter:       filters,
 	}
 	if filter.IsFilteredDatabase("test2") {
 		t.Fail()
@@ -112,8 +113,8 @@ func TestDatabaseDropTable(t *testing.T) {
 	aViper.ReadConfig(bytes.NewBuffer([]byte(`{"filter" :{"test":{"EMPLOYEE":null}}}`)))
 	aViper.UnmarshalKey("filter", &filters)
 	filter := &Filter{
-		Filter_policy: "drop",
-		Filter:        filters,
+		FilterPolicy: "drop",
+		Filter:       filters,
 	}
 	if filter.IsFilteredDatabase("test") {
 		t.Fail()
@@ -127,8 +128,8 @@ func TestDatabaseAcceptTable(t *testing.T) {
 	aViper.ReadConfig(bytes.NewBuffer([]byte(`{"filter" :{"test":{"EMPLOYEE":null}}}`)))
 	aViper.UnmarshalKey("filter", &filters)
 	filter := &Filter{
-		Filter_policy: "accept",
-		Filter:        filters,
+		FilterPolicy: "accept",
+		Filter:       filters,
 	}
 	if filter.IsFilteredDatabase("test") {
 		t.Fail()
@@ -143,8 +144,8 @@ func TestTableDrop(t *testing.T) {
 	aViper.UnmarshalKey("filter", &filters)
 
 	filter := &Filter{
-		Filter_policy: "drop",
-		Filter:        filters,
+		FilterPolicy: "drop",
+		Filter:       filters,
 	}
 	if filter.IsFilteredTable("test", "EMPLOYEE") {
 		t.Fail()
@@ -159,8 +160,8 @@ func TestTableDrop2(t *testing.T) {
 	aViper.UnmarshalKey("filter", &filters)
 
 	filter := &Filter{
-		Filter_policy: "drop",
-		Filter:        filters,
+		FilterPolicy: "drop",
+		Filter:       filters,
 	}
 	if !filter.IsFilteredTable("test2", "EMPLOYEE") {
 		t.Fail()
@@ -175,8 +176,8 @@ func TestTableDrop3(t *testing.T) {
 	aViper.UnmarshalKey("filter", &filters)
 
 	filter := &Filter{
-		Filter_policy: "drop",
-		Filter:        filters,
+		FilterPolicy: "drop",
+		Filter:       filters,
 	}
 	if !filter.IsFilteredTable("test", "EMPLOYEE2") {
 		t.Fail()
@@ -191,8 +192,8 @@ func TestTableDrop4(t *testing.T) {
 	aViper.UnmarshalKey("filter", &filters)
 
 	filter := &Filter{
-		Filter_policy: "drop",
-		Filter:        filters,
+		FilterPolicy: "drop",
+		Filter:       filters,
 	}
 	if !filter.IsFilteredTable("test2", "EMPLOYEE2") {
 		t.Fail()
@@ -206,8 +207,8 @@ func TestTableAcceptNull(t *testing.T) {
 	aViper.ReadConfig(bytes.NewBuffer([]byte(`{"filter" :{"test":{"EMPLOYEE":null}}}`)))
 	aViper.UnmarshalKey("filter", &filters)
 	filter := &Filter{
-		Filter_policy: "accept",
-		Filter:        filters,
+		FilterPolicy: "accept",
+		Filter:       filters,
 	}
 	if !filter.IsFilteredTable("test", "EMPLOYEE") {
 		t.Fail()
@@ -221,8 +222,8 @@ func TestTableAcceptNull2(t *testing.T) {
 	aViper.ReadConfig(bytes.NewBuffer([]byte(`{"filter" :{"test":{"EMPLOYEE":null}}}`)))
 	aViper.UnmarshalKey("filter", &filters)
 	filter := &Filter{
-		Filter_policy: "accept",
-		Filter:        filters,
+		FilterPolicy: "accept",
+		Filter:       filters,
 	}
 	if filter.IsFilteredTable("test2", "EMPLOYEE") {
 		t.Fail()
@@ -236,8 +237,8 @@ func TestTableAcceptNull3(t *testing.T) {
 	aViper.ReadConfig(bytes.NewBuffer([]byte(`{"filter" :{"test":{"EMPLOYEE":null}}}`)))
 	aViper.UnmarshalKey("filter", &filters)
 	filter := &Filter{
-		Filter_policy: "accept",
-		Filter:        filters,
+		FilterPolicy: "accept",
+		Filter:       filters,
 	}
 	if filter.IsFilteredTable("test", "EMPLOYEE2") {
 		t.Fail()
@@ -251,8 +252,8 @@ func TestTableAcceptNull4(t *testing.T) {
 	aViper.ReadConfig(bytes.NewBuffer([]byte(`{"filter" :{"test":{"EMPLOYEE":null}}}`)))
 	aViper.UnmarshalKey("filter", &filters)
 	filter := &Filter{
-		Filter_policy: "accept",
-		Filter:        filters,
+		FilterPolicy: "accept",
+		Filter:       filters,
 	}
 	if filter.IsFilteredTable("test2", "EMPLOYEE2") {
 		t.Fail()
@@ -267,8 +268,8 @@ func TestTableAcceptColumn(t *testing.T) {
 	aViper.UnmarshalKey("filter", &filters)
 
 	filter := &Filter{
-		Filter_policy: "accept",
-		Filter:        filters,
+		FilterPolicy: "accept",
+		Filter:       filters,
 	}
 	if filter.IsFilteredTable("test", "EMPLOYEE") {
 		t.Fail()
@@ -283,8 +284,8 @@ func TestTableAcceptColumn2(t *testing.T) {
 	aViper.UnmarshalKey("filter", &filters)
 
 	filter := &Filter{
-		Filter_policy: "accept",
-		Filter:        filters,
+		FilterPolicy: "accept",
+		Filter:       filters,
 	}
 	if filter.IsFilteredTable("test2", "EMPLOYEE") {
 		t.Fail()
@@ -299,8 +300,8 @@ func TestTableAcceptColumn3(t *testing.T) {
 	aViper.UnmarshalKey("filter", &filters)
 
 	filter := &Filter{
-		Filter_policy: "accept",
-		Filter:        filters,
+		FilterPolicy: "accept",
+		Filter:       filters,
 	}
 	if filter.IsFilteredTable("test", "EMPLOYEE2") {
 		t.Fail()
@@ -315,8 +316,8 @@ func TestTableAcceptColumn4(t *testing.T) {
 	aViper.UnmarshalKey("filter", &filters)
 
 	filter := &Filter{
-		Filter_policy: "accept",
-		Filter:        filters,
+		FilterPolicy: "accept",
+		Filter:       filters,
 	}
 	if filter.IsFilteredTable("test2", "EMPLOYEE2") {
 		t.Fail()
@@ -331,8 +332,8 @@ func TestColumnDrop(t *testing.T) {
 
 	aViper.UnmarshalKey("filter", &filters)
 	filter := &Filter{
-		Filter_policy: "drop",
-		Filter:        filters,
+		FilterPolicy: "drop",
+		Filter:       filters,
 	}
 	if filter.IsFilteredColumn("test", "EMPLOYEE", "EMP_ID") {
 		t.Fail()
@@ -347,8 +348,8 @@ func TestColumnDrop2(t *testing.T) {
 
 	aViper.UnmarshalKey("filter", &filters)
 	filter := &Filter{
-		Filter_policy: "drop",
-		Filter:        filters,
+		FilterPolicy: "drop",
+		Filter:       filters,
 	}
 	if !filter.IsFilteredColumn("test2", "EMPLOYEE", "EMP_ID") {
 		t.Fail()
@@ -363,8 +364,8 @@ func TestColumnDrop3(t *testing.T) {
 
 	aViper.UnmarshalKey("filter", &filters)
 	filter := &Filter{
-		Filter_policy: "drop",
-		Filter:        filters,
+		FilterPolicy: "drop",
+		Filter:       filters,
 	}
 	if !filter.IsFilteredColumn("test", "EMPLOYEE2", "EMP_ID") {
 		t.Fail()
@@ -379,8 +380,8 @@ func TestColumnDrop4(t *testing.T) {
 
 	aViper.UnmarshalKey("filter", &filters)
 	filter := &Filter{
-		Filter_policy: "drop",
-		Filter:        filters,
+		FilterPolicy: "drop",
+		Filter:       filters,
 	}
 	if !filter.IsFilteredColumn("test", "EMPLOYEE", "EMP_ID2") {
 		t.Fail()
@@ -395,8 +396,8 @@ func TestColumnDrop5(t *testing.T) {
 
 	aViper.UnmarshalKey("filter", &filters)
 	filter := &Filter{
-		Filter_policy: "drop",
-		Filter:        filters,
+		FilterPolicy: "drop",
+		Filter:       filters,
 	}
 	if !filter.IsFilteredColumn("test2", "EMPLOYEE2", "EMP_ID2") {
 		t.Fail()
@@ -411,8 +412,8 @@ func TestColumnAccept(t *testing.T) {
 
 	aViper.UnmarshalKey("filter", &filters)
 	filter := &Filter{
-		Filter_policy: "accept",
-		Filter:        filters,
+		FilterPolicy: "accept",
+		Filter:       filters,
 	}
 	if !filter.IsFilteredColumn("test", "EMPLOYEE", "EMP_ID") {
 		t.Fail()
@@ -427,8 +428,8 @@ func TestColumnAccept2(t *testing.T) {
 
 	aViper.UnmarshalKey("filter", &filters)
 	filter := &Filter{
-		Filter_policy: "accept",
-		Filter:        filters,
+		FilterPolicy: "accept",
+		Filter:       filters,
 	}
 	if filter.IsFilteredColumn("test2", "EMPLOYEE", "EMP_ID") {
 		t.Fail()
@@ -443,8 +444,8 @@ func TestColumnAccept3(t *testing.T) {
 
 	aViper.UnmarshalKey("filter", &filters)
 	filter := &Filter{
-		Filter_policy: "accept",
-		Filter:        filters,
+		FilterPolicy: "accept",
+		Filter:       filters,
 	}
 	if filter.IsFilteredColumn("test", "EMPLOYEE2", "EMP_ID") {
 		t.Fail()
@@ -459,8 +460,8 @@ func TestColumnAccept4(t *testing.T) {
 
 	aViper.UnmarshalKey("filter", &filters)
 	filter := &Filter{
-		Filter_policy: "accept",
-		Filter:        filters,
+		FilterPolicy: "accept",
+		Filter:       filters,
 	}
 	if filter.IsFilteredColumn("test", "EMPLOYEE", "EMP_ID2") {
 		t.Fail()
@@ -475,8 +476,8 @@ func TestColumnAccept5(t *testing.T) {
 
 	aViper.UnmarshalKey("filter", &filters)
 	filter := &Filter{
-		Filter_policy: "accept",
-		Filter:        filters,
+		FilterPolicy: "accept",
+		Filter:       filters,
 	}
 	if filter.IsFilteredColumn("test2", "EMPLOYEE2", "EMP_ID2") {
 		t.Fail()

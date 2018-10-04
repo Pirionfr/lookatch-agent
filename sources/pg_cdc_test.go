@@ -1,11 +1,12 @@
 package sources
 
 import (
+	"reflect"
+	"testing"
+
 	"github.com/Pirionfr/lookatch-common/control"
 	"github.com/Pirionfr/lookatch-common/events"
 	"github.com/spf13/viper"
-	"reflect"
-	"testing"
 )
 
 var vPgcdc *viper.Viper
@@ -134,7 +135,7 @@ func TestPgcdcIsEnable(t *testing.T) {
 		t.Fail()
 	}
 
-	if Pgcdc.IsEnable() != true {
+	if !Pgcdc.IsEnable() {
 		t.Fail()
 	}
 }
@@ -145,7 +146,7 @@ func TestPgcdcHealtCheck(t *testing.T) {
 		t.Fail()
 	}
 
-	if Pgcdc.HealthCheck() != false {
+	if Pgcdc.HealthCheck() {
 		t.Fail()
 	}
 }

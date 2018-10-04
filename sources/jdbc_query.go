@@ -3,14 +3,15 @@ package sources
 import (
 	"database/sql"
 	"encoding/json"
-	"github.com/Pirionfr/lookatch-common/control"
-	"github.com/Pirionfr/lookatch-common/events"
-	log "github.com/sirupsen/logrus"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/Pirionfr/lookatch-common/control"
+	"github.com/Pirionfr/lookatch-common/events"
+	log "github.com/sirupsen/logrus"
 )
 
 type (
@@ -19,7 +20,7 @@ type (
 		*Source
 		Config  JDBCQueryConfig
 		db      *sql.DB
-		schemas SqlSchema
+		schemas SQLSchema
 	}
 
 	// JDBCQueryConfig representation of JDBC query configuration
@@ -51,8 +52,8 @@ type (
 	Query struct {
 		Query string `description:"SQL query to execute on agent" required:"true"`
 	}
-	// SqlSchema  schema     table     Position
-	SqlSchema map[string]map[string]map[string]*ColumnSchema
+	// SQLSchema  schema     table     Position
+	SQLSchema map[string]map[string]map[string]*ColumnSchema
 )
 
 // NewJDBCQuery create new JDBC query client
@@ -147,7 +148,7 @@ func (j *JDBCQuery) QuerySchema(q string) (err error) {
 	}
 	defer rows.Close()
 	// We initialize the schema map
-	j.schemas = make(SqlSchema)
+	j.schemas = make(SQLSchema)
 
 	previousTableName := ""
 

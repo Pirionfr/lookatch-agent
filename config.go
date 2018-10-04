@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/satori/go.uuid"
 	"github.com/spf13/viper"
-	"os"
 )
 
 var (

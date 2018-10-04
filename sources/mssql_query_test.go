@@ -2,11 +2,12 @@ package sources
 
 import (
 	"fmt"
+	"reflect"
+	"testing"
+
 	"github.com/Pirionfr/lookatch-common/control"
 	"github.com/Pirionfr/lookatch-common/events"
 	"github.com/spf13/viper"
-	"reflect"
-	"testing"
 )
 
 var vMSSQLQuery *viper.Viper
@@ -124,7 +125,7 @@ func TestMSSQLQueryIsEnable(t *testing.T) {
 		t.Fail()
 	}
 
-	if MSSQLQuery.IsEnable() != true {
+	if !MSSQLQuery.IsEnable() {
 		t.Fail()
 	}
 }
@@ -135,7 +136,7 @@ func TestMSSQLQueryHealtCheck(t *testing.T) {
 		t.Fail()
 	}
 
-	if MSSQLQuery.HealthCheck() != false {
+	if MSSQLQuery.HealthCheck() {
 		t.Fail()
 	}
 }

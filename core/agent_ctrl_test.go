@@ -2,12 +2,13 @@ package core
 
 import (
 	"encoding/json"
+	"testing"
+
 	"github.com/Pirionfr/lookatch-common/control"
 	"github.com/Pirionfr/lookatch-common/rpc"
 	rpcmock "github.com/Pirionfr/lookatch-common/rpc/mock_rpc"
 	"github.com/golang/mock/gomock"
 	"google.golang.org/grpc/metadata"
-	"testing"
 )
 
 func PrepareGrpcMockSend(crtlClient *Controller, ctrl *gomock.Controller, msg *rpc.Message) {

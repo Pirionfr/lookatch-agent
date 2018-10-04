@@ -2,11 +2,12 @@ package core
 
 import (
 	"encoding/json"
+	"testing"
+
 	"github.com/Pirionfr/lookatch-common/control"
 	"github.com/Pirionfr/lookatch-common/events"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"testing"
 )
 
 var v *viper.Viper
@@ -21,10 +22,7 @@ func init() {
 
 func NewTestAgent() *Agent {
 	s := make(chan error)
-	a, err := newAgent(v, s)
-	if err != nil {
-		log.Fatal(err)
-	}
+	a := newAgent(v, s)
 	return a
 }
 

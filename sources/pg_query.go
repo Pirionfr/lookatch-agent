@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+
 	"github.com/Pirionfr/lookatch-common/control"
+
 	// driver
 	_ "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
@@ -108,7 +110,7 @@ func (p *PostgreSQLQuery) Process(action string, params ...interface{}) interfac
 		} else {
 			p.Query(evSQLQuery.Query)
 		}
-		break
+
 	default:
 		log.WithFields(log.Fields{
 			"action": action,

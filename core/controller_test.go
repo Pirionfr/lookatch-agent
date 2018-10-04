@@ -1,16 +1,17 @@
 package core
 
 import (
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
 	"github.com/Pirionfr/lookatch-common/rpc"
 	rpcmock "github.com/Pirionfr/lookatch-common/rpc/mock_rpc"
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/proto"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/metadata"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"testing"
 )
 
 var (

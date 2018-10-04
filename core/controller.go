@@ -7,11 +7,12 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 
+	"strconv"
+	"time"
+
 	"github.com/Pirionfr/lookatch-common/rpc"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/status"
-	"strconv"
-	"time"
 )
 
 type (

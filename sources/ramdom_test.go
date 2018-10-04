@@ -1,11 +1,12 @@
 package sources
 
 import (
+	"reflect"
+	"testing"
+
 	"github.com/Pirionfr/lookatch-common/control"
 	"github.com/Pirionfr/lookatch-common/events"
 	"github.com/spf13/viper"
-	"reflect"
-	"testing"
 )
 
 var vRandom *viper.Viper
@@ -119,7 +120,7 @@ func TestRandomIsEnable(t *testing.T) {
 		t.Fail()
 	}
 
-	if Random.IsEnable() != true {
+	if !Random.IsEnable() {
 		t.Fail()
 	}
 }
@@ -130,7 +131,7 @@ func TestRandomHealtCheck(t *testing.T) {
 		t.Fail()
 	}
 
-	if Random.HealthCheck() != true {
+	if !Random.HealthCheck() {
 		t.Fail()
 	}
 }

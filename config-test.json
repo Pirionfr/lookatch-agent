@@ -16,10 +16,9 @@
     "default": {
       "autostart": true,
       "enabled": true,
-      "type" : "random",
+      "type" : "fileReadingFollower",
       "sinks": ["default"],
-      "wait" : "1s"
-
+      "path": "/home/pirion/test3.csv"
     }
   }
 }

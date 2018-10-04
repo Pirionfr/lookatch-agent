@@ -1,13 +1,14 @@
 package sources
 
 import (
+	"strconv"
+	"sync"
+	"time"
+
 	"github.com/Pallinder/go-randomdata"
 	"github.com/Pirionfr/lookatch-common/control"
 	"github.com/Pirionfr/lookatch-common/events"
 	log "github.com/sirupsen/logrus"
-	"strconv"
-	"sync"
-	"time"
 )
 
 // Random representation of Random

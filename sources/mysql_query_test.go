@@ -2,11 +2,12 @@ package sources
 
 import (
 	"fmt"
+	"reflect"
+	"testing"
+
 	"github.com/Pirionfr/lookatch-common/control"
 	"github.com/Pirionfr/lookatch-common/events"
 	"github.com/spf13/viper"
-	"reflect"
-	"testing"
 )
 
 var vMysqlQuery *viper.Viper
@@ -124,7 +125,7 @@ func TestMysqlQueryIsEnable(t *testing.T) {
 		t.Fail()
 	}
 
-	if MysqlQuery.IsEnable() != true {
+	if !MysqlQuery.IsEnable() {
 		t.Fail()
 	}
 }
@@ -135,7 +136,7 @@ func TestMysqlQueryHealtCheck(t *testing.T) {
 		t.Fail()
 	}
 
-	if MysqlQuery.HealthCheck() != false {
+	if MysqlQuery.HealthCheck() {
 		t.Fail()
 	}
 }

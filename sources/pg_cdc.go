@@ -4,17 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
 	utils "github.com/Pirionfr/lookatch-agent/util"
 	"github.com/Pirionfr/lookatch-common/control"
 	"github.com/Pirionfr/lookatch-common/events"
 	"github.com/Pirionfr/lookatch-common/util"
 	"github.com/jackc/pgx"
 	log "github.com/sirupsen/logrus"
-	"os"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
 )
 
 type (
@@ -31,18 +32,18 @@ type (
 
 	// PostgreSQLCDCConf representation of PostgreSQL change data capture configuration
 	PostgreSQLCDCConf struct {
-		Host          string                 `json:"host"`
-		Port          int                    `json:"port"`
-		User          string                 `json:"user"`
-		Password      string                 `json:"password"`
-		SslMode       string                 `json:"sslmode"`
-		Database      string                 `json:"database"`
-		Offset        string                 `json:"offset"`
-		Slot_name     string                 `json:"slot_name"`
-		Old_value     bool                   `json:"old_value"`
-		Filter_policy string                 `json:"filter_policy"`
-		Filter        map[string]interface{} `json:"filter"`
-		Enabled       bool                   `json:"enabled"`
+		Host         string                 `json:"host"`
+		Port         int                    `json:"port"`
+		User         string                 `json:"user"`
+		Password     string                 `json:"password"`
+		SslMode      string                 `json:"sslmode"`
+		Database     string                 `json:"database"`
+		Offset       string                 `json:"offset"`
+		SlotName     string                 `json:"slot_name" mapstructure:"slot_name"`
+		OldValue     bool                   `json:"old_value" mapstructure:"old_value"`
+		FilterPolicy string                 `json:"filter_policy" mapstructure:"filter_policy"`
+		Filter       map[string]interface{} `json:"filter"`
+		Enabled      bool                   `json:"enabled"`
 	}
 
 	// Messages representation of messages
@@ -72,7 +73,7 @@ type (
 	Meta struct {
 		LastState  string `json:"laststate"`
 		Lsn        uint64 `json:"offset"`
-		slotStatus bool   `json:"slotstatus"`
+		SlotStatus bool   `json:"slotstatus"`
 	}
 )
 
@@ -106,8 +107,8 @@ func newPostgreSQLCdc(s *Source) (SourceI, error) {
 		config: postgreSQLCDCConf,
 		status: control.SourceStatusWaitingForMETA,
 		filter: &utils.Filter{
-			Filter_policy: postgreSQLCDCConf.Filter_policy,
-			Filter:        postgreSQLCDCConf.Filter,
+			FilterPolicy: postgreSQLCDCConf.FilterPolicy,
+			Filter:       postgreSQLCDCConf.Filter,
 		},
 	}
 
@@ -183,7 +184,7 @@ func (p *PostgreSQLCDC) GetMeta() map[string]interface{} {
 	if p.status != control.SourceStatusWaitingForMETA {
 		meta["offset"] = p.meta.Lsn
 		meta["offset_agent"] = p.Offset
-		meta["slot_status"] = p.meta.slotStatus
+		meta["slot_status"] = p.meta.SlotStatus
 	}
 
 	return meta
@@ -206,7 +207,7 @@ func (p *PostgreSQLCDC) GetStatus() interface{} {
 
 // HealthCheck returns true if ok
 func (p *PostgreSQLCDC) HealthCheck() bool {
-	return p.status == control.SourceStatusRunning && p.meta.slotStatus
+	return p.status == control.SourceStatusRunning && p.meta.SlotStatus
 }
 
 // GetAvailableActions returns available actions
@@ -238,7 +239,7 @@ func (p *PostgreSQLCDC) Process(action string, params ...interface{}) interface{
 
 			p.status = control.SourceStatusRunning
 		}
-		break
+
 	default:
 		log.WithFields(log.Fields{
 			"action": action,
@@ -267,20 +268,21 @@ func (p *PostgreSQLCDC) NewReplicator() (*pgx.ReplicationConn, error) {
 
 }
 
+// StartReplication Start Replication
 func (p *PostgreSQLCDC) StartReplication() {
 	// start replication
 	log.WithFields(log.Fields{
 		"offset": p.meta.Lsn,
 	}).Debug("StartReplication")
 
-	err := p.repConn.StartReplication(p.config.Slot_name, p.meta.Lsn, -1)
+	err := p.repConn.StartReplication(p.config.SlotName, p.meta.Lsn, -1)
 	if err != nil {
 		//slot not created waiting for event
 		for strings.Contains(err.Error(), "SQLSTATE 42704") {
 			log.Warn("NewReplicator()", err.Error())
 			log.Warn("Waiting 5 seconds to try again")
 			time.Sleep(5 * time.Second)
-			err = p.repConn.StartReplication(p.config.Slot_name, p.meta.Lsn, -1)
+			err = p.repConn.StartReplication(p.config.SlotName, p.meta.Lsn, -1)
 		}
 		log.WithFields(log.Fields{
 			"error": err,
@@ -310,15 +312,15 @@ func (p *PostgreSQLCDC) checkStatus() {
 
 		}
 
-		p.meta.slotStatus = p.getSlotStatus()
-		if !p.meta.slotStatus {
+		p.meta.SlotStatus = p.getSlotStatus()
+		if !p.meta.SlotStatus {
 			p.StartReplication()
 		}
 
 		//send standbyStatus
 		log.WithFields(log.Fields{
-			"offset": p.meta.Lsn,
-			"slotStatus": p.meta.slotStatus,
+			"offset":     p.meta.Lsn,
+			"SlotStatus": p.meta.SlotStatus,
 		}).Info("Send agent Status")
 		standbyStatus, _ := pgx.NewStandbyStatus(p.meta.Lsn)
 		err := p.repConn.SendStandbyStatus(standbyStatus)

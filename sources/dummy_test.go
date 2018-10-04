@@ -1,11 +1,12 @@
 package sources
 
 import (
+	"reflect"
+	"testing"
+
 	"github.com/Pirionfr/lookatch-common/control"
 	"github.com/Pirionfr/lookatch-common/events"
 	"github.com/spf13/viper"
-	"reflect"
-	"testing"
 )
 
 var vDummy *viper.Viper
@@ -119,7 +120,7 @@ func TestDummyIsEnable(t *testing.T) {
 		t.Fail()
 	}
 
-	if dummy.IsEnable() != true {
+	if !dummy.IsEnable() {
 		t.Fail()
 	}
 }
@@ -130,7 +131,7 @@ func TestDummyHealtCheck(t *testing.T) {
 		t.Fail()
 	}
 
-	if dummy.HealthCheck() != true {
+	if !dummy.HealthCheck() {
 		t.Fail()
 	}
 }

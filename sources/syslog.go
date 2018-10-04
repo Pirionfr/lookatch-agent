@@ -1,13 +1,14 @@
 package sources
 
 import (
+	"strconv"
+	"sync"
+	"time"
+
 	"github.com/Pirionfr/lookatch-common/control"
 	"github.com/Pirionfr/lookatch-common/events"
-	"sync"
-	"strconv"
-	"gopkg.in/mcuadros/go-syslog.v2"
 	log "github.com/sirupsen/logrus"
-	"time"
+	"gopkg.in/mcuadros/go-syslog.v2"
 )
 
 // SyslogType type of source
@@ -25,8 +26,8 @@ type Syslog struct {
 
 // SyslogConfig representation of Random Config
 type SyslogConfig struct {
-	Type    string `json:"Type"`
-	Port    int    `json:"Port"`
+	Type string `json:"Type"`
+	Port int    `json:"Port"`
 }
 
 // newSyslog create new syslog source
@@ -37,7 +38,7 @@ func newSyslog(s *Source) (SourceI, error) {
 	return &Syslog{
 		Source: s,
 		config: syslogConfig,
-		}, nil
+	}, nil
 }
 
 // GetMeta returns source meta
@@ -76,7 +77,6 @@ func (s *Syslog) Start(i ...interface{}) error {
 
 	go func() {
 		for logParts := range s.channel {
-
 
 			log.WithFields(log.Fields{
 				"logParts": logParts,

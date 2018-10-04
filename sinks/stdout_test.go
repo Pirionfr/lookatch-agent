@@ -1,12 +1,13 @@
 package sinks
 
 import (
-	"github.com/Pirionfr/lookatch-common/events"
-	"github.com/spf13/viper"
 	"reflect"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/Pirionfr/lookatch-common/events"
+	"github.com/spf13/viper"
 )
 
 var (

@@ -1,11 +1,12 @@
 package sources
 
 import (
+	"reflect"
+	"testing"
+
 	"github.com/Pirionfr/lookatch-common/control"
 	"github.com/Pirionfr/lookatch-common/events"
 	"github.com/spf13/viper"
-	"reflect"
-	"testing"
 )
 
 var vMysqlcdc *viper.Viper
@@ -134,7 +135,7 @@ func TestMysqlcdcIsEnable(t *testing.T) {
 		t.Fail()
 	}
 
-	if Mysqlcdc.IsEnable() != true {
+	if !Mysqlcdc.IsEnable() {
 		t.Fail()
 	}
 }
@@ -145,7 +146,7 @@ func TestMysqlcdcHealtCheck(t *testing.T) {
 		t.Fail()
 	}
 
-	if Mysqlcdc.HealthCheck() != false {
+	if Mysqlcdc.HealthCheck() {
 		t.Fail()
 	}
 }

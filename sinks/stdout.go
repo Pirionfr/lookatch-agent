@@ -2,6 +2,7 @@ package sinks
 
 import (
 	"encoding/json"
+
 	"github.com/Pirionfr/lookatch-common/events"
 	log "github.com/sirupsen/logrus"
 )

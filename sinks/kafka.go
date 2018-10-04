@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"encoding/binary"
+
 	"github.com/Pirionfr/lookatch-common/events"
 	"github.com/Pirionfr/lookatch-common/util"
 	"github.com/Shopify/sarama"
@@ -24,15 +25,15 @@ type (
 
 	// kafkaSinkConfig representation of kafka sink config
 	kafkaSinkConfig struct {
-		Tls             bool       `json:"tls"`
+		TLS             bool       `json:"tls"`
 		Topic           string     `json:"topic"`
-		Topic_prefix    string     `json:"topic_prefix"`
-		Client_id       string     `json:"client_id"`
+		TopicPrefix     string     `json:"topic_prefix" mapstructure:"topic_prefix"`
+		ClientID        string     `json:"client_id" mapstructure:"client_id"`
 		Brokers         []string   `json:"brokers"`
 		Producer        *kafkaUser `json:"producer"`
 		Consumer        *kafkaUser `json:"consumer"`
-		MaxMessageBytes int        `json:"maxmessagebytes"`
-		NbProducer      int        `json:"nbproducer"`
+		MaxMessageBytes int        `json:"max_message_bytes" mapstructure:"max_message_bytes"`
+		NbProducer      int        `json:"nb_producer" mapstructure:"nb_producer"`
 		Secret          string     `json:"secret"`
 	}
 
@@ -121,7 +122,7 @@ func startConsumer(conf *kafkaSinkConfig, input chan *events.LookatchEvent, thre
 func processGenericEvent(genericMsg *events.GenericEvent, conf *kafkaSinkConfig, threshold int) (*sarama.ProducerMessage, error) {
 	var topic string
 	if len(conf.Topic) == 0 {
-		topic = conf.Topic_prefix + genericMsg.Environment
+		topic = conf.TopicPrefix + genericMsg.Environment
 	} else {
 		topic = conf.Topic
 	}
@@ -165,7 +166,7 @@ func processGenericEvent(genericMsg *events.GenericEvent, conf *kafkaSinkConfig,
 func processSQLEvent(sqlEvent *events.SqlEvent, conf *kafkaSinkConfig, threshold int) (*sarama.ProducerMessage, error) {
 	var topic string
 	if len(conf.Topic) == 0 {
-		topic = conf.Topic_prefix + sqlEvent.Environment + "_" + sqlEvent.Database
+		topic = conf.TopicPrefix + sqlEvent.Environment + "_" + sqlEvent.Database
 	} else {
 		topic = conf.Topic
 	}
@@ -212,7 +213,7 @@ func processKafkaMsg(kafkaMsg *sarama.ConsumerMessage, conf *kafkaSinkConfig, th
 
 	var topic string
 	if len(conf.Topic) == 0 {
-		topic = conf.Topic_prefix + kafkaMsg.Topic
+		topic = conf.TopicPrefix + kafkaMsg.Topic
 	} else {
 		topic = conf.Topic
 	}
@@ -250,18 +251,18 @@ func startProducer(conf *kafkaSinkConfig, in chan *sarama.ProducerMessage, stop 
 	saramaConf.Producer.Return.Successes = true
 	saramaConf.Producer.MaxMessageBytes = conf.MaxMessageBytes
 
-	if len(conf.Client_id) == 0 {
+	if len(conf.ClientID) == 0 {
 		log.Debug("No client id")
 		saramaConf.Net.SASL.Enable = true
 		log.Debug("SASL CLient ")
-		if conf.Tls {
+		if conf.TLS {
 			log.Debug("TLS connection ")
-			saramaConf.Net.TLS.Enable = conf.Tls
+			saramaConf.Net.TLS.Enable = conf.TLS
 		}
 		saramaConf.Net.SASL.User = conf.Producer.User
 		saramaConf.Net.SASL.Password = conf.Producer.Password
 	} else {
-		saramaConf.ClientID = conf.Client_id
+		saramaConf.ClientID = conf.ClientID
 		log.WithFields(log.Fields{
 			"clientID": saramaConf.ClientID,
 		}).Debug("sink_conf sarama_conf ")
@@ -295,6 +296,7 @@ func startProducer(conf *kafkaSinkConfig, in chan *sarama.ProducerMessage, stop 
 		msgsSize, msgSize  int
 	)
 	lastSend = time.Now().Unix()
+
 ProducerLoop:
 	for {
 		select {

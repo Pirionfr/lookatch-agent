@@ -1,13 +1,13 @@
 package sources
 
 import (
+	"testing"
+
 	"github.com/Pirionfr/lookatch-common/events"
 	"github.com/spf13/viper"
-	"testing"
 )
 
 var vSource *viper.Viper
-var sSource *Source
 
 func init() {
 	vSource = viper.New()

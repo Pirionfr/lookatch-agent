@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+
 	"github.com/Pirionfr/lookatch-common/control"
+
 	// driver
 	_ "github.com/denisenkom/go-mssqldb"
 	log "github.com/sirupsen/logrus"
@@ -111,7 +113,7 @@ func (m *MSSQLQuery) Process(action string, params ...interface{}) interface{} {
 		} else {
 			m.Query(evSQLQuery.Query)
 		}
-		break
+
 	default:
 		log.WithFields(log.Fields{
 			"action": action,
