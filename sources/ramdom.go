@@ -21,8 +21,7 @@ type Random struct {
 
 // RandomConfig representation of Random Config
 type RandomConfig struct {
-	Enabled bool   `json:"enabled"`
-	Wait    string `json:"wait"`
+	Wait string `json:"wait"`
 }
 
 // RandomType type of source
@@ -32,8 +31,10 @@ const RandomType = "random"
 func newRandom(s *Source) (SourceI, error) {
 
 	randomConfig := RandomConfig{}
-	s.Conf.UnmarshalKey("sources."+s.Name, &randomConfig)
-
+	err := s.Conf.UnmarshalKey("sources."+s.Name, &randomConfig)
+	if err != nil {
+		return nil, err
+	}
 	return &Random{
 		Source: s,
 		config: randomConfig,

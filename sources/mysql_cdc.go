@@ -54,8 +54,10 @@ type (
 // newMysqlCdc create new mysql CDC source
 func newMysqlCdc(s *Source) (SourceI, error) {
 	mysqlCDCConfig := MysqlCDCConfig{}
-	s.Conf.UnmarshalKey("sources."+s.Name, &mysqlCDCConfig)
-
+	err := s.Conf.UnmarshalKey("sources."+s.Name, &mysqlCDCConfig)
+	if err != nil {
+		return nil, err
+	}
 	query := &MySQLQuery{
 		JDBCQuery: &JDBCQuery{
 			Source: s,

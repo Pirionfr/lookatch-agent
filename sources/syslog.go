@@ -34,7 +34,11 @@ type SyslogConfig struct {
 func newSyslog(s *Source) (SourceI, error) {
 
 	syslogConfig := SyslogConfig{}
-	s.Conf.UnmarshalKey("sources."+s.Name, &syslogConfig)
+	err := s.Conf.UnmarshalKey("sources."+s.Name, &syslogConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Syslog{
 		Source: s,
 		config: syslogConfig,

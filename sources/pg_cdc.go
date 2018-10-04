@@ -83,7 +83,10 @@ const PostgreSQLCDCType = "postgresqlCDC"
 // newPostgreSQLCdc create new PostgreSQL CDC source
 func newPostgreSQLCdc(s *Source) (SourceI, error) {
 	postgreSQLCDCConf := PostgreSQLCDCConf{}
-	s.Conf.UnmarshalKey("sources."+s.Name, &postgreSQLCDCConf)
+	err := s.Conf.UnmarshalKey("sources."+s.Name, &postgreSQLCDCConf)
+	if err != nil {
+		return nil, err
+	}
 
 	query := &PostgreSQLQuery{
 		JDBCQuery: &JDBCQuery{

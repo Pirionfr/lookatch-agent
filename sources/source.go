@@ -49,7 +49,6 @@ type sourceCreatorT func(*Source) (SourceI, error)
 
 // factory source factory
 var factory = map[string]sourceCreatorT{
-	DummyType:               newDummy,
 	RandomType:              newRandom,
 	MysqlQueryType:          newMysqlQuery,
 	MysqlCDCType:            newMysqlCdc,
@@ -91,6 +90,9 @@ func New(name string, sourceType string, config *viper.Viper, eventChan chan *ev
 	}
 
 	s, err = sourceCreatorFunc(baseSrc)
+	if err != nil {
+		return
+	}
 	s.Init()
 
 	if config.GetBool("sources." + name + ".autostart") {

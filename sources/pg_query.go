@@ -35,7 +35,11 @@ func newPostgreSQLQuery(s *Source) (SourceI, error) {
 	jdbcQuery := NewJDBCQuery(s)
 
 	pgQueryConfig := PostgreSQLQueryConfig{}
-	s.Conf.UnmarshalKey("sources."+s.Name, &pgQueryConfig)
+	err := s.Conf.UnmarshalKey("sources."+s.Name, &pgQueryConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	pgQueryConfig.JDBCQueryConfig = &jdbcQuery.Config
 
 	return &PostgreSQLQuery{

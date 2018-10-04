@@ -35,7 +35,11 @@ func newMysqlQuery(s *Source) (SourceI, error) {
 	jdbcQuery := NewJDBCQuery(s)
 
 	mysqlQueryConfig := MysqlQueryConfig{}
-	s.Conf.UnmarshalKey("sources."+s.Name, &mysqlQueryConfig)
+	err := s.Conf.UnmarshalKey("sources."+s.Name, &mysqlQueryConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	mysqlQueryConfig.JDBCQueryConfig = &jdbcQuery.Config
 
 	return &MySQLQuery{
