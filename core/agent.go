@@ -46,10 +46,10 @@ func newAgent(config *viper.Viper, s chan error) (a *Agent) {
 	log.SetOutput(os.Stdout)
 	//check log level
 	level := config.GetString("agent.loglevel")
-	if level != "" {
+	if level == "" {
 		log.WithFields(log.Fields{
 			"level": config.Get("agent.loglevel"),
-		}).Error("Error while retrieving LogLevel")
+		}).Info("Error while retrieving LogLevel")
 	} else {
 		log.ParseLevel(level)
 		log.WithFields(log.Fields{
