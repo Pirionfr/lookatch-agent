@@ -89,11 +89,12 @@ func (c *Controller) StartChannel() {
 	var err error
 	if c.md == nil {
 		token, err := c.auth.GetToken()
-		if err != nil {
+		for err != nil {
 			log.WithFields(log.Fields{
 				"error": err,
-			}).Fatal("Error while authenticating")
-			return
+			}).Error("Error while authenticating wait 5 seconds...")
+			time.Sleep(time.Second * 5)
+			token, err = c.auth.GetToken()
 		}
 		c.md = metadata.New(map[string]string{
 			"authorization": token,
@@ -105,7 +106,7 @@ func (c *Controller) StartChannel() {
 	for err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
-		}).Error("Error building rpc ")
+		}).Error("Error building rpc wait 5 seconds...")
 		time.Sleep(time.Second * 5)
 		c.stream, err = c.client.Channel(ctx)
 	}
