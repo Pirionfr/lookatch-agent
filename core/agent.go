@@ -339,7 +339,7 @@ func (a *Agent) HealthCheck() (alive bool) {
 		}
 	}
 	if a.controller != nil {
-		alive = a.controller.Status != "READY"
+		alive = a.controller.Status == "READY"
 	}
 	return alive
 }
@@ -437,7 +437,7 @@ func (a *Agent) healthCheckChecker() {
 	if err != nil && resp == nil {
 		log.WithFields(log.Fields{
 			"error": err,
-		}).Error("healthcheck webserver error :")
+		}).Error("healthcheck webserver error")
 	}
 
 }
