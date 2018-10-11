@@ -444,7 +444,7 @@ func (m *MysqlCDC) GetFirstBinlog() (string, uint32) {
 	}
 
 	if result[0]["Log_name"] != nil && result[0]["Pos"] != nil {
-		pos, _ := strconv.ParseInt(result[0]["Pos"].(string), 10, 32)
+		pos, _ := strconv.ParseInt(fmt.Sprintf("%v",result[0]["Pos"]), 10, 32)
 		return result[0]["Log_name"].(string), uint32(pos)
 	}
 	return "", 0
@@ -469,7 +469,7 @@ func (m *MysqlCDC) GetlastBinlog() (string, uint32) {
 	}
 
 	if result[0]["File"] != nil && result[0]["Position"] != nil {
-		pos, _ := strconv.ParseInt(result[0]["Position"].(string), 10, 32)
+		pos, _ := strconv.ParseInt(fmt.Sprintf("%v",result[0]["Position"]), 10, 32)
 		return result[0]["File"].(string), uint32(pos)
 	}
 	return "", 0

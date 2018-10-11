@@ -170,9 +170,9 @@ func processSQLEvent(sqlEvent *events.SqlEvent, conf *kafkaSinkConfig, threshold
 	} else {
 		topic = conf.Topic
 	}
-	log.WithFields(log.Fields{
-		"topic": topic,
-	}).Debug("KafkaSink: Sending event to topic")
+	//log.WithFields(log.Fields{
+	//	"topic": topic,
+	//}).Debug("KafkaSink: Sending event to topic")
 	key := sqlEvent.PrimaryKey
 	serializedEventPayload, err := json.Marshal(sqlEvent)
 	if err != nil {
