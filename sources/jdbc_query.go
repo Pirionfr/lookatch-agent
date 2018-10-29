@@ -6,12 +6,12 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/Pirionfr/lookatch-common/control"
 	"github.com/Pirionfr/lookatch-common/events"
 	log "github.com/sirupsen/logrus"
+	"github.com/remeh/sizedwaitgroup"
 )
 
 type (
@@ -241,21 +241,19 @@ func (j *JDBCQuery) Query(database string, query string) {
 
 	//spawn stack of workers if specified in conf (for huge needs)
 	//create chan here in order to close goroutine when query is finished
-	marshallChan := make(chan map[string]interface{}, 100000)
-	wg := sync.WaitGroup{}
-	for i := 0; i < j.Config.NbWorker; i++ {
-		go j.MarshallWorker(marshallChan, database, schema, table)
-	}
+	marshallChan := make(chan map[string]interface{}, BatchSize*j.Config.NbWorker)
+	wg := sizedwaitgroup.New(j.Config.NbWorker)
+
 
 	//l is a counter for chunk size according to batch size
 	l := 0
 	for rows.Next() {
 		//if we reached BatchSize we reset buffers and lauch a processing routine
 		if l == BatchSize {
+			//do not forget to inc waitgroup for all lines to be processed
+			wg.Add()
 			//spawn another worker per bunch of BatchSize lines
 			go j.MarshallWorker(marshallChan, database, schema, table)
-			//do not forget to inc waitgroup for all lines to be processed
-			wg.Add(1)
 			go j.ProcessLines(columns, lineBuffer, marshallChan, &wg)
 
 			//generate a new buffer to prevent reuse of same data container
@@ -277,7 +275,7 @@ func (j *JDBCQuery) Query(database string, query string) {
 	if len(lineBuffer[0]) > 0 {
 		//spawn another worker per bunch of BatchSize lines
 		go j.MarshallWorker(marshallChan, database, schema, table)
-		wg.Add(1)
+		wg.Add()
 		go j.ProcessLines(columns, lineBuffer, marshallChan, &wg)
 	}
 	//now wait for all lines to be processed and sent to channel of marshallers
@@ -320,17 +318,19 @@ func (j *JDBCQuery) MarshallWorker(mapchan chan map[string]interface{}, database
 }
 
 // ProcessLines process bunch of lines  from resultset to map and sent to marshall goroutine
-func (j *JDBCQuery) ProcessLines(columns []string, lines [][]interface{}, mapchan chan map[string]interface{}, wg *sync.WaitGroup) {
+func (j *JDBCQuery) ProcessLines(columns []string, lines [][]interface{}, mapchan chan map[string]interface{}, wg *sizedwaitgroup.SizedWaitGroup) {
 
 	log.Debug("PROCESSING")
+	var colmap map[string]interface{}
+	var v interface{}
+
 	for _, values := range lines {
-		colmap := make(map[string]interface{})
+		colmap = make(map[string]interface{})
 		if len(values) == 0 {
 			break
 		}
 
 		for i, col := range columns {
-			var v interface{}
 			val := values[i]
 			b, ok := val.([]byte)
 			//cast to string because of particular behaviour in next step

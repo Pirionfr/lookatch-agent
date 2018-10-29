@@ -298,6 +298,14 @@
   revision = "e2704e165165ec55d062f5919b4b29494e9fa790"
 
 [[projects]]
+  branch = "master"
+  digest = "1:5965e4ac0f312dd5e6150ed1f2049689b435e1a978d00ca6b93f755a0530ed1d"
+  name = "github.com/remeh/sizedwaitgroup"
+  packages = ["."]
+  pruneopts = ""
+  revision = "5e7302b12ccef91dce9fde2f5bda6d5c7ea5d2eb"
+
+[[projects]]
   digest = "1:7f569d906bdd20d906b606415b7d794f798f91a62fcfb6a4daa6d50690fb7a3f"
   name = "github.com/satori/go.uuid"
   packages = ["."]
@@ -564,6 +572,7 @@
     "github.com/lib/pq",
     "github.com/mediocregopher/radix.v2/pool",
     "github.com/papertrail/go-tail/follower",
+    "github.com/remeh/sizedwaitgroup",
     "github.com/satori/go.uuid",
     "github.com/siddontang/go-mysql/driver",
     "github.com/siddontang/go-mysql/mysql",
