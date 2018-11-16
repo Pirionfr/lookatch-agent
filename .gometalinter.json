@@ -12,7 +12,6 @@
     "interfacer",
     "misspell",
     "unconvert",
-    "unparam",
     "unused",
     "vet"
   ]
