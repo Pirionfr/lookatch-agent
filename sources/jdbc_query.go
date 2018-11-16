@@ -10,8 +10,8 @@ import (
 
 	"github.com/Pirionfr/lookatch-common/control"
 	"github.com/Pirionfr/lookatch-common/events"
-	log "github.com/sirupsen/logrus"
 	"github.com/remeh/sizedwaitgroup"
+	log "github.com/sirupsen/logrus"
 )
 
 type (
@@ -243,7 +243,6 @@ func (j *JDBCQuery) Query(database string, query string) {
 	//create chan here in order to close goroutine when query is finished
 	marshallChan := make(chan map[string]interface{}, BatchSize*j.Config.NbWorker)
 	wg := sizedwaitgroup.New(j.Config.NbWorker)
-
 
 	//l is a counter for chunk size according to batch size
 	l := 0

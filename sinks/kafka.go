@@ -65,16 +65,16 @@ func (k *Kafka) Start(_ ...interface{}) error {
 		"NbProducer": k.kafkaConf.NbProducer,
 	}).Debug("Starting sink producers")
 	for x := 0; x < k.kafkaConf.NbProducer; x++ {
-		go startProducer(k.kafkaConf, resendChan, k.stop)
+		go k.startProducer(resendChan, k.stop)
 	}
 
 	//current kafka threshold is 10MB
-	threshold := k.kafkaConf.MaxMessageBytes
+
 	log.WithFields(log.Fields{
-		"threshold": threshold,
+		"threshold": k.kafkaConf.MaxMessageBytes,
 	}).Debug("KafkaSink: started with threshold")
 
-	go startConsumer(k.kafkaConf, k.in, threshold, resendChan)
+	go k.startConsumer(resendChan)
 
 	return nil
 }
@@ -85,26 +85,26 @@ func (k *Kafka) GetInputChan() chan *events.LookatchEvent {
 }
 
 // startConsumer consume input chan
-func startConsumer(conf *kafkaSinkConfig, input chan *events.LookatchEvent, threshold int, kafkaChan chan *sarama.ProducerMessage) {
+func (k *Kafka) startConsumer(kafkaChan chan *sarama.ProducerMessage) {
 	for {
-		for eventMsg := range input {
+		for eventMsg := range k.in {
 
 			//id event is too heavy it wont fit in kafka threshold so we have to skip it
 			switch typedMsg := eventMsg.Payload.(type) {
 			case *events.SqlEvent:
-				producerMsg, err := processSQLEvent(typedMsg, conf, threshold)
+				producerMsg, err := k.processSQLEvent(typedMsg)
 				if err != nil {
 					break
 				}
 				kafkaChan <- producerMsg
 			case *events.GenericEvent:
-				producerMsg, err := processGenericEvent(typedMsg, conf, threshold)
+				producerMsg, err := k.processGenericEvent(typedMsg)
 				if err != nil {
 					break
 				}
 				kafkaChan <- producerMsg
 			case *sarama.ConsumerMessage:
-				producerMsg, err := processKafkaMsg(typedMsg, conf, threshold)
+				producerMsg, err := k.processKafkaMsg(typedMsg)
 				if err != nil {
 					break
 				}
@@ -119,12 +119,12 @@ func startConsumer(conf *kafkaSinkConfig, input chan *events.LookatchEvent, thre
 }
 
 // processGenericEvent process Generic Event
-func processGenericEvent(genericMsg *events.GenericEvent, conf *kafkaSinkConfig, threshold int) (*sarama.ProducerMessage, error) {
+func (k *Kafka) processGenericEvent(genericMsg *events.GenericEvent) (*sarama.ProducerMessage, error) {
 	var topic string
-	if len(conf.Topic) == 0 {
-		topic = conf.TopicPrefix + genericMsg.Environment
+	if len(k.kafkaConf.Topic) == 0 {
+		topic = k.kafkaConf.TopicPrefix + genericMsg.Environment
 	} else {
-		topic = conf.Topic
+		topic = k.kafkaConf.Topic
 	}
 	var msgToSend []byte
 	serializedEventPayload, err := json.Marshal(genericMsg)
@@ -133,9 +133,9 @@ func processGenericEvent(genericMsg *events.GenericEvent, conf *kafkaSinkConfig,
 			"error": err,
 		}).Error("KafkaSink Marshal Error")
 	}
-	if len(conf.Secret) > 0 {
+	if len(k.kafkaConf.Secret) > 0 {
 		var err error
-		msgToSend, err = util.EncryptBytes(serializedEventPayload, conf.Secret)
+		msgToSend, err = util.EncryptBytes(serializedEventPayload, k.kafkaConf.Secret)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error": err,
@@ -145,11 +145,11 @@ func processGenericEvent(genericMsg *events.GenericEvent, conf *kafkaSinkConfig,
 		msgToSend = serializedEventPayload
 	}
 	//if message is heavier than threshold we must skip it
-	if len(msgToSend) > threshold {
+	if len(msgToSend) > k.kafkaConf.MaxMessageBytes {
 		errMsg := "KafkaSink: Skip too heavy event : "
 		log.WithFields(log.Fields{
 			"size":      len(msgToSend),
-			"threshold": threshold,
+			"threshold": k.kafkaConf.MaxMessageBytes,
 			"topic":     topic,
 		}).Debug("KafkaSink: Skip too heavy event")
 		return nil, errors.New(errMsg)
@@ -163,12 +163,12 @@ func processGenericEvent(genericMsg *events.GenericEvent, conf *kafkaSinkConfig,
 }
 
 // processSQLEvent process Sql Event
-func processSQLEvent(sqlEvent *events.SqlEvent, conf *kafkaSinkConfig, threshold int) (*sarama.ProducerMessage, error) {
+func (k *Kafka) processSQLEvent(sqlEvent *events.SqlEvent) (*sarama.ProducerMessage, error) {
 	var topic string
-	if len(conf.Topic) == 0 {
-		topic = conf.TopicPrefix + sqlEvent.Environment + "_" + sqlEvent.Database
+	if len(k.kafkaConf.Topic) == 0 {
+		topic = k.kafkaConf.TopicPrefix + sqlEvent.Environment + "_" + sqlEvent.Database
 	} else {
-		topic = conf.Topic
+		topic = k.kafkaConf.Topic
 	}
 	//log.WithFields(log.Fields{
 	//	"topic": topic,
@@ -180,9 +180,9 @@ func processSQLEvent(sqlEvent *events.SqlEvent, conf *kafkaSinkConfig, threshold
 			"error": err,
 		}).Error("KafkaSink Marshal Error")
 	}
-	if len(conf.Secret) > 0 {
+	if len(k.kafkaConf.Secret) > 0 {
 
-		result, err := util.EncryptString(string(serializedEventPayload[:]), conf.Secret)
+		result, err := util.EncryptString(string(serializedEventPayload[:]), k.kafkaConf.Secret)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error": err,
@@ -191,11 +191,11 @@ func processSQLEvent(sqlEvent *events.SqlEvent, conf *kafkaSinkConfig, threshold
 		serializedEventPayload = []byte(result)
 	}
 	//if message is heavier than threshold we must skip it
-	if len(serializedEventPayload) > threshold {
+	if len(serializedEventPayload) > k.kafkaConf.MaxMessageBytes {
 		errMsg := "KafkaSink: Skip too heavy event"
 		log.WithFields(log.Fields{
 			"size":      len(serializedEventPayload),
-			"threshold": threshold,
+			"threshold": k.kafkaConf.MaxMessageBytes,
 			"event":     sqlEvent.Database + "." + sqlEvent.Table,
 		}).Debug(errMsg)
 		return nil, errors.New(errMsg)
@@ -205,22 +205,22 @@ func processSQLEvent(sqlEvent *events.SqlEvent, conf *kafkaSinkConfig, threshold
 }
 
 // processKafkaMsg process Kafka Msg
-func processKafkaMsg(kafkaMsg *sarama.ConsumerMessage, conf *kafkaSinkConfig, threshold int) (*sarama.ProducerMessage, error) {
+func (k *Kafka) processKafkaMsg(kafkaMsg *sarama.ConsumerMessage) (*sarama.ProducerMessage, error) {
 	log.WithFields(log.Fields{
 		"topic": kafkaMsg.Topic,
 		"Value": kafkaMsg.Value,
 	}).Debug("KafkaSink: incoming Msg")
 
 	var topic string
-	if len(conf.Topic) == 0 {
-		topic = conf.TopicPrefix + kafkaMsg.Topic
+	if len(k.kafkaConf.Topic) == 0 {
+		topic = k.kafkaConf.TopicPrefix + kafkaMsg.Topic
 	} else {
-		topic = conf.Topic
+		topic = k.kafkaConf.Topic
 	}
 	var msgToSend []byte
-	if conf.Secret != "" {
+	if k.kafkaConf.Secret != "" {
 		var err error
-		msgToSend, err = util.EncryptBytes(kafkaMsg.Value, conf.Secret)
+		msgToSend, err = util.EncryptBytes(kafkaMsg.Value, k.kafkaConf.Secret)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error": err,
@@ -230,11 +230,11 @@ func processKafkaMsg(kafkaMsg *sarama.ConsumerMessage, conf *kafkaSinkConfig, th
 		msgToSend = kafkaMsg.Value
 	}
 	//if message is heavier than threshold we must skip it
-	if len(msgToSend) > threshold {
+	if len(msgToSend) > k.kafkaConf.MaxMessageBytes {
 		errMsg := "KafkaSink: Skip too heavy event"
 		log.WithFields(log.Fields{
 			"size":      len(msgToSend),
-			"threshold": threshold,
+			"threshold": k.kafkaConf.MaxMessageBytes,
 			"topic":     kafkaMsg.Topic,
 		}).Debug(errMsg)
 		return nil, errors.New(errMsg)
@@ -244,25 +244,25 @@ func processKafkaMsg(kafkaMsg *sarama.ConsumerMessage, conf *kafkaSinkConfig, th
 }
 
 // startProducer send message to kafka
-func startProducer(conf *kafkaSinkConfig, in chan *sarama.ProducerMessage, stop chan error) {
+func (k *Kafka) startProducer(in chan *sarama.ProducerMessage, stop chan error) {
 
 	saramaConf := sarama.NewConfig()
 	saramaConf.Producer.Retry.Max = 5
 	saramaConf.Producer.Return.Successes = true
-	saramaConf.Producer.MaxMessageBytes = conf.MaxMessageBytes
+	saramaConf.Producer.MaxMessageBytes = k.kafkaConf.MaxMessageBytes
 
-	if len(conf.ClientID) == 0 {
+	if len(k.kafkaConf.ClientID) == 0 {
 		log.Debug("No client id")
 		saramaConf.Net.SASL.Enable = true
-		log.Debug("SASL CLient ")
-		if conf.TLS {
-			log.Debug("TLS connection ")
-			saramaConf.Net.TLS.Enable = conf.TLS
+		log.Debug("SASL CLient")
+		if k.kafkaConf.TLS {
+			log.Debug("TLS connection")
+			saramaConf.Net.TLS.Enable = k.kafkaConf.TLS
 		}
-		saramaConf.Net.SASL.User = conf.Producer.User
-		saramaConf.Net.SASL.Password = conf.Producer.Password
+		saramaConf.Net.SASL.User = k.kafkaConf.Producer.User
+		saramaConf.Net.SASL.Password = k.kafkaConf.Producer.Password
 	} else {
-		saramaConf.ClientID = conf.ClientID
+		saramaConf.ClientID = k.kafkaConf.ClientID
 		log.WithFields(log.Fields{
 			"clientID": saramaConf.ClientID,
 		}).Debug("sink_conf sarama_conf ")
@@ -272,7 +272,7 @@ func startProducer(conf *kafkaSinkConfig, in chan *sarama.ProducerMessage, stop 
 		errMsg := "startProducer: sarama configuration not valid : "
 		stop <- errors.Annotate(err, errMsg)
 	}
-	producer, err := sarama.NewSyncProducer(conf.Brokers, saramaConf)
+	producer, err := sarama.NewSyncProducer(k.kafkaConf.Brokers, saramaConf)
 	if err != nil {
 		errMsg := "Error when Initialize NewSyncProducer"
 		stop <- errors.Annotate(err, errMsg)
@@ -287,17 +287,19 @@ func startProducer(conf *kafkaSinkConfig, in chan *sarama.ProducerMessage, stop 
 		log.Debug("Successfully Closed kafka producer")
 	}()
 
-	//log.Println("DEBUG: eventProducer spawning loop")
+	k.producerLoop(producer, in)
+
+	log.Info("startProducer")
+}
+
+func (k *Kafka) producerLoop(producer sarama.SyncProducer, in chan *sarama.ProducerMessage) {
 	var (
-		enqueued           int
 		msg                *sarama.ProducerMessage
 		msgs               []*sarama.ProducerMessage
 		lastSend, timepass int64
 		msgsSize, msgSize  int
 	)
 	lastSend = time.Now().Unix()
-
-ProducerLoop:
 	for {
 		select {
 		case msg = <-in:
@@ -312,10 +314,10 @@ ProducerLoop:
 
 				//calcul size
 				msgSize = msgByteSize(msg)
-				if msgSize > conf.MaxMessageBytes {
+				if msgSize > k.kafkaConf.MaxMessageBytes {
 					log.Warn("Skip Message")
 
-				} else if msgsSize+msgSize < conf.MaxMessageBytes {
+				} else if msgsSize+msgSize < k.kafkaConf.MaxMessageBytes {
 					msgs = append(msgs, msg)
 					msgsSize += msgSize
 				} else {
@@ -333,14 +335,11 @@ ProducerLoop:
 					msgsSize = 0
 				}
 			}
-		case <-stop:
+		case <-k.stop:
 			log.Info("startProducer: Signal received, closing producer")
-			break ProducerLoop
+			return
 		}
 	}
-	log.WithFields(log.Fields{
-		"Enqueued": enqueued,
-	}).Info("startProducer")
 }
 
 func sendMsg(msgs []*sarama.ProducerMessage, producer sarama.SyncProducer) int64 {

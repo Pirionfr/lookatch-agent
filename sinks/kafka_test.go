@@ -30,11 +30,12 @@ func init() {
 			"brokers": []string{
 				"test:9093",
 			},
-			"enabled": true,
-
-			"tls":          true,
-			"topic_prefix": "lookatch.test_batch",
-			"type":         "kafka",
+			"enabled":           true,
+			"max_message_bytes": threshold,
+			"nb_producer":       1,
+			"tls":               true,
+			"topic_prefix":      "lookatch.test_batch",
+			"type":              "kafka",
 			"producer": map[string]interface{}{
 				"user":     "lookatch.test",
 				"password": "test",
@@ -149,8 +150,6 @@ func TestProcessGenericEvent(t *testing.T) {
 	}
 	timestamp := strconv.Itoa(int(time.Now().Unix()))
 
-	conf := ksink.(*Kafka).kafkaConf
-
 	genericMsg := &events.GenericEvent{
 		Environment: "Envtest",
 		AgentId:     "IdTest",
@@ -159,7 +158,7 @@ func TestProcessGenericEvent(t *testing.T) {
 		Value:       "test",
 	}
 
-	msg, err := processGenericEvent(genericMsg, conf, threshold)
+	msg, err := ksink.(*Kafka).processGenericEvent(genericMsg)
 	if err != nil {
 		t.Error(err)
 	}
@@ -178,8 +177,6 @@ func TestProcessSqlEvent(t *testing.T) {
 	}
 	timestamp := strconv.Itoa(int(time.Now().Unix()))
 
-	conf := ksink.(*Kafka).kafkaConf
-
 	msgSQL := &events.SqlEvent{
 		Environment: "Envtest",
 		Tenant:      "faketenant",
@@ -191,7 +188,7 @@ func TestProcessSqlEvent(t *testing.T) {
 		Statement:   "test",
 	}
 
-	msg, err := processSQLEvent(msgSQL, conf, threshold)
+	msg, err := ksink.(*Kafka).processSQLEvent(msgSQL)
 	if err != nil {
 		t.Error(err)
 	}
@@ -209,8 +206,6 @@ func TestProcessKafkaMsg(t *testing.T) {
 		t.Error(err)
 	}
 
-	conf := ksink.(*Kafka).kafkaConf
-
 	msgKafka := &sarama.ConsumerMessage{
 		Value:          []byte("test"),
 		Timestamp:      time.Now(),
@@ -221,7 +216,7 @@ func TestProcessKafkaMsg(t *testing.T) {
 		Partition:      1,
 	}
 
-	msg, err := processKafkaMsg(msgKafka, conf, threshold)
+	msg, err := ksink.(*Kafka).processKafkaMsg(msgKafka)
 	if err != nil {
 		t.Error(err)
 	}
