@@ -62,7 +62,8 @@ func (k *Kafka) Start(_ ...interface{}) error {
 	resendChan := make(chan *sarama.ProducerMessage, 10000)
 	// Notice order could get altered having more than 1 producer
 	log.WithFields(log.Fields{
-		"NbProducer": k.kafkaConf.NbProducer,
+		"Name": k.name,
+ 		"NbProducer": k.kafkaConf.NbProducer,
 	}).Debug("Starting sink producers")
 	for x := 0; x < k.kafkaConf.NbProducer; x++ {
 		go k.startProducer(resendChan, k.stop)

@@ -114,6 +114,7 @@ func (m *MysqlCDC) Stop() error {
 // Start source
 func (m *MysqlCDC) Start(i ...interface{}) (err error) {
 	log.WithFields(log.Fields{
+		"Name": m.Name,
 		"type": MysqlCDCType,
 	}).Debug("Start")
 
