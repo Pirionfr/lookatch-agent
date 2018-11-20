@@ -1,11 +1,6 @@
 {
   "agent": {
-    "loglevel": "debug",
-    "healthport" : 8080,
-    "tenant" : "10536485-e987-474e-8d0f-7de0f9a79f28",
-    "uuid":"43ae51f5-a8af-4416-af7d-7793d151f449",
-    "secretkey":"cDC7lqGPo2RUmt43tpBtdNXMi17B6lOXRGxHHvc2nIslhtTaEHEB83HftL15umO8",
-    "env" : "summit"
+    "loglevel": "debug"
   },
   "auth": {
     "service": "https://datacollector.ovh.com/auth/token"
