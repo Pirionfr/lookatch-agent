@@ -62,8 +62,8 @@ func (k *Kafka) Start(_ ...interface{}) error {
 	resendChan := make(chan *sarama.ProducerMessage, 10000)
 	// Notice order could get altered having more than 1 producer
 	log.WithFields(log.Fields{
-		"Name": k.name,
- 		"NbProducer": k.kafkaConf.NbProducer,
+		"Name":       k.name,
+		"NbProducer": k.kafkaConf.NbProducer,
 	}).Debug("Starting sink producers")
 	for x := 0; x < k.kafkaConf.NbProducer; x++ {
 		go k.startProducer(resendChan, k.stop)
@@ -76,6 +76,14 @@ func (k *Kafka) Start(_ ...interface{}) error {
 	}).Debug("KafkaSink: started with threshold")
 
 	go k.startConsumer(resendChan)
+
+	//Send empty event every Minutes as to flush buffer
+	ticker := time.NewTicker(time.Minute * 1)
+	go func() {
+		for range ticker.C {
+			resendChan <- &sarama.ProducerMessage{Topic: "", Key: sarama.StringEncoder(""), Value: sarama.StringEncoder("")}
+		}
+	}()
 
 	return nil
 }
@@ -156,9 +164,6 @@ func (k *Kafka) processGenericEvent(genericMsg *events.GenericEvent) (*sarama.Pr
 		return nil, errors.New(errMsg)
 	}
 
-	log.WithFields(log.Fields{
-		"topic": topic,
-	}).Debug("KafkaSink: sending to topic")
 	return &sarama.ProducerMessage{Topic: topic, Key: sarama.ByteEncoder(genericMsg.Environment), Value: sarama.StringEncoder(msgToSend)}, nil
 
 }
@@ -304,14 +309,7 @@ func (k *Kafka) producerLoop(producer sarama.SyncProducer, in chan *sarama.Produ
 	for {
 		select {
 		case msg = <-in:
-			if msg.Value.Length() == 0 {
-				log.Debug("Receive empty Path")
-				if len(msgs) >= 1 {
-					lastSend = sendMsg(msgs, producer)
-					msgs = []*sarama.ProducerMessage{}
-					msgsSize = 0
-				}
-			} else {
+			if msg.Value.Length() != 0 {
 
 				//calcul size
 				msgSize = msgByteSize(msg)
@@ -328,14 +326,17 @@ func (k *Kafka) producerLoop(producer sarama.SyncProducer, in chan *sarama.Produ
 					msgsSize = msgSize
 				}
 
-				//use to clear slice
-				timepass = time.Now().Unix() - lastSend
-				if timepass >= 1 {
-					lastSend = sendMsg(msgs, producer)
-					msgs = []*sarama.ProducerMessage{}
-					msgsSize = 0
-				}
 			}
+
+			//use to clear slice
+			now := time.Now().Unix()
+			timepass = now - lastSend
+			if timepass >= 1 {
+				lastSend = sendMsg(msgs, producer)
+				msgs = []*sarama.ProducerMessage{}
+				msgsSize = 0
+			}
+
 		case <-k.stop:
 			log.Info("startProducer: Signal received, closing producer")
 			return
