@@ -5,6 +5,7 @@ import (
 
 	"github.com/Pirionfr/lookatch-common/events"
 	log "github.com/sirupsen/logrus"
+	"github.com/Pirionfr/lookatch-common/util"
 )
 
 // Stdout representation of sink
@@ -37,8 +38,19 @@ func (s *Stdout) Start(i ...interface{}) (err error) {
 				}).Error("json.Marshal()")
 				return
 			}
+			msg := string(bytes)
+			if s.encryptionkey != "" {
+				msg, err = util.EncryptString(string(bytes), s.encryptionkey)
+				if err != nil {
+					log.WithFields(log.Fields{
+						"error": err,
+					}).Error("error while encrypting event")
+					return
+				}
+			}
+
 			log.WithFields(log.Fields{
-				"message": string(bytes),
+				"message": msg,
 			}).Info("Stdout Sink")
 		}
 	}(s.in)

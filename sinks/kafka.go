@@ -34,7 +34,6 @@ type (
 		Consumer        *kafkaUser `json:"consumer"`
 		MaxMessageBytes int        `json:"max_message_bytes" mapstructure:"max_message_bytes"`
 		NbProducer      int        `json:"nb_producer" mapstructure:"nb_producer"`
-		Secret          string     `json:"secret"`
 	}
 
 	// Kafka representation of kafka sink
@@ -142,9 +141,9 @@ func (k *Kafka) processGenericEvent(genericMsg *events.GenericEvent) (*sarama.Pr
 			"error": err,
 		}).Error("KafkaSink Marshal Error")
 	}
-	if len(k.kafkaConf.Secret) > 0 {
+	if len(k.encryptionkey) > 0 {
 		var err error
-		msgToSend, err = util.EncryptBytes(serializedEventPayload, k.kafkaConf.Secret)
+		msgToSend, err = util.EncryptBytes(serializedEventPayload, k.encryptionkey)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error": err,
@@ -186,9 +185,9 @@ func (k *Kafka) processSQLEvent(sqlEvent *events.SqlEvent) (*sarama.ProducerMess
 			"error": err,
 		}).Error("KafkaSink Marshal Error")
 	}
-	if len(k.kafkaConf.Secret) > 0 {
+	if len(k.encryptionkey) > 0 {
 
-		result, err := util.EncryptString(string(serializedEventPayload[:]), k.kafkaConf.Secret)
+		result, err := util.EncryptString(string(serializedEventPayload[:]), k.encryptionkey)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error": err,
@@ -224,9 +223,9 @@ func (k *Kafka) processKafkaMsg(kafkaMsg *sarama.ConsumerMessage) (*sarama.Produ
 		topic = k.kafkaConf.Topic
 	}
 	var msgToSend []byte
-	if k.kafkaConf.Secret != "" {
+	if k.encryptionkey != "" {
 		var err error
-		msgToSend, err = util.EncryptBytes(kafkaMsg.Value, k.kafkaConf.Secret)
+		msgToSend, err = util.EncryptBytes(kafkaMsg.Value, k.encryptionkey)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error": err,

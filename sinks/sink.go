@@ -15,10 +15,11 @@ type (
 	}
 	// Sink representation of sink
 	Sink struct {
-		in   chan *events.LookatchEvent
-		stop chan error
-		name string
-		conf *viper.Viper
+		in            chan *events.LookatchEvent
+		stop          chan error
+		name          string
+		encryptionkey string
+		conf          *viper.Viper
 	}
 )
 
@@ -47,5 +48,5 @@ func New(name string, sinkType string, conf *viper.Viper, stop chan error, event
 		return nil, err
 	}
 
-	return sinkCreatorFunc(&Sink{eventChan, stop, name, customConf})
+	return sinkCreatorFunc(&Sink{eventChan, stop, name, conf.GetString("agent.encryptionkey"),customConf})
 }
