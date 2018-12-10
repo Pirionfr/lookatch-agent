@@ -92,3 +92,8 @@
 [[constraint]]
   name = "google.golang.org/grpc"
   version = "1.12.2"
+
+[prune]
+  non-go = true
+  go-tests = true
+  unused-packages = true

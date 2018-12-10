@@ -23,19 +23,20 @@ import (
 // Agent representation of agent
 type Agent struct {
 	sync.RWMutex
-	config       *viper.Viper
-	tenant       *events.LookatchTenantInfo
-	hostname     string
-	uuid         uuid.UUID
-	srcMutex     sync.RWMutex
-	sources      map[string]sources.SourceI
-	sinksMutex   sync.RWMutex
-	sinks        map[string]sinks.SinkI
-	multiplexers map[string]*Multiplexer
-	controller   *Controller
-	stopper      chan error
-	secretkey    string
-	status       string
+	config        *viper.Viper
+	tenant        *events.LookatchTenantInfo
+	hostname      string
+	uuid          uuid.UUID
+	srcMutex      sync.RWMutex
+	sources       map[string]sources.SourceI
+	sinksMutex    sync.RWMutex
+	sinks         map[string]sinks.SinkI
+	multiplexers  map[string]*Multiplexer
+	controller    *Controller
+	stopper       chan error
+	secretkey     string
+	encryptionkey string
+	status        string
 }
 
 // Agent create new agent
@@ -80,6 +81,7 @@ func newAgent(config *viper.Viper, s chan error) (a *Agent) {
 		sinks:        make(map[string]sinks.SinkI),
 		multiplexers: make(map[string]*Multiplexer),
 		secretkey:    config.GetString("agent.secretkey"),
+		encryptionkey:    config.GetString("agent.encryptionkey"),
 		tenant: &events.LookatchTenantInfo{
 			Id:  config.GetString("agent.tenant"),
 			Env: config.GetString("agent.env"),
@@ -135,6 +137,7 @@ func (a *Agent) updateConfig(b []byte) (err error) {
 	}
 	log.Info("Configuration updated")
 	a.status = control.AgentStatusOnline
+	a.encryptionkey = a.config.GetString("agent.encryptionkey")
 	err = a.InitConfig()
 	return
 }

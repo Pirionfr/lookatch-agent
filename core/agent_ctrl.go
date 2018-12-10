@@ -78,7 +78,7 @@ func (a *Agent) DispatchSource(payload *rpc.Message, sourceName string) {
 	if err != nil {
 		log.WithFields(log.Fields{
 			"payload": payload,
-		}).Error("Unable to unmarshall %s message")
+		}).Error("Unable to unmarshal %s message")
 		return
 	}
 
