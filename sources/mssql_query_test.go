@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/Pirionfr/lookatch-common/control"
-	"github.com/Pirionfr/lookatch-common/events"
+	"github.com/Pirionfr/lookatch-agent/control"
+	"github.com/Pirionfr/lookatch-agent/events"
 	"github.com/spf13/viper"
 )
 
@@ -27,7 +27,7 @@ func init() {
 
 	agentInfo := &AgentHeader{
 		tenant: events.LookatchTenantInfo{
-			Id:  vMSSQLQuery.GetString("agent.tenant"),
+			ID:  vMSSQLQuery.GetString("agent.tenant"),
 			Env: vMSSQLQuery.GetString("agent.env"),
 		},
 		hostname: vMSSQLQuery.GetString("agent.hostname"),

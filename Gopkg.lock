@@ -18,20 +18,6 @@
   revision = "15df0648130a623e418886f81b2aaecd0a00547b"
 
 [[projects]]
-  branch = "master"
-  digest = "1:8b328ffa6285070b7093630c084bb95ea69530c4139fc40f4d556b94ef76ad0b"
-  name = "github.com/Pirionfr/lookatch-common"
-  packages = [
-    "control",
-    "events",
-    "rpc",
-    "rpc/mock_rpc",
-    "util",
-  ]
-  pruneopts = "NUT"
-  revision = "d62af8f50d6a4eb10cc60cc6c0a7f03cb8e40f5d"
-
-[[projects]]
   digest = "1:a074ae0f4788ea4c4c7045ab37f21943920bc20cf6ff8afcb2d971154cfa87ab"
   name = "github.com/Shopify/sarama"
   packages = ["."]
@@ -76,14 +62,6 @@
   ]
   pruneopts = "NUT"
   revision = "1eb28afdf9b6e56cf673badd47545f844fe81103"
-
-[[projects]]
-  digest = "1:7a6852b35eb5bbc184561443762d225116ae630c26a7c4d90546619f1e7d2ad2"
-  name = "github.com/dgrijalva/jwt-go"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
-  version = "v3.2.0"
 
 [[projects]]
   digest = "1:08143362be979b087c2c1bae5dde986e988d3d5d4dc661727cbe436411b3f33a"
@@ -290,6 +268,14 @@
   version = "v0.8.0"
 
 [[projects]]
+  digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
+  name = "github.com/pmezard/go-difflib"
+  packages = ["difflib"]
+  pruneopts = "NUT"
+  revision = "792786c7400a136282c1664665ae0a8db921c6c2"
+  version = "v1.0.0"
+
+[[projects]]
   branch = "master"
   digest = "1:7c522337040d4ec9a136cd9d64fe4677ee1d3eae4a7f8831c2108f9bec43fa48"
   name = "github.com/rcrowley/go-metrics"
@@ -414,6 +400,14 @@
   version = "v1.2.1"
 
 [[projects]]
+  digest = "1:bacb8b590716ab7c33f2277240972c9582d389593ee8d66fc10074e0508b8126"
+  name = "github.com/stretchr/testify"
+  packages = ["assert"]
+  pruneopts = "NUT"
+  revision = "f35b8ab0b5a2cef36673838d662e249dd9c94686"
+  version = "v1.2.2"
+
+[[projects]]
   branch = "master"
   digest = "1:d4817492df8ee5cb51c8a731049fa258c724bfff996b742f29bb6196d237d328"
   name = "github.com/yuin/gopher-lua"
@@ -439,7 +433,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:60f3433c9ca99d091afbd5ba6b83b6099ea889436254caa9dd80ce28a14d361a"
+  digest = "1:d39e451e542c7c064d7e29050eb50993a7484d4a3b538387c0f2ac32b5b9cdd8"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -448,7 +442,6 @@
     "http2/hpack",
     "idna",
     "internal/timeseries",
-    "publicsuffix",
     "trace",
   ]
   pruneopts = "NUT"
@@ -546,14 +539,6 @@
   version = "v2.2.1"
 
 [[projects]]
-  digest = "1:52c03521c843e46541114c87bcf4653663bc53595be6da21199c1f732e443c06"
-  name = "gopkg.in/resty.v1"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "a59932b061db030cf7edc11d970c8b6013d04a32"
-  version = "v1.10.3"
-
-[[projects]]
   digest = "1:7c95b35057a0ff2e19f707173cc1a947fa43a6eb5c4d300d196ece0334046082"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
@@ -566,11 +551,6 @@
   analyzer-version = 1
   input-imports = [
     "github.com/Pallinder/go-randomdata",
-    "github.com/Pirionfr/lookatch-common/control",
-    "github.com/Pirionfr/lookatch-common/events",
-    "github.com/Pirionfr/lookatch-common/rpc",
-    "github.com/Pirionfr/lookatch-common/rpc/mock_rpc",
-    "github.com/Pirionfr/lookatch-common/util",
     "github.com/Shopify/sarama",
     "github.com/alicebob/miniredis",
     "github.com/denisenkom/go-mssqldb",
@@ -588,14 +568,15 @@
     "github.com/siddontang/go-mysql/replication",
     "github.com/sirupsen/logrus",
     "github.com/spf13/cobra",
+    "github.com/spf13/jwalterweatherman",
     "github.com/spf13/viper",
+    "github.com/stretchr/testify/assert",
     "golang.org/x/net/context",
     "google.golang.org/grpc",
     "google.golang.org/grpc/credentials",
     "google.golang.org/grpc/metadata",
     "google.golang.org/grpc/status",
     "gopkg.in/mcuadros/go-syslog.v2",
-    "gopkg.in/resty.v1",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

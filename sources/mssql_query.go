@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/Pirionfr/lookatch-common/control"
+	"github.com/Pirionfr/lookatch-agent/control"
 
 	// driver
 	_ "github.com/denisenkom/go-mssqldb"

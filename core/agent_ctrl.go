@@ -1,11 +1,11 @@
 package core
 
-import "github.com/Pirionfr/lookatch-common/control"
+import "github.com/Pirionfr/lookatch-agent/control"
 
 import (
 	"encoding/json"
 
-	"github.com/Pirionfr/lookatch-common/rpc"
+	"github.com/Pirionfr/lookatch-agent/rpc"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -78,7 +78,7 @@ func (a *Agent) DispatchSource(payload *rpc.Message, sourceName string) {
 	if err != nil {
 		log.WithFields(log.Fields{
 			"payload": payload,
-		}).Error("Unable to unmarshal %s message")
+		}).Error("Unable to unmarshal message")
 		return
 	}
 
@@ -121,7 +121,7 @@ func (a *Agent) GetSourceAvailableAction(sourceName string, srcCtrl *control.Sou
 // GetConfig Get Configuration from server
 func (a *Agent) GetConfig() error {
 	agentCtrl := &control.Agent{}
-	msg := agentCtrl.NewMessage(a.tenant.Id, a.uuid.String(), control.AgentStatus).WithPayload(control.AgentStatusWaitingForConf)
+	msg := agentCtrl.NewMessage(a.tenant.ID, a.uuid.String(), control.AgentStatus).WithPayload(control.AgentStatusWaitingForConf)
 	return a.SendEncapsMessage(msg, control.TypeAgent)
 }
 
@@ -187,7 +187,7 @@ func (a *Agent) UpdateConfig(agentCtrl *control.Agent) (err error) {
 
 // SendAgentStatus send agent status
 func (a *Agent) SendAgentStatus(agentCtrl *control.Agent) error {
-	msg := agentCtrl.NewMessage(a.tenant.Id, a.uuid.String(), control.AgentStatus).WithPayload(a.status)
+	msg := agentCtrl.NewMessage(a.tenant.ID, a.uuid.String(), control.AgentStatus).WithPayload(a.status)
 	return a.SendEncapsMessage(msg, control.TypeAgent)
 }
 

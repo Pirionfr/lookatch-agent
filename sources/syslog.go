@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Pirionfr/lookatch-common/control"
-	"github.com/Pirionfr/lookatch-common/events"
+	"github.com/Pirionfr/lookatch-agent/control"
+	"github.com/Pirionfr/lookatch-agent/events"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/mcuadros/go-syslog.v2"
 )
@@ -91,8 +91,8 @@ func (s *Syslog) Start(i ...interface{}) error {
 					EventType: SyslogType,
 				},
 				Payload: &events.GenericEvent{
-					Tenant:      s.AgentInfo.tenant.Id,
-					AgentId:     s.AgentInfo.uuid,
+					Tenant:      s.AgentInfo.tenant.ID,
+					AgentID:     s.AgentInfo.uuid,
 					Timestamp:   strconv.Itoa(int(time.Now().Unix())),
 					Environment: s.AgentInfo.tenant.Env,
 					Value:       logParts,

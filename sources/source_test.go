@@ -3,7 +3,7 @@ package sources
 import (
 	"testing"
 
-	"github.com/Pirionfr/lookatch-common/events"
+	"github.com/Pirionfr/lookatch-agent/events"
 	"github.com/spf13/viper"
 )
 

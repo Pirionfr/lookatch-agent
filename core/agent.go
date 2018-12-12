@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Pirionfr/lookatch-agent/control"
+	"github.com/Pirionfr/lookatch-agent/events"
 	"github.com/Pirionfr/lookatch-agent/sinks"
 	"github.com/Pirionfr/lookatch-agent/sources"
-	"github.com/Pirionfr/lookatch-common/control"
-	"github.com/Pirionfr/lookatch-common/events"
 	"github.com/juju/errors"
 	"github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
@@ -75,15 +75,15 @@ func newAgent(config *viper.Viper, s chan error) (a *Agent) {
 	}
 
 	a = &Agent{
-		hostname:     config.GetString("agent.hostname"),
-		config:       config,
-		sources:      make(map[string]sources.SourceI),
-		sinks:        make(map[string]sinks.SinkI),
-		multiplexers: make(map[string]*Multiplexer),
-		secretkey:    config.GetString("agent.secretkey"),
-		encryptionkey:    config.GetString("agent.encryptionkey"),
+		hostname:      config.GetString("agent.hostname"),
+		config:        config,
+		sources:       make(map[string]sources.SourceI),
+		sinks:         make(map[string]sinks.SinkI),
+		multiplexers:  make(map[string]*Multiplexer),
+		secretkey:     config.GetString("agent.secretkey"),
+		encryptionkey: config.GetString("agent.encryptionkey"),
 		tenant: &events.LookatchTenantInfo{
-			Id:  config.GetString("agent.tenant"),
+			ID:  config.GetString("agent.tenant"),
 			Env: config.GetString("agent.env"),
 		},
 		controller: controller,
@@ -355,7 +355,7 @@ func (a *Agent) getSourceAvailableAction() *control.Agent {
 		sourceAction[source.GetName()] = source.GetAvailableActions()
 	}
 	aCtrl := &control.Agent{}
-	return aCtrl.NewMessage(a.tenant.Id, a.uuid.String(), control.SourceAvailableAction).WithPayload(sourceAction)
+	return aCtrl.NewMessage(a.tenant.ID, a.uuid.String(), control.SourceAvailableAction).WithPayload(sourceAction)
 
 }
 
@@ -366,7 +366,7 @@ func (a *Agent) getAvailableAction() *control.Agent {
 	action[control.AgentStop] = control.DeclareNewAction(nil, "Stop agent")
 	action[control.AgentRestart] = control.DeclareNewAction(nil, "Restart agent")
 	aCtrl := &control.Agent{}
-	return aCtrl.NewMessage(a.tenant.Id, a.uuid.String(), control.AgentAvailableAction).WithPayload(action)
+	return aCtrl.NewMessage(a.tenant.ID, a.uuid.String(), control.AgentAvailableAction).WithPayload(action)
 
 }
 
@@ -381,7 +381,7 @@ func (a *Agent) getSourceMeta() *control.Agent {
 		}
 	}
 	aCtrl := &control.Agent{}
-	return aCtrl.NewMessage(a.tenant.Id, a.uuid.String(), control.SourceMeta).WithPayload(sourceMeta)
+	return aCtrl.NewMessage(a.tenant.ID, a.uuid.String(), control.SourceMeta).WithPayload(sourceMeta)
 
 }
 
@@ -395,7 +395,7 @@ func (a *Agent) getSourceStatus() *control.Agent {
 		}
 	}
 	agentCtrl := &control.Agent{}
-	return agentCtrl.NewMessage(a.tenant.Id, a.uuid.String(), control.SourceStatus).WithPayload(sourceStatus)
+	return agentCtrl.NewMessage(a.tenant.ID, a.uuid.String(), control.SourceStatus).WithPayload(sourceStatus)
 
 }
 
@@ -410,7 +410,7 @@ func (a *Agent) GetSchemas() *control.Agent {
 		}
 	}
 	agentCtrl := &control.Agent{}
-	return agentCtrl.NewMessage(a.tenant.Id, a.uuid.String(), control.SourceSchema).WithPayload(sourceStatus)
+	return agentCtrl.NewMessage(a.tenant.ID, a.uuid.String(), control.SourceSchema).WithPayload(sourceStatus)
 }
 
 // healthCheckChecker start health check endpoint

@@ -14,5 +14,6 @@
     "unconvert",
     "unused",
     "vet"
-  ]
+  ],
+  "Exclude": ["rpc/mock_rpc"]
 }

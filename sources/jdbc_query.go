@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Pirionfr/lookatch-common/control"
-	"github.com/Pirionfr/lookatch-common/events"
+	"github.com/Pirionfr/lookatch-agent/control"
+	"github.com/Pirionfr/lookatch-agent/events"
 	"github.com/remeh/sizedwaitgroup"
 	log "github.com/sirupsen/logrus"
 )
@@ -296,8 +296,8 @@ func (j *JDBCQuery) MarshallWorker(mapchan chan map[string]interface{}, database
 				EventType: MysqlQueryType,
 				Tenant:    j.AgentInfo.tenant,
 			},
-			Payload: &events.SqlEvent{
-				Tenant:      j.AgentInfo.tenant.Id,
+			Payload: &events.SQLEvent{
+				Tenant:      j.AgentInfo.tenant.ID,
 				Environment: j.AgentInfo.tenant.Env,
 				Timestamp:   strconv.FormatInt(time.Now().UnixNano(), 10),
 				Method:      "query",

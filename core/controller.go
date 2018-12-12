@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Pirionfr/lookatch-common/rpc"
+	"github.com/Pirionfr/lookatch-agent/rpc"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/status"
 )

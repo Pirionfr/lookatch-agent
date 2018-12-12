@@ -6,8 +6,8 @@ import (
 
 	"encoding/binary"
 
-	"github.com/Pirionfr/lookatch-common/events"
-	"github.com/Pirionfr/lookatch-common/util"
+	"github.com/Pirionfr/lookatch-agent/events"
+	"github.com/Pirionfr/lookatch-agent/util"
 	"github.com/Shopify/sarama"
 	"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"
@@ -99,7 +99,7 @@ func (k *Kafka) startConsumer(kafkaChan chan *sarama.ProducerMessage) {
 
 			//id event is too heavy it wont fit in kafka threshold so we have to skip it
 			switch typedMsg := eventMsg.Payload.(type) {
-			case *events.SqlEvent:
+			case *events.SQLEvent:
 				producerMsg, err := k.processSQLEvent(typedMsg)
 				if err != nil {
 					break
@@ -168,7 +168,7 @@ func (k *Kafka) processGenericEvent(genericMsg *events.GenericEvent) (*sarama.Pr
 }
 
 // processSQLEvent process Sql Event
-func (k *Kafka) processSQLEvent(sqlEvent *events.SqlEvent) (*sarama.ProducerMessage, error) {
+func (k *Kafka) processSQLEvent(sqlEvent *events.SQLEvent) (*sarama.ProducerMessage, error) {
 	var topic string
 	if len(k.kafkaConf.Topic) == 0 {
 		topic = k.kafkaConf.TopicPrefix + sqlEvent.Environment + "_" + sqlEvent.Database

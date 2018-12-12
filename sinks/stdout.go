@@ -3,9 +3,9 @@ package sinks
 import (
 	"encoding/json"
 
-	"github.com/Pirionfr/lookatch-common/events"
+	"github.com/Pirionfr/lookatch-agent/events"
+	"github.com/Pirionfr/lookatch-agent/util"
 	log "github.com/sirupsen/logrus"
-	"github.com/Pirionfr/lookatch-common/util"
 )
 
 // Stdout representation of sink

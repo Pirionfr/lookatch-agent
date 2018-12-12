@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Pirionfr/lookatch-common/control"
-	"github.com/Pirionfr/lookatch-common/events"
-	"github.com/Pirionfr/lookatch-common/util"
+	"github.com/Pirionfr/lookatch-agent/control"
+	"github.com/Pirionfr/lookatch-agent/events"
+	"github.com/Pirionfr/lookatch-agent/util"
 	"github.com/papertrail/go-tail/follower"
 	log "github.com/sirupsen/logrus"
 )
@@ -167,8 +167,8 @@ func (f *FileReadingFollower) read() {
 				EventType: FileReadingFollowerType,
 			},
 			Payload: &events.GenericEvent{
-				Tenant:      f.AgentInfo.tenant.Id,
-				AgentId:     f.AgentInfo.uuid,
+				Tenant:      f.AgentInfo.tenant.ID,
+				AgentID:     f.AgentInfo.uuid,
 				Timestamp:   strconv.Itoa(int(time.Now().Unix())),
 				Environment: f.AgentInfo.tenant.Env,
 				Value:       line.String(),

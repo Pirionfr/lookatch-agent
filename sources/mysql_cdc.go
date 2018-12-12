@@ -10,10 +10,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/Pirionfr/lookatch-agent/control"
+	"github.com/Pirionfr/lookatch-agent/events"
+	"github.com/Pirionfr/lookatch-agent/util"
 	utils "github.com/Pirionfr/lookatch-agent/util"
-	"github.com/Pirionfr/lookatch-common/control"
-	"github.com/Pirionfr/lookatch-common/events"
-	"github.com/Pirionfr/lookatch-common/util"
 	"github.com/siddontang/go-mysql/mysql"
 	"github.com/siddontang/go-mysql/replication"
 	log "github.com/sirupsen/logrus"
@@ -345,7 +345,7 @@ func (m *MysqlCDC) getRows(timestamp int64, row []interface{}, schema, table, me
 				EventType: MysqlCDCType,
 				Tenant:    m.AgentInfo.tenant,
 			},
-			Payload: &events.SqlEvent{
+			Payload: &events.SQLEvent{
 				Timestamp:   strconv.FormatInt(timestamp, 10),
 				Environment: m.AgentInfo.tenant.Env,
 				Schema:      schema,
@@ -407,7 +407,7 @@ func (m *MysqlCDC) getRowsWithOldValue(timestamp int64, rows [][]interface{}, sc
 				EventType: MysqlCDCType,
 				Tenant:    m.AgentInfo.tenant,
 			},
-			Payload: &events.SqlEvent{
+			Payload: &events.SQLEvent{
 				Timestamp:    strconv.Itoa(int(timestamp)),
 				Environment:  m.AgentInfo.tenant.Env,
 				Database:     schema,

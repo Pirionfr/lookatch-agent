@@ -26,10 +26,6 @@
   name = "github.com/Pallinder/go-randomdata"
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/Pirionfr/lookatch-common"
-
-[[constraint]]
   name = "github.com/Shopify/sarama"
   version = "1.17.0"
 

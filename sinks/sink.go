@@ -1,7 +1,7 @@
 package sinks
 
 import (
-	"github.com/Pirionfr/lookatch-common/events"
+	"github.com/Pirionfr/lookatch-agent/events"
 	"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -48,5 +48,5 @@ func New(name string, sinkType string, conf *viper.Viper, stop chan error, event
 		return nil, err
 	}
 
-	return sinkCreatorFunc(&Sink{eventChan, stop, name, conf.GetString("agent.encryptionkey"),customConf})
+	return sinkCreatorFunc(&Sink{eventChan, stop, name, conf.GetString("agent.encryptionkey"), customConf})
 }

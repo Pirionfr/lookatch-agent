@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Pirionfr/lookatch-agent/control"
+	"github.com/Pirionfr/lookatch-agent/events"
+	"github.com/Pirionfr/lookatch-agent/util"
 	utils "github.com/Pirionfr/lookatch-agent/util"
-	"github.com/Pirionfr/lookatch-common/control"
-	"github.com/Pirionfr/lookatch-common/events"
-	"github.com/Pirionfr/lookatch-common/util"
 	"github.com/jackc/pgx"
 	log "github.com/sirupsen/logrus"
 )
@@ -420,7 +420,7 @@ func (p *PostgreSQLCDC) decodeEvents() {
 							EventType: MysqlCDCType,
 							Tenant:    p.AgentInfo.tenant,
 						},
-						Payload: &events.SqlEvent{
+						Payload: &events.SQLEvent{
 
 							Timestamp:   strconv.FormatInt(timestamp, 10),
 							Environment: p.AgentInfo.tenant.Env,

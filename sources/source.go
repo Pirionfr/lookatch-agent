@@ -1,8 +1,8 @@
 package sources
 
 import (
-	"github.com/Pirionfr/lookatch-common/control"
-	"github.com/Pirionfr/lookatch-common/events"
+	"github.com/Pirionfr/lookatch-agent/control"
+	"github.com/Pirionfr/lookatch-agent/events"
 	"github.com/juju/errors"
 	"github.com/spf13/viper"
 )
@@ -65,7 +65,7 @@ func New(name string, sourceType string, config *viper.Viper, eventChan chan *ev
 	//setup agentHeader
 	agentInfo := &AgentHeader{
 		tenant: events.LookatchTenantInfo{
-			Id:  config.GetString("agent.tenant"),
+			ID:  config.GetString("agent.tenant"),
 			Env: config.GetString("agent.env"),
 		},
 		hostname: config.GetString("agent.hostname"),

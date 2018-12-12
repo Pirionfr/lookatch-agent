@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/Pallinder/go-randomdata"
-	"github.com/Pirionfr/lookatch-common/control"
-	"github.com/Pirionfr/lookatch-common/events"
+	"github.com/Pirionfr/lookatch-agent/control"
+	"github.com/Pirionfr/lookatch-agent/events"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -65,8 +65,8 @@ func (r *Random) Start(i ...interface{}) error {
 					EventType: RandomType,
 				},
 				Payload: &events.GenericEvent{
-					Tenant:      r.AgentInfo.tenant.Id,
-					AgentId:     r.AgentInfo.uuid,
+					Tenant:      r.AgentInfo.tenant.ID,
+					AgentID:     r.AgentInfo.uuid,
 					Timestamp:   strconv.Itoa(int(time.Now().Unix())),
 					Environment: r.AgentInfo.tenant.Env,
 					Value:       randomData,
