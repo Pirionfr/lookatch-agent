@@ -34,6 +34,7 @@ type Agent struct {
 	multiplexers  map[string]*Multiplexer
 	controller    *Controller
 	stopper       chan error
+	password      string
 	secretkey     string
 	encryptionkey string
 	status        string
@@ -63,6 +64,7 @@ func newAgent(config *viper.Viper, s chan error) (a *Agent) {
 		auth := newAuth(
 			config.GetString("agent.tenant"),
 			config.GetString("agent.uuid"),
+			config.GetString("agent.password"),
 			config.GetString("agent.secretkey"),
 			config.GetString("agent.hostname"),
 			config.GetString("auth.service"))

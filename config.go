@@ -51,6 +51,10 @@ func initializeConfig() (*viper.Viper, error) {
 		m["env"] = env
 	}
 
+	if pwd := os.Getenv("PASSWORD"); pwd != "" {
+		m["password"] = pwd
+	}
+
 	if key := os.Getenv("SECRETKEY"); key != "" {
 		m["secretkey"] = key
 	}
