@@ -8,10 +8,7 @@ import (
 
 // IsStandalone check if collector is in standalone mode
 func IsStandalone(v *viper.Viper) bool {
-	if v.Get("auth") != nil {
-		return false
-	}
-	return true
+	return v.Get("auth") == nil
 }
 
 // EscapeCtrl escape ctrl character

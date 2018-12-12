@@ -7,7 +7,7 @@ import (
 
 func TestDeclareNewAction(t *testing.T) {
 	type QueryAction struct {
-		query string `description:"SQL query to execute on agent" required:"true"`
+		query string `description:"SQL query to execute on agent" required:"true"` // nolint
 	}
 
 	validResult := "{\"description\":\"Query source\",\"parameters\":[{\"name\":\"query\",\"description\":\"SQL query to execute on agent\",\"type\":\"string\",\"required\":true}]}"
