@@ -85,7 +85,7 @@ func TestStartChannelWithAuth(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(handler))
 	defer server.Close()
 
-	auth = newAuth("tenant", "uuid", "secret", "host", server.URL)
+	auth = newAuth("tenant", "uuid", "", "secret", "host", server.URL)
 
 	crtlClient := NewControllerClient(vCtrl.Sub("controller"), auth)
 	if crtlClient == nil {
