@@ -15,9 +15,11 @@ import (
 	"github.com/Pirionfr/lookatch-agent/sinks"
 	"github.com/Pirionfr/lookatch-agent/sources"
 	"github.com/juju/errors"
-	"github.com/satori/go.uuid"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+
+	"github.com/google/uuid"
 )
 
 // Agent representation of agent
@@ -90,7 +92,7 @@ func newAgent(config *viper.Viper, s chan error) (a *Agent) {
 		status:     status,
 	}
 
-	a.uuid, _ = uuid.FromString(a.config.GetString("agent.uuid"))
+	a.uuid, _ = uuid.Parse(a.config.GetString("agent.uuid"))
 
 	return
 }

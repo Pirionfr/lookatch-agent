@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/satori/go.uuid"
+	"github.com/google/uuid"
 	"github.com/spf13/viper"
 )
 
@@ -67,18 +67,18 @@ func initializeConfig() (*viper.Viper, error) {
 
 	hostname, err := os.Hostname()
 	if err != nil {
-		return v, fmt.Errorf("Unable to get hostname : %v", err)
+		return v, fmt.Errorf("unable to get hostname : %v", err)
 	}
 	m["hostname"] = hostname
 
 	u1, ok := m["uuid"]
 	if ok {
-		if _, err = uuid.FromString(u1.(string)); err == nil {
+		if _, err = uuid.Parse(u1.(string)); err == nil {
 			return v, nil
 		}
 	}
 
-	m["uuid"] = uuid.NewV4()
+	m["uuid"] = uuid.New()
 	v.Set("agent", m)
 	return v, nil
 }

@@ -137,6 +137,14 @@
   version = "v2.0.0"
 
 [[projects]]
+  digest = "1:56a1f3949ebb7fa22fa6b4e4ac0fe0f77cc4faee5b57413e6fa9199a8458faf1"
+  name = "github.com/google/uuid"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "9b3b1e0f5f99ae461456d768e7d301a7acdaa2d8"
+  version = "v1.1.0"
+
+[[projects]]
   digest = "1:11c6c696067d3127ecf332b10f89394d386d9083f82baf71f40f2da31841a009"
   name = "github.com/hashicorp/hcl"
   packages = [
@@ -556,13 +564,13 @@
     "github.com/denisenkom/go-mssqldb",
     "github.com/golang/mock/gomock",
     "github.com/golang/protobuf/proto",
+    "github.com/google/uuid",
     "github.com/jackc/pgx",
     "github.com/juju/errors",
     "github.com/lib/pq",
     "github.com/mediocregopher/radix.v2/pool",
     "github.com/papertrail/go-tail/follower",
     "github.com/remeh/sizedwaitgroup",
-    "github.com/satori/go.uuid",
     "github.com/siddontang/go-mysql/driver",
     "github.com/siddontang/go-mysql/mysql",
     "github.com/siddontang/go-mysql/replication",
