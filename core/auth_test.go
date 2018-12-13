@@ -9,7 +9,7 @@ import (
 )
 
 func TestNewAuth(t *testing.T) {
-	auth := newAuth("tenant", "uuid", "secret", "host", "url")
+	auth := newAuth("tenant", "uuid", "","secret", "host", "url")
 
 	if auth.tenant != "tenant" {
 		t.Fail()
@@ -39,7 +39,7 @@ func TestAuth_GetToken(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(handler))
 	defer server.Close()
 
-	auth := newAuth("tenant", "uuid", "secret", "host", server.URL)
+	auth := newAuth("tenant", "uuid", "","secret", "host", server.URL)
 
 	token, err := auth.GetToken()
 	if err != nil {
@@ -60,7 +60,7 @@ func TestAuth_GetTokenError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(handler))
 	defer server.Close()
 
-	auth := newAuth("tenant", "uuid", "secret", "host", server.URL)
+	auth := newAuth("tenant", "uuid", "","secret", "host", server.URL)
 
 	token, err := auth.GetToken()
 
@@ -83,7 +83,7 @@ func TestAuth_GetUnmarshallError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(handler))
 	defer server.Close()
 
-	auth := newAuth("tenant", "uuid", "secret", "host", server.URL)
+	auth := newAuth("tenant", "uuid", "","secret", "host", server.URL)
 
 	token, err := auth.GetToken()
 
