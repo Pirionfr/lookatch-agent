@@ -9,7 +9,7 @@ import (
 )
 
 func TestNewAuth(t *testing.T) {
-	auth := newAuth("tenant", "uuid", "","secret", "host", "url")
+	auth := newAuth("tenant", "uuid", "", "secret", "host", "url")
 
 	if auth.tenant != "tenant" {
 		t.Fail()
@@ -18,6 +18,27 @@ func TestNewAuth(t *testing.T) {
 		t.Fail()
 	}
 	if auth.secretkey != "secret" {
+		t.Fail()
+	}
+	if auth.hostname != "host" {
+		t.Fail()
+	}
+
+	if auth.authURL != "url" {
+		t.Fail()
+	}
+}
+
+func TestNewAuthPwd(t *testing.T) {
+	auth := newAuth("tenant", "uuid", "password", "", "host", "url")
+
+	if auth.tenant != "tenant" {
+		t.Fail()
+	}
+	if auth.uuid != "uuid" {
+		t.Fail()
+	}
+	if auth.password != "password" {
 		t.Fail()
 	}
 	if auth.hostname != "host" {
@@ -39,7 +60,28 @@ func TestAuth_GetToken(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(handler))
 	defer server.Close()
 
-	auth := newAuth("tenant", "uuid", "","secret", "host", server.URL)
+	auth := newAuth("tenant", "uuid", "", "secret", "host", server.URL)
+
+	token, err := auth.GetToken()
+	if err != nil {
+		t.Fail()
+	}
+	if token != "test" {
+		t.Fail()
+	}
+}
+
+func TestAuth_GetTokenPwd(t *testing.T) {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		io.WriteString(w, `{"token":"test"}`)
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(handler))
+	defer server.Close()
+
+	auth := newAuth("tenant", "uuid", "password", "", "host", server.URL)
 
 	token, err := auth.GetToken()
 	if err != nil {
@@ -60,7 +102,7 @@ func TestAuth_GetTokenError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(handler))
 	defer server.Close()
 
-	auth := newAuth("tenant", "uuid", "","secret", "host", server.URL)
+	auth := newAuth("tenant", "uuid", "", "secret", "host", server.URL)
 
 	token, err := auth.GetToken()
 
@@ -83,7 +125,7 @@ func TestAuth_GetUnmarshallError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(handler))
 	defer server.Close()
 
-	auth := newAuth("tenant", "uuid", "","secret", "host", server.URL)
+	auth := newAuth("tenant", "uuid", "", "secret", "host", server.URL)
 
 	token, err := auth.GetToken()
 
