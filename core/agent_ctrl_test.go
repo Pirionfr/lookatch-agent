@@ -2,12 +2,13 @@ package core
 
 import (
 	"encoding/json"
-	"github.com/Pirionfr/lookatch-common/control"
-	"github.com/Pirionfr/lookatch-common/rpc"
-	rpcmock "github.com/Pirionfr/lookatch-common/rpc/mock_rpc"
+	"testing"
+
+	"github.com/Pirionfr/lookatch-agent/control"
+	"github.com/Pirionfr/lookatch-agent/rpc"
+	rpcmock "github.com/Pirionfr/lookatch-agent/rpc/mock_rpc"
 	"github.com/golang/mock/gomock"
 	"google.golang.org/grpc/metadata"
-	"testing"
 )
 
 func PrepareGrpcMockSend(crtlClient *Controller, ctrl *gomock.Controller, msg *rpc.Message) {
@@ -42,7 +43,7 @@ func TestGetConfig(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	agentCtrl := &control.Agent{}
-	aMsg := agentCtrl.NewMessage(a.tenant.Id, a.uuid.String(), control.AgentStatus).WithPayload(control.AgentStatusWaitingForConf)
+	aMsg := agentCtrl.NewMessage(a.tenant.ID, a.uuid.String(), control.AgentStatus).WithPayload(control.AgentStatusWaitingForConf)
 	payload, err := json.Marshal(&aMsg)
 	if err != nil {
 		t.Fail()
@@ -202,7 +203,7 @@ func TestSendAgentStatus(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	agentCtrl := &control.Agent{}
-	msgA := agentCtrl.NewMessage(a.tenant.Id, a.uuid.String(), control.AgentStatus).WithPayload(control.AgentStatusStarting)
+	msgA := agentCtrl.NewMessage(a.tenant.ID, a.uuid.String(), control.AgentStatus).WithPayload(control.AgentStatusStarting)
 	payload, err := json.Marshal(&msgA)
 	if err != nil {
 		t.Fail()

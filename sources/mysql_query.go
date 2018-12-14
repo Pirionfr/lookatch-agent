@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/Pirionfr/lookatch-common/control"
+
+	"github.com/Pirionfr/lookatch-agent/control"
+
 	// driver
 	_ "github.com/siddontang/go-mysql/driver"
 	log "github.com/sirupsen/logrus"
@@ -33,7 +35,11 @@ func newMysqlQuery(s *Source) (SourceI, error) {
 	jdbcQuery := NewJDBCQuery(s)
 
 	mysqlQueryConfig := MysqlQueryConfig{}
-	s.Conf.UnmarshalKey("sources."+s.Name, &mysqlQueryConfig)
+	err := s.Conf.UnmarshalKey("sources."+s.Name, &mysqlQueryConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	mysqlQueryConfig.JDBCQueryConfig = &jdbcQuery.Config
 
 	return &MySQLQuery{
@@ -109,7 +115,7 @@ func (m *MySQLQuery) Process(action string, params ...interface{}) interface{} {
 		} else {
 			m.Query(evSQLQuery.Query)
 		}
-		break
+
 	default:
 		log.WithFields(log.Fields{
 			"action": action,
@@ -150,9 +156,9 @@ func (m *MySQLQuery) Query(query string) {
 }
 
 // QueryMeta execute query meta string
-func (m *MySQLQuery) QueryMeta(query string, table string, db string, mapAdd map[string]interface{}) map[string]interface{} {
+func (m *MySQLQuery) QueryMeta(query string) []map[string]interface{} {
 	m.Connect("information_schema")
 	defer m.db.Close()
-	return m.JDBCQuery.QueryMeta(query, table, db, mapAdd)
+	return m.JDBCQuery.QueryMeta(query)
 
 }

@@ -1,11 +1,12 @@
 package sources
 
 import (
-	"github.com/Pirionfr/lookatch-common/control"
-	"github.com/Pirionfr/lookatch-common/events"
-	"github.com/spf13/viper"
 	"reflect"
 	"testing"
+
+	"github.com/Pirionfr/lookatch-agent/control"
+	"github.com/Pirionfr/lookatch-agent/events"
+	"github.com/spf13/viper"
 )
 
 var vPgcdc *viper.Viper
@@ -25,7 +26,7 @@ func init() {
 
 	agentInfo := &AgentHeader{
 		tenant: events.LookatchTenantInfo{
-			Id:  vPgcdc.GetString("agent.tenant"),
+			ID:  vPgcdc.GetString("agent.tenant"),
 			Env: vPgcdc.GetString("agent.env"),
 		},
 		hostname: vPgcdc.GetString("agent.hostname"),
@@ -134,7 +135,7 @@ func TestPgcdcIsEnable(t *testing.T) {
 		t.Fail()
 	}
 
-	if Pgcdc.IsEnable() != true {
+	if !Pgcdc.IsEnable() {
 		t.Fail()
 	}
 }
@@ -145,7 +146,7 @@ func TestPgcdcHealtCheck(t *testing.T) {
 		t.Fail()
 	}
 
-	if Pgcdc.HealthCheck() != false {
+	if Pgcdc.HealthCheck() {
 		t.Fail()
 	}
 }

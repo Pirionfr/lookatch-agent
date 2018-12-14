@@ -3,51 +3,55 @@ package core
 import (
 	"bytes"
 
-	"github.com/Pirionfr/lookatch-agent/sinks"
-	"github.com/Pirionfr/lookatch-agent/sources"
-	"github.com/Pirionfr/lookatch-common/control"
-	"github.com/Pirionfr/lookatch-common/events"
-	"github.com/juju/errors"
-	"github.com/satori/go.uuid"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
+	"fmt"
 	"net/http"
 	"os"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/Pirionfr/lookatch-agent/control"
+	"github.com/Pirionfr/lookatch-agent/events"
+	"github.com/Pirionfr/lookatch-agent/sinks"
+	"github.com/Pirionfr/lookatch-agent/sources"
+	"github.com/juju/errors"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
+
+	"github.com/google/uuid"
 )
 
 // Agent representation of agent
 type Agent struct {
 	sync.RWMutex
-	config       *viper.Viper
-	tenant       *events.LookatchTenantInfo
-	hostname     string
-	uuid         uuid.UUID
-	srcMutex     sync.RWMutex
-	sources      map[string]sources.SourceI
-	sinksMutex   sync.RWMutex
-	sinks        map[string]sinks.SinkI
-	multiplexers map[string]*Multiplexer
-	controller   *Controller
-	stopper      chan error
-	secretkey    string
-	status       string
+	config        *viper.Viper
+	tenant        *events.LookatchTenantInfo
+	hostname      string
+	uuid          uuid.UUID
+	srcMutex      sync.RWMutex
+	sources       map[string]sources.SourceI
+	sinksMutex    sync.RWMutex
+	sinks         map[string]sinks.SinkI
+	multiplexers  map[string]*Multiplexer
+	controller    *Controller
+	stopper       chan error
+	encryptionkey string
+	status        string
 }
 
 // Agent create new agent
-func newAgent(config *viper.Viper, s chan error) (a *Agent, err error) {
+func newAgent(config *viper.Viper, s chan error) (a *Agent) {
 	var controller *Controller
 	status := control.AgentStatusStarting
 
 	log.SetOutput(os.Stdout)
 	//check log level
 	level := config.GetString("agent.loglevel")
-	if err != nil {
+	if level == "" {
 		log.WithFields(log.Fields{
 			"level": config.Get("agent.loglevel"),
-		}).Error("Error while retrieving LogLevel")
+		}).Info("Error while retrieving LogLevel")
 	} else {
 		log.ParseLevel(level)
 		log.WithFields(log.Fields{
@@ -60,6 +64,7 @@ func newAgent(config *viper.Viper, s chan error) (a *Agent, err error) {
 		auth := newAuth(
 			config.GetString("agent.tenant"),
 			config.GetString("agent.uuid"),
+			config.GetString("agent.password"),
 			config.GetString("agent.secretkey"),
 			config.GetString("agent.hostname"),
 			config.GetString("auth.service"))
@@ -72,14 +77,14 @@ func newAgent(config *viper.Viper, s chan error) (a *Agent, err error) {
 	}
 
 	a = &Agent{
-		hostname:     config.GetString("agent.hostname"),
-		config:       config,
-		sources:      make(map[string]sources.SourceI),
-		sinks:        make(map[string]sinks.SinkI),
-		multiplexers: make(map[string]*Multiplexer),
-		secretkey:    config.GetString("agent.secretkey"),
+		hostname:      config.GetString("agent.hostname"),
+		config:        config,
+		sources:       make(map[string]sources.SourceI),
+		sinks:         make(map[string]sinks.SinkI),
+		multiplexers:  make(map[string]*Multiplexer),
+		encryptionkey: config.GetString("agent.encryptionkey"),
 		tenant: &events.LookatchTenantInfo{
-			Id:  config.GetString("agent.tenant"),
+			ID:  config.GetString("agent.tenant"),
 			Env: config.GetString("agent.env"),
 		},
 		controller: controller,
@@ -87,17 +92,15 @@ func newAgent(config *viper.Viper, s chan error) (a *Agent, err error) {
 		status:     status,
 	}
 
-	a.uuid, _ = uuid.FromString(a.config.GetString("agent.uuid"))
+	a.uuid, _ = uuid.Parse(a.config.GetString("agent.uuid"))
 
 	return
 }
 
 // Run run agent
 func Run(config *viper.Viper, s chan error) (err error) {
-	a, err := newAgent(config, s)
-	if err != nil {
-		return
-	}
+	a := newAgent(config, s)
+
 	if config.Get("auth") != nil {
 		err = a.ControllerStart()
 	} else {
@@ -135,6 +138,7 @@ func (a *Agent) updateConfig(b []byte) (err error) {
 	}
 	log.Info("Configuration updated")
 	a.status = control.AgentStatusOnline
+	a.encryptionkey = a.config.GetString("agent.encryptionkey")
 	err = a.InitConfig()
 	return
 }
@@ -306,13 +310,6 @@ func (a *Agent) setSource(sourceName string, src sources.SourceI) {
 	a.srcMutex.Unlock()
 }
 
-// delSource delete source from name
-func (a *Agent) delSource(sourceName string) {
-	a.srcMutex.Lock()
-	delete(a.sources, sourceName)
-	a.srcMutex.Unlock()
-}
-
 // getSinks get all sinks
 func (a *Agent) getSinks() map[string]sinks.SinkI {
 	a.sinksMutex.RLock()
@@ -336,13 +333,6 @@ func (a *Agent) setSink(sinkName string, s sinks.SinkI) {
 	a.sinksMutex.Unlock()
 }
 
-// delSink delete sink from name
-func (a *Agent) delSink(sinkName string) {
-	a.sinksMutex.Lock()
-	delete(a.sinks, sinkName)
-	a.sinksMutex.Unlock()
-}
-
 // HealthCheck returns true if agent and all source are up
 func (a *Agent) HealthCheck() (alive bool) {
 	alive = true
@@ -353,7 +343,7 @@ func (a *Agent) HealthCheck() (alive bool) {
 		}
 	}
 	if a.controller != nil {
-		alive = a.controller.Status != "READY"
+		alive = a.controller.Status == "READY"
 	}
 	return alive
 }
@@ -366,7 +356,7 @@ func (a *Agent) getSourceAvailableAction() *control.Agent {
 		sourceAction[source.GetName()] = source.GetAvailableActions()
 	}
 	aCtrl := &control.Agent{}
-	return aCtrl.NewMessage(a.tenant.Id, a.uuid.String(), control.SourceAvailableAction).WithPayload(sourceAction)
+	return aCtrl.NewMessage(a.tenant.ID, a.uuid.String(), control.SourceAvailableAction).WithPayload(sourceAction)
 
 }
 
@@ -377,7 +367,7 @@ func (a *Agent) getAvailableAction() *control.Agent {
 	action[control.AgentStop] = control.DeclareNewAction(nil, "Stop agent")
 	action[control.AgentRestart] = control.DeclareNewAction(nil, "Restart agent")
 	aCtrl := &control.Agent{}
-	return aCtrl.NewMessage(a.tenant.Id, a.uuid.String(), control.AgentAvailableAction).WithPayload(action)
+	return aCtrl.NewMessage(a.tenant.ID, a.uuid.String(), control.AgentAvailableAction).WithPayload(action)
 
 }
 
@@ -392,7 +382,7 @@ func (a *Agent) getSourceMeta() *control.Agent {
 		}
 	}
 	aCtrl := &control.Agent{}
-	return aCtrl.NewMessage(a.tenant.Id, a.uuid.String(), control.SourceMeta).WithPayload(sourceMeta)
+	return aCtrl.NewMessage(a.tenant.ID, a.uuid.String(), control.SourceMeta).WithPayload(sourceMeta)
 
 }
 
@@ -406,7 +396,7 @@ func (a *Agent) getSourceStatus() *control.Agent {
 		}
 	}
 	agentCtrl := &control.Agent{}
-	return agentCtrl.NewMessage(a.tenant.Id, a.uuid.String(), control.SourceStatus).WithPayload(sourceStatus)
+	return agentCtrl.NewMessage(a.tenant.ID, a.uuid.String(), control.SourceStatus).WithPayload(sourceStatus)
 
 }
 
@@ -421,34 +411,37 @@ func (a *Agent) GetSchemas() *control.Agent {
 		}
 	}
 	agentCtrl := &control.Agent{}
-	return agentCtrl.NewMessage(a.tenant.Id, a.uuid.String(), control.SourceSchema).WithPayload(sourceStatus)
+	return agentCtrl.NewMessage(a.tenant.ID, a.uuid.String(), control.SourceSchema).WithPayload(sourceStatus)
 }
 
 // healthCheckChecker start health check endpoint
 func (a *Agent) healthCheckChecker() {
-	log.Debug("Starting healthcheck Checker")
+	port := a.config.GetInt("agent.healthport")
+	log.WithFields(log.Fields{
+		"port": port,
+	}).Debug("Starting health check")
 	var wg sync.WaitGroup
 	wg.Add(1)
 	http.HandleFunc("/health/status", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Server", "A Go Web Server")
 		if a.HealthCheck() {
 			w.WriteHeader(200)
 		} else {
-			w.WriteHeader(400)
+			w.WriteHeader(503)
 		}
 	})
 	go func() {
 		wg.Done()
-		http.ListenAndServe(":8080", nil)
+		http.ListenAndServe(":"+strconv.Itoa(port), nil)
 	}()
 	wg.Wait()
-	request, _ := http.NewRequest("GET", "http://localhost:8080/health/status", nil)
+	url := fmt.Sprintf("http://localhost:%d/health/status", port)
+	request, _ := http.NewRequest("GET", url, nil)
 	client := &http.Client{}
 	resp, err := client.Do(request)
 	if err != nil && resp == nil {
 		log.WithFields(log.Fields{
 			"error": err,
-		}).Error("healthcheck webserver error :")
+		}).Error("healthcheck webserver error")
 	}
 
 }

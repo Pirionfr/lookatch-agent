@@ -1,6 +1,6 @@
 package core
 
-import "github.com/Pirionfr/lookatch-common/events"
+import "github.com/Pirionfr/lookatch-agent/events"
 
 // Multiplexer representation of Multiplexer
 type Multiplexer struct {

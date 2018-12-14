@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/Pirionfr/lookatch-common/control"
+
+	"github.com/Pirionfr/lookatch-agent/control"
+
 	// driver
 	_ "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
@@ -33,7 +35,11 @@ func newPostgreSQLQuery(s *Source) (SourceI, error) {
 	jdbcQuery := NewJDBCQuery(s)
 
 	pgQueryConfig := PostgreSQLQueryConfig{}
-	s.Conf.UnmarshalKey("sources."+s.Name, &pgQueryConfig)
+	err := s.Conf.UnmarshalKey("sources."+s.Name, &pgQueryConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	pgQueryConfig.JDBCQueryConfig = &jdbcQuery.Config
 
 	return &PostgreSQLQuery{
@@ -108,7 +114,7 @@ func (p *PostgreSQLQuery) Process(action string, params ...interface{}) interfac
 		} else {
 			p.Query(evSQLQuery.Query)
 		}
-		break
+
 	default:
 		log.WithFields(log.Fields{
 			"action": action,
@@ -163,8 +169,8 @@ func (p *PostgreSQLQuery) Query(query string) {
 }
 
 // QueryMeta execute query meta string
-func (p *PostgreSQLQuery) QueryMeta(query string, table string, db string, mapAdd map[string]interface{}) map[string]interface{} {
+func (p *PostgreSQLQuery) QueryMeta(query string) []map[string]interface{} {
 	p.Connect()
 	defer p.db.Close()
-	return p.JDBCQuery.QueryMeta(query, table, db, mapAdd)
+	return p.JDBCQuery.QueryMeta(query)
 }

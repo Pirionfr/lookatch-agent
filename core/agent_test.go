@@ -2,11 +2,12 @@ package core
 
 import (
 	"encoding/json"
-	"github.com/Pirionfr/lookatch-common/control"
-	"github.com/Pirionfr/lookatch-common/events"
+	"testing"
+
+	"github.com/Pirionfr/lookatch-agent/control"
+	"github.com/Pirionfr/lookatch-agent/events"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"testing"
 )
 
 var v *viper.Viper
@@ -21,22 +22,19 @@ func init() {
 
 func NewTestAgent() *Agent {
 	s := make(chan error)
-	a, err := newAgent(v, s)
-	if err != nil {
-		log.Fatal(err)
-	}
+	a := newAgent(v, s)
 	return a
 }
 
 func TestUpdateConf(t *testing.T) {
 	agent := NewTestAgent()
 
-	err := agent.updateConfig([]byte(`{ "sources": {"default": {"dummy": "modified"}}}`))
+	err := agent.updateConfig([]byte(`{ "sources": {"default": {"random": "modified"}}}`))
 	if err != nil {
 		t.Error(err)
 	}
 
-	if agent.config.GetString("sources.default.dummy") != "modified" {
+	if agent.config.GetString("sources.default.random") != "modified" {
 		t.Fail()
 	}
 }
@@ -62,7 +60,7 @@ func TestLoadSource(t *testing.T) {
 	eventChan := make(chan *events.LookatchEvent)
 	agent := NewTestAgent()
 
-	err := agent.LoadSource("default", "dummy", eventChan)
+	err := agent.LoadSource("default", "random", eventChan)
 	if err != nil {
 		t.Error(err)
 	}

@@ -3,17 +3,19 @@ package core
 import (
 	"crypto/tls"
 	"encoding/json"
-	"github.com/juju/errors"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+
+	"github.com/juju/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 // Auth representation of auth
 type Auth struct {
 	tenant    string
 	uuid      string
+	password  string
 	secretkey string
 	hostname  string
 	authURL   string
@@ -21,7 +23,7 @@ type Auth struct {
 }
 
 // newAuth create new auth
-func newAuth(tenant string, uuid string, secretkey string, hostname string, authURL string) *Auth {
+func newAuth(tenant string, uuid string, password string, secretkey string, hostname string, authURL string) *Auth {
 
 	u, err := url.Parse(authURL)
 	if err != nil {
@@ -39,6 +41,7 @@ func newAuth(tenant string, uuid string, secretkey string, hostname string, auth
 		tenant:    tenant,
 		uuid:      uuid,
 		secretkey: secretkey,
+		password:  password,
 		hostname:  hostname,
 		authURL:   authURL,
 		client: &http.Client{
@@ -61,6 +64,7 @@ func (a *Auth) GetToken() (token string, err error) {
 
 	req.Header.Add("X-OVH-TENANT", a.tenant)
 	req.Header.Add("X-OVH-UUID", a.uuid)
+	req.Header.Add("X-OVH-PWD", a.password)
 	req.Header.Add("X-OVH-KEY", a.secretkey)
 	req.Header.Add("X-OVH-HOST", a.hostname)
 

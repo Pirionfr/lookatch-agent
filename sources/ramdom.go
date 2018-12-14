@@ -1,13 +1,14 @@
 package sources
 
 import (
-	"github.com/Pallinder/go-randomdata"
-	"github.com/Pirionfr/lookatch-common/control"
-	"github.com/Pirionfr/lookatch-common/events"
-	log "github.com/sirupsen/logrus"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/Pallinder/go-randomdata"
+	"github.com/Pirionfr/lookatch-agent/control"
+	"github.com/Pirionfr/lookatch-agent/events"
+	log "github.com/sirupsen/logrus"
 )
 
 // Random representation of Random
@@ -20,8 +21,7 @@ type Random struct {
 
 // RandomConfig representation of Random Config
 type RandomConfig struct {
-	Enabled bool   `json:"enabled"`
-	Wait    string `json:"wait"`
+	Wait string `json:"wait"`
 }
 
 // RandomType type of source
@@ -31,8 +31,10 @@ const RandomType = "random"
 func newRandom(s *Source) (SourceI, error) {
 
 	randomConfig := RandomConfig{}
-	s.Conf.UnmarshalKey("sources."+s.Name, &randomConfig)
-
+	err := s.Conf.UnmarshalKey("sources."+s.Name, &randomConfig)
+	if err != nil {
+		return nil, err
+	}
 	return &Random{
 		Source: s,
 		config: randomConfig,
@@ -63,8 +65,8 @@ func (r *Random) Start(i ...interface{}) error {
 					EventType: RandomType,
 				},
 				Payload: &events.GenericEvent{
-					Tenant:      r.AgentInfo.tenant.Id,
-					AgentId:     r.AgentInfo.uuid,
+					Tenant:      r.AgentInfo.tenant.ID,
+					AgentID:     r.AgentInfo.uuid,
 					Timestamp:   strconv.Itoa(int(time.Now().Unix())),
 					Environment: r.AgentInfo.tenant.Env,
 					Value:       randomData,

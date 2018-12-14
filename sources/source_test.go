@@ -1,13 +1,13 @@
 package sources
 
 import (
-	"github.com/Pirionfr/lookatch-common/events"
-	"github.com/spf13/viper"
 	"testing"
+
+	"github.com/Pirionfr/lookatch-agent/events"
+	"github.com/spf13/viper"
 )
 
 var vSource *viper.Viper
-var sSource *Source
 
 func init() {
 	vSource = viper.New()
@@ -24,7 +24,7 @@ func TestSourcesNew(t *testing.T) {
 
 	eventChan := make(chan *events.LookatchEvent, 1)
 
-	source, ok := New("default", DummyType, vSource, eventChan)
+	source, ok := New("default", RandomType, vSource, eventChan)
 	if ok != nil {
 		t.Fail()
 	}

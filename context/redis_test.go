@@ -1,8 +1,9 @@
 package context
 
 import (
-	"github.com/alicebob/miniredis"
 	"testing"
+
+	"github.com/alicebob/miniredis"
 )
 
 func TestContextRedis(t *testing.T) {

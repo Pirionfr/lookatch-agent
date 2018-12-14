@@ -19,7 +19,6 @@
       "type" : "random",
       "sinks": ["default"],
       "wait" : "1s"
-
     }
   }
 }
