@@ -26,6 +26,14 @@
   version = "v1.19.0"
 
 [[projects]]
+  digest = "1:d848e2bdc690ea54c4b49894b67a05db318a97ee6561879b814c2c1f82f61406"
+  name = "github.com/Sirupsen/logrus"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "bcd833dfe83d3cebad139e4a29ed79cb2318bf95"
+  version = "v1.2.0"
+
+[[projects]]
   branch = "master"
   digest = "1:d37ce795f31d36a50c9a702930268c5f307bb3a224a4cb270ed232d09893b0da"
   name = "github.com/alicebob/gopher-json"
@@ -560,6 +568,7 @@
   input-imports = [
     "github.com/Pallinder/go-randomdata",
     "github.com/Shopify/sarama",
+    "github.com/Sirupsen/logrus",
     "github.com/alicebob/miniredis",
     "github.com/denisenkom/go-mssqldb",
     "github.com/golang/mock/gomock",

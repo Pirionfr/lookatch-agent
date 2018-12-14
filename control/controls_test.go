@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-//emulation of Agent decoding message
+//emulation of sink decoding message
 func decodeSinkMessage(message rpc.Message) *Sink {
 
 	switch message.Type {
@@ -26,7 +26,7 @@ func decodeSinkMessage(message rpc.Message) *Sink {
 	return nil
 }
 
-//emulation of Agent decoding message
+//emulation of source decoding message
 func decodeSourceMessage(message rpc.Message) *Source {
 
 	switch message.Type {
@@ -91,6 +91,7 @@ func TestSendSinkControlMessage(t *testing.T) {
 	}
 }
 
+// Test Source controls messages encoding and decoding
 func TestSendSourceControlMessage(t *testing.T) {
 
 	source := &Source{}
@@ -110,6 +111,7 @@ func TestSendSourceControlMessage(t *testing.T) {
 	}
 }
 
+// Test send config
 func TestSendConfig(t *testing.T) {
 	agent := &Agent{}
 	conf := make(map[string]interface{})
@@ -120,6 +122,7 @@ func TestSendConfig(t *testing.T) {
 	assert.EqualValuesf(t, agent, decoded, "[Control Events] [Agent] Testing ", AgentConfigure, " with payload failed")
 }
 
+// test get schema
 func TestGetSchema(t *testing.T) {
 	source := &Source{}
 	conf := make(map[string]interface{})

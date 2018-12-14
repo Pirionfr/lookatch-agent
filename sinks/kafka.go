@@ -16,6 +16,9 @@ import (
 // KafkaType type of sink
 const KafkaType = "kafka"
 
+// MaxRetry retry max
+const MaxRetry = 20
+
 type (
 	// kafkaUser representation of kafka User
 	kafkaUser struct {
@@ -356,7 +359,7 @@ func sendMsg(msgs []*sarama.ProducerMessage, producer sarama.SyncProducer) int64
 			msgs = append(msgs, v.Msg)
 		}
 
-		if retries > 20 {
+		if retries > MaxRetry {
 			log.WithFields(log.Fields{
 				"nbRetry": retries,
 			}).Panic("Failed to push event to kafka. Stopping agent.")

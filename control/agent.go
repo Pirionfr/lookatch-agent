@@ -3,7 +3,7 @@ package control
 import (
 	"encoding/json"
 
-	log "github.com/spf13/jwalterweatherman"
+	log "github.com/Sirupsen/logrus"
 )
 
 // Agent Available Actions
@@ -69,7 +69,7 @@ func (a *Agent) NewMessage(tenantToken string, uuid string, action string) *Agen
 func (a *Agent) WithPayload(i interface{}) *Agent {
 	b, err := json.Marshal(i)
 	if err != nil {
-		log.FATAL.Println(err)
+		log.WithError(err).Error("error while marshaling message")
 		return nil
 	}
 	a.Payload = b

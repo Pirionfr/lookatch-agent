@@ -519,7 +519,7 @@ func (m *MysqlCDC) readValidOffset() {
 
 }
 
-//getOffset read offset
+// getOffset read offset
 func (m *MysqlCDC) getOffset() string {
 	position := m.logPosition.Load().(uint32)
 	logFilename := m.logFilename.Load().(string)
@@ -545,7 +545,7 @@ func (m *MysqlCDC) readOffset(offset string) {
 	}
 }
 
-//get slot status
+// getSlotStatus get slot status
 func (p *PostgreSQLCDC) getSlotStatus() bool {
 	// Fetch the restart LSN of the slot, to establish a starting point
 	query := fmt.Sprintf("select active from pg_replication_slots where slot_name='%s'", p.config.SlotName)

@@ -80,6 +80,9 @@ type (
 // PostgreSQLCDCType type of source
 const PostgreSQLCDCType = "postgresqlCDC"
 
+// TickerValue number second to wait between to tick
+const TickerValue = 10
+
 // newPostgreSQLCdc create new PostgreSQL CDC source
 func newPostgreSQLCdc(s *Source) (SourceI, error) {
 	postgreSQLCDCConf := PostgreSQLCDCConf{}
@@ -300,7 +303,7 @@ func (p *PostgreSQLCDC) checkStatus() {
 	defer log.WithFields(log.Fields{
 		"LastOffset": err,
 	}).Info("Stop writing Lsn on file")
-	for range (time.NewTicker(time.Second * 10)).C {
+	for range (time.NewTicker(time.Second * TickerValue)).C {
 
 		// Stream closed
 		if !p.repConn.IsAlive() {
