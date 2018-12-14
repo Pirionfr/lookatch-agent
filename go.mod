@@ -1,59 +1,59 @@
 module github.com/Pirionfr/lookatch-agent
 
 require (
-	cloud.google.com/go v0.29.0
-	github.com/Pallinder/go-randomdata v0.0.0-20180616180521-15df0648130a
-	github.com/Shopify/sarama v1.19.0
-	github.com/Sirupsen/logrus v1.2.0
+	cloud.google.com/go v0.34.0
+	github.com/DataDog/zstd v1.3.4
+	github.com/Pallinder/go-randomdata v1.1.0
+	github.com/Shopify/sarama v1.20.0
 	github.com/alicebob/gopher-json v0.0.0-20180125190556-5a6b3ba71ee6
-	github.com/alicebob/miniredis v0.0.0-20180623114124-8890fdcfa933
+	github.com/alicebob/miniredis v2.4.5+incompatible
 	github.com/davecgh/go-spew v1.1.1
-	github.com/denisenkom/go-mssqldb v0.0.0-20180901172138-1eb28afdf9b6
+	github.com/denisenkom/go-mssqldb v0.0.0-20181014144952-4e0d7dc8888f
 	github.com/eapache/go-resiliency v1.1.0
 	github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21
 	github.com/eapache/queue v1.1.0
 	github.com/fsnotify/fsnotify v1.4.7
-	github.com/golang/mock v1.1.1
+	github.com/golang/mock v1.2.0
 	github.com/golang/protobuf v1.2.0
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/uuid v1.1.0
 	github.com/hashicorp/hcl v1.0.0
 	github.com/inconshreveable/mousetrap v1.0.0
-	github.com/jackc/pgx v3.2.0+incompatible
-	github.com/juju/errors v0.0.0-20180806074554-22422dad46e1
-	github.com/konsorten/go-windows-terminal-sequences v0.0.0-20180402223658-b729f2633dfe
+	github.com/jackc/pgx v3.3.0+incompatible
+	github.com/juju/errors v0.0.0-20181118221551-089d3ea4e4d5
+	github.com/konsorten/go-windows-terminal-sequences v1.0.1
 	github.com/lib/pq v1.0.0
 	github.com/magiconair/properties v1.8.0
-	github.com/mediocregopher/radix.v2 v0.0.0-20180603022615-94360be26253
-	github.com/mitchellh/mapstructure v1.1.1
+	github.com/mediocregopher/radix.v2 v0.0.0-20181115013041-b67df6e626f9
+	github.com/mitchellh/mapstructure v1.1.2
 	github.com/papertrail/go-tail v0.0.0-20180509224916-973c153b0431
 	github.com/pelletier/go-toml v1.2.0
-	github.com/pierrec/lz4 v0.0.0-20180906185208-bb6bfd13c6a2
+	github.com/pierrec/lz4 v0.0.0-20181005164709-635575b42742
 	github.com/pkg/errors v0.8.0
 	github.com/pmezard/go-difflib v1.0.0
-	github.com/rcrowley/go-metrics v0.0.0-20180503174638-e2704e165165
+	github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a
 	github.com/remeh/sizedwaitgroup v0.0.0-20180822144253-5e7302b12cce
 	github.com/satori/go.uuid v1.2.0
 	github.com/shopspring/decimal v0.0.0-20180709203117-cd690d0c9e24
 	github.com/siddontang/go v0.0.0-20180604090527-bdc77568d726
 	github.com/siddontang/go-log v0.0.0-20180807004314-8d05993dda07
-	github.com/siddontang/go-mysql v0.0.0-20180924131549-17cd8859601e
-	github.com/sirupsen/logrus v1.1.0
+	github.com/siddontang/go-mysql v0.0.0-20181213024324-319e088eeeb0
+	github.com/sirupsen/logrus v1.2.0
 	github.com/spf13/afero v1.1.2
-	github.com/spf13/cast v1.2.0
+	github.com/spf13/cast v1.3.0
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/jwalterweatherman v1.0.0
 	github.com/spf13/pflag v1.0.3
-	github.com/spf13/viper v1.2.1
+	github.com/spf13/viper v1.3.1
 	github.com/stretchr/testify v1.2.2
-	github.com/yuin/gopher-lua v0.0.0-20180918061612-799fa34954fb
-	golang.org/x/crypto v0.0.0-20181001203147-e3636079e1a4
-	golang.org/x/net v0.0.0-20181004194319-68fc911561ed
-	golang.org/x/sys v0.0.0-20181004145325-8469e314837c
+	github.com/yuin/gopher-lua v0.0.0-20181214045814-db9ae37725ec
+	golang.org/x/crypto v0.0.0-20181203042331-505ab145d0a9
+	golang.org/x/net v0.0.0-20181213202711-891ebc4b82d6
+	golang.org/x/sys v0.0.0-20181213200352-4d1cda033e06
 	golang.org/x/text v0.3.0
-	google.golang.org/genproto v0.0.0-20181004005441-af9cb2a35e7f
-	google.golang.org/grpc v1.15.0
+	google.golang.org/genproto v0.0.0-20181202183823-bd91e49a0898
+	google.golang.org/grpc v1.17.0
 	gopkg.in/mcuadros/go-syslog.v2 v2.2.1
-	gopkg.in/yaml.v2 v2.2.1
+	gopkg.in/yaml.v2 v2.2.2
 )
