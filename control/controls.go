@@ -12,7 +12,7 @@ const (
 // - An action to be executed
 // - UUID of target agent
 // - Token to be authenticated
-// - ControlType to be correctly unmarhalled both side
+// - TypeName to be correctly unmarhalled both side
 // - A method to create a new message
 type Control interface {
 	GetAction() string
