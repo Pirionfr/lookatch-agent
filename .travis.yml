@@ -3,9 +3,6 @@ language: go
 go:
   - 1.11.x
 
-env:
-  GO111MODULE=on
-
 # this is necessary for fork builds to work
 go_import_path: github.com/Pirionfr/lookatch-agent
 
