@@ -2,11 +2,12 @@ package sources
 
 import (
 	"fmt"
-	"github.com/Pirionfr/lookatch-common/control"
-	"github.com/Pirionfr/lookatch-common/events"
-	"github.com/spf13/viper"
 	"reflect"
 	"testing"
+
+	"github.com/Pirionfr/lookatch-agent/control"
+	"github.com/Pirionfr/lookatch-agent/events"
+	"github.com/spf13/viper"
 )
 
 var vPostgreSQLQuery *viper.Viper
@@ -26,7 +27,7 @@ func init() {
 
 	agentInfo := &AgentHeader{
 		tenant: events.LookatchTenantInfo{
-			Id:  vPostgreSQLQuery.GetString("agent.tenant"),
+			ID:  vPostgreSQLQuery.GetString("agent.tenant"),
 			Env: vPostgreSQLQuery.GetString("agent.env"),
 		},
 		hostname: vPostgreSQLQuery.GetString("agent.hostname"),
@@ -124,7 +125,7 @@ func TestPostgreSQLQueryIsEnable(t *testing.T) {
 		t.Fail()
 	}
 
-	if PostgreSQLQuery.IsEnable() != true {
+	if !PostgreSQLQuery.IsEnable() {
 		t.Fail()
 	}
 }
@@ -135,7 +136,7 @@ func TestPostgreSQLQueryHealtCheck(t *testing.T) {
 		t.Fail()
 	}
 
-	if PostgreSQLQuery.HealthCheck() != false {
+	if PostgreSQLQuery.HealthCheck() {
 		t.Fail()
 	}
 }

@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/Pirionfr/lookatch-common/control"
+
+	"github.com/Pirionfr/lookatch-agent/control"
+
 	// driver
 	_ "github.com/denisenkom/go-mssqldb"
 	log "github.com/sirupsen/logrus"
@@ -33,7 +35,11 @@ func newMSSQLQuery(s *Source) (SourceI, error) {
 	jdbcQuery := NewJDBCQuery(s)
 
 	pgQueryConfig := MSSQLQueryConfig{}
-	s.Conf.UnmarshalKey("sources."+s.Name, &pgQueryConfig)
+	err := s.Conf.UnmarshalKey("sources."+s.Name, &pgQueryConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	pgQueryConfig.JDBCQueryConfig = &jdbcQuery.Config
 
 	return &MSSQLQuery{
@@ -111,7 +117,7 @@ func (m *MSSQLQuery) Process(action string, params ...interface{}) interface{} {
 		} else {
 			m.Query(evSQLQuery.Query)
 		}
-		break
+
 	default:
 		log.WithFields(log.Fields{
 			"action": action,
@@ -161,8 +167,8 @@ func (m *MSSQLQuery) Query(query string) {
 }
 
 // QueryMeta execute query meta string
-func (m *MSSQLQuery) QueryMeta(query string, table string, db string, mapAdd map[string]interface{}) map[string]interface{} {
+func (m *MSSQLQuery) QueryMeta(query string) []map[string]interface{} {
 	m.Connect()
 	defer m.db.Close()
-	return m.JDBCQuery.QueryMeta(query, table, db, mapAdd)
+	return m.JDBCQuery.QueryMeta(query)
 }

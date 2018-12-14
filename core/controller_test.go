@@ -1,16 +1,17 @@
 package core
 
 import (
-	"github.com/Pirionfr/lookatch-common/rpc"
-	rpcmock "github.com/Pirionfr/lookatch-common/rpc/mock_rpc"
-	"github.com/golang/mock/gomock"
-	"github.com/golang/protobuf/proto"
-	"github.com/spf13/viper"
-	"google.golang.org/grpc/metadata"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/Pirionfr/lookatch-agent/rpc"
+	rpcmock "github.com/Pirionfr/lookatch-agent/rpc/mock_rpc"
+	"github.com/golang/mock/gomock"
+	"github.com/golang/protobuf/proto"
+	"github.com/spf13/viper"
+	"google.golang.org/grpc/metadata"
 )
 
 var (
@@ -84,7 +85,7 @@ func TestStartChannelWithAuth(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(handler))
 	defer server.Close()
 
-	auth = newAuth("tenant", "uuid", "secret", "host", server.URL)
+	auth = newAuth("tenant", "uuid", "", "secret", "host", server.URL)
 
 	crtlClient := NewControllerClient(vCtrl.Sub("controller"), auth)
 	if crtlClient == nil {

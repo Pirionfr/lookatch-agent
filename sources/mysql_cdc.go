@@ -4,18 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	utils "github.com/Pirionfr/lookatch-agent/util"
-	"github.com/Pirionfr/lookatch-common/control"
-	"github.com/Pirionfr/lookatch-common/events"
-	"github.com/Pirionfr/lookatch-common/util"
-	"github.com/siddontang/go-mysql/mysql"
-	"github.com/siddontang/go-mysql/replication"
-	log "github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/Pirionfr/lookatch-agent/control"
+	"github.com/Pirionfr/lookatch-agent/events"
+	"github.com/Pirionfr/lookatch-agent/util"
+	utils "github.com/Pirionfr/lookatch-agent/util"
+	"github.com/siddontang/go-mysql/mysql"
+	"github.com/siddontang/go-mysql/replication"
+	log "github.com/sirupsen/logrus"
 )
 
 // MysqlCDCType type of source
@@ -36,25 +37,27 @@ type (
 
 	// MysqlCDCConfig representation of Mysql change data capture configuration
 	MysqlCDCConfig struct {
-		Host          string                 `json:"host"`
-		Port          int                    `json:"port"`
-		User          string                 `json:"user"`
-		Password      string                 `json:"password"`
-		Slave_id      int                    `json:"slave_id"`
-		Offset        string                 `json:"offset"`
-		LogFile       string                 `json:"logfile"`
-		Old_value     bool                   `json:"old_value"`
-		Filter_policy string                 `json:"filter_policy"`
-		Filter        map[string]interface{} `json:"filter"`
-		Enabled       bool                   `json:"enabled"`
+		Host         string                 `json:"host"`
+		Port         int                    `json:"port"`
+		User         string                 `json:"user"`
+		Password     string                 `json:"password"`
+		SlaveID      int                    `json:"slave_id" mapstructure:"slave_id"`
+		Offset       string                 `json:"offset"`
+		LogFile      string                 `json:"logfile"`
+		OldValue     bool                   `json:"old_value" mapstructure:"old_value"`
+		FilterPolicy string                 `json:"filter_policy" mapstructure:"filter_policy"`
+		Filter       map[string]interface{} `json:"filter"`
+		Enabled      bool                   `json:"enabled"`
 	}
 )
 
 // newMysqlCdc create new mysql CDC source
 func newMysqlCdc(s *Source) (SourceI, error) {
 	mysqlCDCConfig := MysqlCDCConfig{}
-	s.Conf.UnmarshalKey("sources."+s.Name, &mysqlCDCConfig)
-
+	err := s.Conf.UnmarshalKey("sources."+s.Name, &mysqlCDCConfig)
+	if err != nil {
+		return nil, err
+	}
 	query := &MySQLQuery{
 		JDBCQuery: &JDBCQuery{
 			Source: s,
@@ -76,8 +79,8 @@ func newMysqlCdc(s *Source) (SourceI, error) {
 		config: mysqlCDCConfig,
 		status: control.SourceStatusWaitingForMETA,
 		filter: &utils.Filter{
-			Filter_policy: mysqlCDCConfig.Filter_policy,
-			Filter:        mysqlCDCConfig.Filter,
+			FilterPolicy: mysqlCDCConfig.FilterPolicy,
+			Filter:       mysqlCDCConfig.Filter,
 		},
 	}
 
@@ -111,11 +114,12 @@ func (m *MysqlCDC) Stop() error {
 // Start source
 func (m *MysqlCDC) Start(i ...interface{}) (err error) {
 	log.WithFields(log.Fields{
+		"Name": m.Name,
 		"type": MysqlCDCType,
 	}).Debug("Start")
 
 	cfg := replication.BinlogSyncerConfig{
-		ServerID: uint32(m.config.Slave_id),
+		ServerID: uint32(m.config.SlaveID),
 		Flavor:   "mysql",
 		Host:     m.config.Host,
 		Port:     uint16(m.config.Port),
@@ -221,7 +225,7 @@ func (m *MysqlCDC) Process(action string, params ...interface{}) interface{} {
 
 			m.status = control.SourceStatusRunning
 		}
-		break
+
 	default:
 		log.WithFields(log.Fields{
 			"action": action,
@@ -281,7 +285,7 @@ func (m *MysqlCDC) decodeBinlog(streamer *replication.BinlogStreamer) {
 			case replication.DELETE_ROWS_EVENTv0, replication.DELETE_ROWS_EVENTv1, replication.DELETE_ROWS_EVENTv2:
 				m.getRows(ts, e.Rows[0], schema, table, "delete")
 			case replication.UPDATE_ROWS_EVENTv0, replication.UPDATE_ROWS_EVENTv1, replication.UPDATE_ROWS_EVENTv2:
-				if m.config.Old_value {
+				if m.config.OldValue {
 					m.getRowsWithOldValue(ts, e.Rows, schema, table, "update")
 				} else {
 					m.getRows(ts, e.Rows[1], schema, table, "update")
@@ -290,12 +294,10 @@ func (m *MysqlCDC) decodeBinlog(streamer *replication.BinlogStreamer) {
 			default:
 				continue
 			}
-			break
 
 		case *replication.RotateEvent:
 			m.logPosition.Store(uint32(e.Position))
 			m.logFilename.Store(string(e.NextLogName))
-			break
 
 		}
 
@@ -343,7 +345,7 @@ func (m *MysqlCDC) getRows(timestamp int64, row []interface{}, schema, table, me
 				EventType: MysqlCDCType,
 				Tenant:    m.AgentInfo.tenant,
 			},
-			Payload: &events.SqlEvent{
+			Payload: &events.SQLEvent{
 				Timestamp:   strconv.FormatInt(timestamp, 10),
 				Environment: m.AgentInfo.tenant.Env,
 				Schema:      schema,
@@ -374,7 +376,7 @@ func (m *MysqlCDC) getRowsWithOldValue(timestamp int64, rows [][]interface{}, sc
 		columnIDStr := strconv.Itoa(i)
 		columnValue := col
 		columnValueOld := rows[0][i]
-		columnName := string(m.query.schemas[schema][table][strconv.Itoa(i)].ColumnName)
+		columnName := m.query.schemas[schema][table][strconv.Itoa(i)].ColumnName
 
 		if !m.filter.IsFilteredColumn(schema, table, columnName) {
 			//Output row number, column number, column type and column value
@@ -405,7 +407,7 @@ func (m *MysqlCDC) getRowsWithOldValue(timestamp int64, rows [][]interface{}, sc
 				EventType: MysqlCDCType,
 				Tenant:    m.AgentInfo.tenant,
 			},
-			Payload: &events.SqlEvent{
+			Payload: &events.SQLEvent{
 				Timestamp:    strconv.Itoa(int(timestamp)),
 				Environment:  m.AgentInfo.tenant.Env,
 				Database:     schema,
@@ -436,12 +438,15 @@ func (m *MysqlCDC) GetFirstBinlog() (string, uint32) {
 	}
 	q := "SHOW BINLOG EVENTS limit 1"
 
-	colmap := make(map[string]interface{})
-	colmap = m.query.QueryMeta(q, "", "", colmap)
+	result := m.query.QueryMeta(q)
+	if result == nil {
+		log.Error("Querying first binlog failed")
+		return "", 0
+	}
 
-	if colmap["Log_name"] != nil && colmap["Pos"] != nil {
-		pos, _ := colmap["Pos"].(uint64)
-		return colmap["Log_name"].(string), uint32(pos)
+	if result[0]["Log_name"] != nil && result[0]["Pos"] != nil {
+		pos, _ := strconv.ParseInt(fmt.Sprintf("%v", result[0]["Pos"]), 10, 32)
+		return result[0]["Log_name"].(string), uint32(pos)
 	}
 	return "", 0
 }
@@ -458,24 +463,22 @@ func (m *MysqlCDC) GetlastBinlog() (string, uint32) {
 	}
 	q := "SHOW MASTER STATUS"
 
-	colmap := make(map[string]interface{})
-	colmap = m.query.QueryMeta(q, "", "", colmap)
+	result := m.query.QueryMeta(q)
+	if result == nil {
+		log.Error("Querying first binlog failed")
+		return "", 0
+	}
 
-	if colmap["File"] != nil && colmap["Position"] != nil {
-		pos, _ := colmap["Position"].(uint64)
-		return colmap["File"].(string), uint32(pos)
+	if result[0]["File"] != nil && result[0]["Position"] != nil {
+		pos, _ := strconv.ParseInt(fmt.Sprintf("%v", result[0]["Position"]), 10, 32)
+		return result[0]["File"].(string), uint32(pos)
 	}
 	return "", 0
 }
 
 // readValidOffset read Valid Offset
-func (m *MysqlCDC) readValidOffset() (err error) {
-	//err = m.getOffset()
-	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Error("read offset error")
-	}
+func (m *MysqlCDC) readValidOffset() {
+
 	firstFile, firstOffset := m.GetFirstBinlog()
 	lastFile, lastOffset := m.GetlastBinlog()
 
@@ -496,10 +499,10 @@ func (m *MysqlCDC) readValidOffset() (err error) {
 			// check if position is valid
 			if fileNumCurrent == fileNumLast {
 				if pos <= lastOffset {
-					return nil
+					return
 				}
 			} else {
-				return nil
+				return
 			}
 		}
 	}
@@ -514,10 +517,9 @@ func (m *MysqlCDC) readValidOffset() (err error) {
 	}).Debug("Invalid offset restore to first offset")
 	m.logPosition.Store(firstOffset)
 
-	return nil
 }
 
-//getOffset read offset
+// getOffset read offset
 func (m *MysqlCDC) getOffset() string {
 	position := m.logPosition.Load().(uint32)
 	logFilename := m.logFilename.Load().(string)
@@ -541,4 +543,20 @@ func (m *MysqlCDC) readOffset(offset string) {
 		}
 		m.logFilename.Store(tabFile[0])
 	}
+}
+
+// getSlotStatus get slot status
+func (p *PostgreSQLCDC) getSlotStatus() bool {
+	// Fetch the restart LSN of the slot, to establish a starting point
+	query := fmt.Sprintf("select active from pg_replication_slots where slot_name='%s'", p.config.SlotName)
+	result := p.query.QueryMeta(query)
+	if result == nil {
+		log.Error("Error while getting Slot Status")
+		return false
+	}
+
+	if !result[0]["active"].(bool) {
+		return false
+	}
+	return true
 }

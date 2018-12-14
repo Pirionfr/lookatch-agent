@@ -2,7 +2,9 @@ package sinks
 
 import (
 	"encoding/json"
-	"github.com/Pirionfr/lookatch-common/events"
+
+	"github.com/Pirionfr/lookatch-agent/events"
+	"github.com/Pirionfr/lookatch-agent/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -36,8 +38,19 @@ func (s *Stdout) Start(i ...interface{}) (err error) {
 				}).Error("json.Marshal()")
 				return
 			}
+			msg := string(bytes)
+			if s.encryptionkey != "" {
+				msg, err = util.EncryptString(string(bytes), s.encryptionkey)
+				if err != nil {
+					log.WithFields(log.Fields{
+						"error": err,
+					}).Error("error while encrypting event")
+					return
+				}
+			}
+
 			log.WithFields(log.Fields{
-				"message": string(bytes),
+				"message": msg,
 			}).Info("Stdout Sink")
 		}
 	}(s.in)

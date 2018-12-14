@@ -1,12 +1,13 @@
 package sinks
 
 import (
-	"github.com/Pirionfr/lookatch-common/events"
-	"github.com/spf13/viper"
 	"reflect"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/Pirionfr/lookatch-agent/events"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -22,7 +23,7 @@ func init() {
 	vStdout.Set("sinks.default.autostart", true)
 	vStdout.Set("sinks.default.enabled", true)
 
-	sink = &Sink{eventChan, stop, "stdout", vStdout.Sub("sinks.default")}
+	sink = &Sink{eventChan, stop, "stdout", "", vStdout.Sub("sinks.default")}
 }
 
 func TestNewStdout(t *testing.T) {
@@ -76,7 +77,7 @@ func TestStart2(t *testing.T) {
 		},
 		Payload: &events.GenericEvent{
 			Tenant:      "test",
-			AgentId:     "test",
+			AgentID:     "test",
 			Timestamp:   strconv.Itoa(int(time.Now().Unix())),
 			Environment: "test",
 			Value:       "test",

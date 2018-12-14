@@ -43,6 +43,7 @@ dep:
 .PHONY: format
 format:
 	gofmt -w -s $(FORMAT_PATHS)
+	goimports -w $(FORMAT_PATHS)
 
 .PHONY: lint
 lint:

@@ -1,7 +1,6 @@
 package context
 
 import (
-	"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"
 
 	"net/url"
@@ -19,7 +18,7 @@ type Context interface {
 func NewContext(dsn string) (Context, error) {
 	u, err := url.Parse(dsn)
 	if err != nil {
-		return nil, errors.Annotatef(err, "cannot parse context data source name: %s")
+		return nil, err
 	}
 
 	var ctx Context

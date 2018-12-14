@@ -1,8 +1,8 @@
 package sources
 
 import (
-	"github.com/Pirionfr/lookatch-common/control"
-	"github.com/Pirionfr/lookatch-common/events"
+	"github.com/Pirionfr/lookatch-agent/control"
+	"github.com/Pirionfr/lookatch-agent/events"
 	"github.com/juju/errors"
 	"github.com/spf13/viper"
 )
@@ -49,13 +49,14 @@ type sourceCreatorT func(*Source) (SourceI, error)
 
 // factory source factory
 var factory = map[string]sourceCreatorT{
-	DummyType:           newDummy,
-	RandomType:          newRandom,
-	MysqlQueryType:      newMysqlQuery,
-	MysqlCDCType:        newMysqlCdc,
-	PostgreSQLQueryType: newPostgreSQLQuery,
-	PostgreSQLCDCType:   newPostgreSQLCdc,
-	MSSQLQueryType:      newMSSQLQuery,
+	RandomType:              newRandom,
+	MysqlQueryType:          newMysqlQuery,
+	MysqlCDCType:            newMysqlCdc,
+	PostgreSQLQueryType:     newPostgreSQLQuery,
+	PostgreSQLCDCType:       newPostgreSQLCdc,
+	MSSQLQueryType:          newMSSQLQuery,
+	SyslogType:              newSyslog,
+	FileReadingFollowerType: newFileReadingFollower,
 }
 
 // New create new source
@@ -64,7 +65,7 @@ func New(name string, sourceType string, config *viper.Viper, eventChan chan *ev
 	//setup agentHeader
 	agentInfo := &AgentHeader{
 		tenant: events.LookatchTenantInfo{
-			Id:  config.GetString("agent.tenant"),
+			ID:  config.GetString("agent.tenant"),
 			Env: config.GetString("agent.env"),
 		},
 		hostname: config.GetString("agent.hostname"),
@@ -89,6 +90,9 @@ func New(name string, sourceType string, config *viper.Viper, eventChan chan *ev
 	}
 
 	s, err = sourceCreatorFunc(baseSrc)
+	if err != nil {
+		return
+	}
 	s.Init()
 
 	if config.GetBool("sources." + name + ".autostart") {

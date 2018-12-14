@@ -1,11 +1,12 @@
 package sources
 
 import (
-	"github.com/Pirionfr/lookatch-common/control"
-	"github.com/Pirionfr/lookatch-common/events"
-	"github.com/spf13/viper"
 	"reflect"
 	"testing"
+
+	"github.com/Pirionfr/lookatch-agent/control"
+	"github.com/Pirionfr/lookatch-agent/events"
+	"github.com/spf13/viper"
 )
 
 var vRandom *viper.Viper
@@ -22,7 +23,7 @@ func init() {
 
 	agentInfo := &AgentHeader{
 		tenant: events.LookatchTenantInfo{
-			Id:  vRandom.GetString("agent.tenant"),
+			ID:  vRandom.GetString("agent.tenant"),
 			Env: vRandom.GetString("agent.env"),
 		},
 		hostname: vRandom.GetString("agent.hostname"),
@@ -119,7 +120,7 @@ func TestRandomIsEnable(t *testing.T) {
 		t.Fail()
 	}
 
-	if Random.IsEnable() != true {
+	if !Random.IsEnable() {
 		t.Fail()
 	}
 }
@@ -130,7 +131,7 @@ func TestRandomHealtCheck(t *testing.T) {
 		t.Fail()
 	}
 
-	if Random.HealthCheck() != true {
+	if !Random.HealthCheck() {
 		t.Fail()
 	}
 }

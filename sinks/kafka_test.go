@@ -1,13 +1,15 @@
 package sinks
 
 import (
-	"github.com/Pirionfr/lookatch-common/events"
-	"github.com/spf13/viper"
 	"testing"
 
-	"github.com/Shopify/sarama"
+	"github.com/Pirionfr/lookatch-agent/events"
+	"github.com/spf13/viper"
+
 	"strconv"
 	"time"
+
+	"github.com/Shopify/sarama"
 )
 
 var (
@@ -28,11 +30,12 @@ func init() {
 			"brokers": []string{
 				"test:9093",
 			},
-			"enabled": true,
-
-			"tls":          true,
-			"topic_prefix": "lookatch.test_batch",
-			"type":         "kafka",
+			"enabled":           true,
+			"max_message_bytes": threshold,
+			"nb_producer":       1,
+			"tls":               true,
+			"topic_prefix":      "lookatch.test_batch",
+			"type":              "kafka",
 			"producer": map[string]interface{}{
 				"user":     "lookatch.test",
 				"password": "test",
@@ -48,7 +51,7 @@ func init() {
 
 func TestBuildKafkaSinkConfig(t *testing.T) {
 
-	sink = &Sink{eventChan, stop, "kafka", vKafka.Sub("sinks.kafka")}
+	sink = &Sink{eventChan, stop, "kafka", "", vKafka.Sub("sinks.kafka")}
 
 	ksink, err := newKafka(sink)
 	if err != nil {
@@ -64,7 +67,7 @@ func TestBuildKafkaSinkConfig(t *testing.T) {
 		t.Fail()
 	}
 
-	if conf.Topic_prefix != "lookatch.test_batch" {
+	if conf.TopicPrefix != "lookatch.test_batch" {
 		t.Fail()
 	}
 
@@ -77,7 +80,7 @@ func TestBuildKafkaSinkConfig(t *testing.T) {
 func TestBuildKafkaSinkConfigTopicSet(t *testing.T) {
 
 	vKafka.Set("sinks.kafka.topic", "test")
-	sink = &Sink{eventChan, stop, "kafka", vKafka.Sub("sinks.kafka")}
+	sink = &Sink{eventChan, stop, "kafka", "", vKafka.Sub("sinks.kafka")}
 
 	ksink, err := newKafka(sink)
 	if err != nil {
@@ -93,7 +96,7 @@ func TestBuildKafkaSinkConfigTopicSet(t *testing.T) {
 func TestBuildKafkaSinktls(t *testing.T) {
 
 	vKafka.Set("sinks.kafka.tls", false)
-	sink = &Sink{eventChan, stop, "kafka", vKafka.Sub("sinks.kafka")}
+	sink = &Sink{eventChan, stop, "kafka", "", vKafka.Sub("sinks.kafka")}
 
 	ksink, err := newKafka(sink)
 	if err != nil {
@@ -101,7 +104,7 @@ func TestBuildKafkaSinktls(t *testing.T) {
 	}
 	conf := ksink.(*Kafka).kafkaConf
 
-	if conf.Tls != false {
+	if conf.TLS {
 		t.Fail()
 	}
 }
@@ -109,7 +112,7 @@ func TestBuildKafkaSinktls(t *testing.T) {
 func TestBuildKafkaSinkClientID(t *testing.T) {
 
 	vKafka.Set("sinks.kafka.client_id", "test")
-	sink = &Sink{eventChan, stop, "kafka", vKafka.Sub("sinks.kafka")}
+	sink = &Sink{eventChan, stop, "kafka", "", vKafka.Sub("sinks.kafka")}
 
 	ksink, err := newKafka(sink)
 	if err != nil {
@@ -117,29 +120,28 @@ func TestBuildKafkaSinkClientID(t *testing.T) {
 	}
 	conf := ksink.(*Kafka).kafkaConf
 
-	if conf.Client_id != "test" {
+	if conf.ClientID != "test" {
 		t.Fail()
 	}
 }
 
 func TestBuildKafkaSinkSecret(t *testing.T) {
 
-	vKafka.Set("sinks.kafka.secret", "test")
-	sink = &Sink{eventChan, stop, "kafka", vKafka.Sub("sinks.kafka")}
+	sink = &Sink{eventChan, stop, "kafka", "test", vKafka.Sub("sinks.kafka")}
 
 	ksink, err := newKafka(sink)
 	if err != nil {
 		t.Error(err)
 	}
-	conf := ksink.(*Kafka).kafkaConf
+	typedSink := ksink.(*Kafka)
 
-	if conf.Secret != "test" {
+	if typedSink.encryptionkey != "test" {
 		t.Fail()
 	}
 }
 
 func TestProcessGenericEvent(t *testing.T) {
-	sink = &Sink{eventChan, stop, "kafka", vKafka.Sub("sinks.kafka")}
+	sink = &Sink{eventChan, stop, "kafka", "", vKafka.Sub("sinks.kafka")}
 
 	ksink, err := newKafka(sink)
 	if err != nil {
@@ -147,17 +149,15 @@ func TestProcessGenericEvent(t *testing.T) {
 	}
 	timestamp := strconv.Itoa(int(time.Now().Unix()))
 
-	conf := ksink.(*Kafka).kafkaConf
-
 	genericMsg := &events.GenericEvent{
 		Environment: "Envtest",
-		AgentId:     "IdTest",
+		AgentID:     "IdTest",
 		Tenant:      "faketenant",
 		Timestamp:   timestamp,
 		Value:       "test",
 	}
 
-	msg, err := processGenericEvent(genericMsg, conf, threshold)
+	msg, err := ksink.(*Kafka).processGenericEvent(genericMsg)
 	if err != nil {
 		t.Error(err)
 	}
@@ -168,7 +168,7 @@ func TestProcessGenericEvent(t *testing.T) {
 }
 
 func TestProcessSqlEvent(t *testing.T) {
-	sink = &Sink{eventChan, stop, "kafka", vKafka.Sub("sinks.kafka")}
+	sink = &Sink{eventChan, stop, "kafka", "", vKafka.Sub("sinks.kafka")}
 
 	ksink, err := newKafka(sink)
 	if err != nil {
@@ -176,9 +176,7 @@ func TestProcessSqlEvent(t *testing.T) {
 	}
 	timestamp := strconv.Itoa(int(time.Now().Unix()))
 
-	conf := ksink.(*Kafka).kafkaConf
-
-	msgSQL := &events.SqlEvent{
+	msgSQL := &events.SQLEvent{
 		Environment: "Envtest",
 		Tenant:      "faketenant",
 		Table:       "testTable",
@@ -189,7 +187,7 @@ func TestProcessSqlEvent(t *testing.T) {
 		Statement:   "test",
 	}
 
-	msg, err := processSQLEvent(msgSQL, conf, threshold)
+	msg, err := ksink.(*Kafka).processSQLEvent(msgSQL)
 	if err != nil {
 		t.Error(err)
 	}
@@ -200,14 +198,12 @@ func TestProcessSqlEvent(t *testing.T) {
 }
 
 func TestProcessKafkaMsg(t *testing.T) {
-	sink = &Sink{eventChan, stop, "kafka", vKafka.Sub("sinks.kafka")}
+	sink = &Sink{eventChan, stop, "kafka", "", vKafka.Sub("sinks.kafka")}
 
 	ksink, err := newKafka(sink)
 	if err != nil {
 		t.Error(err)
 	}
-
-	conf := ksink.(*Kafka).kafkaConf
 
 	msgKafka := &sarama.ConsumerMessage{
 		Value:          []byte("test"),
@@ -219,7 +215,7 @@ func TestProcessKafkaMsg(t *testing.T) {
 		Partition:      1,
 	}
 
-	msg, err := processKafkaMsg(msgKafka, conf, threshold)
+	msg, err := ksink.(*Kafka).processKafkaMsg(msgKafka)
 	if err != nil {
 		t.Error(err)
 	}

@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/satori/go.uuid"
-	"github.com/spf13/viper"
 	"os"
+
+	"github.com/google/uuid"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -50,24 +51,34 @@ func initializeConfig() (*viper.Viper, error) {
 		m["env"] = env
 	}
 
+	if pwd := os.Getenv("PASSWORD"); pwd != "" {
+		m["password"] = pwd
+	}
+
 	if key := os.Getenv("SECRETKEY"); key != "" {
 		m["secretkey"] = key
 	}
 
+	if port := v.GetInt("agent.healthport"); port != 0 {
+		m["healthport"] = port
+	} else {
+		m["healthport"] = 8080
+	}
+
 	hostname, err := os.Hostname()
 	if err != nil {
-		return v, fmt.Errorf("Unable to get hostname : %v", err)
+		return v, fmt.Errorf("unable to get hostname : %v", err)
 	}
 	m["hostname"] = hostname
 
 	u1, ok := m["uuid"]
 	if ok {
-		if _, err = uuid.FromString(u1.(string)); err == nil {
+		if _, err = uuid.Parse(u1.(string)); err == nil {
 			return v, nil
 		}
 	}
 
-	m["uuid"] = uuid.NewV4()
+	m["uuid"] = uuid.New()
 	v.Set("agent", m)
 	return v, nil
 }

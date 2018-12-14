@@ -2,11 +2,12 @@ package sources
 
 import (
 	"fmt"
-	"github.com/Pirionfr/lookatch-common/control"
-	"github.com/Pirionfr/lookatch-common/events"
-	"github.com/spf13/viper"
 	"reflect"
 	"testing"
+
+	"github.com/Pirionfr/lookatch-agent/control"
+	"github.com/Pirionfr/lookatch-agent/events"
+	"github.com/spf13/viper"
 )
 
 var vMysqlQuery *viper.Viper
@@ -26,7 +27,7 @@ func init() {
 
 	agentInfo := &AgentHeader{
 		tenant: events.LookatchTenantInfo{
-			Id:  vMysqlQuery.GetString("agent.tenant"),
+			ID:  vMysqlQuery.GetString("agent.tenant"),
 			Env: vMysqlQuery.GetString("agent.env"),
 		},
 		hostname: vMysqlQuery.GetString("agent.hostname"),
@@ -124,7 +125,7 @@ func TestMysqlQueryIsEnable(t *testing.T) {
 		t.Fail()
 	}
 
-	if MysqlQuery.IsEnable() != true {
+	if !MysqlQuery.IsEnable() {
 		t.Fail()
 	}
 }
@@ -135,7 +136,7 @@ func TestMysqlQueryHealtCheck(t *testing.T) {
 		t.Fail()
 	}
 
-	if MysqlQuery.HealthCheck() != false {
+	if MysqlQuery.HealthCheck() {
 		t.Fail()
 	}
 }

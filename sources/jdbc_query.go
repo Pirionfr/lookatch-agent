@@ -3,14 +3,15 @@ package sources
 import (
 	"database/sql"
 	"encoding/json"
-	"github.com/Pirionfr/lookatch-common/control"
-	"github.com/Pirionfr/lookatch-common/events"
-	log "github.com/sirupsen/logrus"
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
+
+	"github.com/Pirionfr/lookatch-agent/control"
+	"github.com/Pirionfr/lookatch-agent/events"
+	"github.com/remeh/sizedwaitgroup"
+	log "github.com/sirupsen/logrus"
 )
 
 type (
@@ -19,7 +20,7 @@ type (
 		*Source
 		Config  JDBCQueryConfig
 		db      *sql.DB
-		schemas SqlSchema
+		schemas SQLSchema
 	}
 
 	// JDBCQueryConfig representation of JDBC query configuration
@@ -51,8 +52,8 @@ type (
 	Query struct {
 		Query string `description:"SQL query to execute on agent" required:"true"`
 	}
-	// SqlSchema  schema     table     Position
-	SqlSchema map[string]map[string]map[string]*ColumnSchema
+	// SQLSchema  schema     table     Position
+	SQLSchema map[string]map[string]map[string]*ColumnSchema
 )
 
 // NewJDBCQuery create new JDBC query client
@@ -147,7 +148,7 @@ func (j *JDBCQuery) QuerySchema(q string) (err error) {
 	}
 	defer rows.Close()
 	// We initialize the schema map
-	j.schemas = make(SqlSchema)
+	j.schemas = make(SQLSchema)
 
 	previousTableName := ""
 
@@ -240,21 +241,18 @@ func (j *JDBCQuery) Query(database string, query string) {
 
 	//spawn stack of workers if specified in conf (for huge needs)
 	//create chan here in order to close goroutine when query is finished
-	marshallChan := make(chan map[string]interface{}, 100000)
-	wg := sync.WaitGroup{}
-	for i := 0; i < j.Config.NbWorker; i++ {
-		go j.MarshallWorker(marshallChan, database, schema, table)
-	}
+	marshallChan := make(chan map[string]interface{}, BatchSize*j.Config.NbWorker)
+	wg := sizedwaitgroup.New(j.Config.NbWorker)
 
 	//l is a counter for chunk size according to batch size
 	l := 0
 	for rows.Next() {
 		//if we reached BatchSize we reset buffers and lauch a processing routine
 		if l == BatchSize {
+			//do not forget to inc waitgroup for all lines to be processed
+			wg.Add()
 			//spawn another worker per bunch of BatchSize lines
 			go j.MarshallWorker(marshallChan, database, schema, table)
-			//do not forget to inc waitgroup for all lines to be processed
-			wg.Add(1)
 			go j.ProcessLines(columns, lineBuffer, marshallChan, &wg)
 
 			//generate a new buffer to prevent reuse of same data container
@@ -276,7 +274,7 @@ func (j *JDBCQuery) Query(database string, query string) {
 	if len(lineBuffer[0]) > 0 {
 		//spawn another worker per bunch of BatchSize lines
 		go j.MarshallWorker(marshallChan, database, schema, table)
-		wg.Add(1)
+		wg.Add()
 		go j.ProcessLines(columns, lineBuffer, marshallChan, &wg)
 	}
 	//now wait for all lines to be processed and sent to channel of marshallers
@@ -298,8 +296,8 @@ func (j *JDBCQuery) MarshallWorker(mapchan chan map[string]interface{}, database
 				EventType: MysqlQueryType,
 				Tenant:    j.AgentInfo.tenant,
 			},
-			Payload: &events.SqlEvent{
-				Tenant:      j.AgentInfo.tenant.Id,
+			Payload: &events.SQLEvent{
+				Tenant:      j.AgentInfo.tenant.ID,
 				Environment: j.AgentInfo.tenant.Env,
 				Timestamp:   strconv.FormatInt(time.Now().UnixNano(), 10),
 				Method:      "query",
@@ -319,17 +317,19 @@ func (j *JDBCQuery) MarshallWorker(mapchan chan map[string]interface{}, database
 }
 
 // ProcessLines process bunch of lines  from resultset to map and sent to marshall goroutine
-func (j *JDBCQuery) ProcessLines(columns []string, lines [][]interface{}, mapchan chan map[string]interface{}, wg *sync.WaitGroup) {
+func (j *JDBCQuery) ProcessLines(columns []string, lines [][]interface{}, mapchan chan map[string]interface{}, wg *sizedwaitgroup.SizedWaitGroup) {
 
 	log.Debug("PROCESSING")
+	var colmap map[string]interface{}
+	var v interface{}
+
 	for _, values := range lines {
-		colmap := make(map[string]interface{})
+		colmap = make(map[string]interface{})
 		if len(values) == 0 {
 			break
 		}
 
 		for i, col := range columns {
-			var v interface{}
 			val := values[i]
 			b, ok := val.([]byte)
 			//cast to string because of particular behaviour in next step
@@ -348,26 +348,28 @@ func (j *JDBCQuery) ProcessLines(columns []string, lines [][]interface{}, mapcha
 }
 
 // QueryMeta execute query metadata
-func (j *JDBCQuery) QueryMeta(query string, table string, db string, mapAdd map[string]interface{}) map[string]interface{} {
+func (j *JDBCQuery) QueryMeta(query string) []map[string]interface{} {
 
+	var result []map[string]interface{}
 	err := j.db.Ping()
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
-		}).Error("Connection is dead")
+		}).Fatal("Connection is dead")
 	}
 	rows, err := j.db.Query(query)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
-		}).Error("Connection is dead")
+		}).Error("query failed")
+		return result
 	}
 
 	columns, _ := rows.Columns()
 	count := len(columns)
 	values := make([]interface{}, count)
 	valuePtrs := make([]interface{}, count)
-	//colmap := make(map[string]interface{})
+	colmap := make(map[string]interface{})
 
 	for rows.Next() {
 		for i := range columns {
@@ -383,10 +385,11 @@ func (j *JDBCQuery) QueryMeta(query string, table string, db string, mapAdd map[
 			} else {
 				v = val
 			}
-			mapAdd[col] = v
+			colmap[col] = v
 		}
+		result = append(result, colmap)
 	}
-	return mapAdd
+	return result
 }
 
 // ExtractDatabaseTable Extract Database and Table from query

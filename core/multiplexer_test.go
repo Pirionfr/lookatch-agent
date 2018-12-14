@@ -1,9 +1,10 @@
 package core
 
 import (
-	"github.com/Pirionfr/lookatch-common/events"
 	"reflect"
 	"testing"
+
+	"github.com/Pirionfr/lookatch-agent/events"
 )
 
 var (
