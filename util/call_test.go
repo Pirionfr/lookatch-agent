@@ -20,7 +20,7 @@ func HelloWorld2(name string) string {
 	return "Hello " + name
 }
 
-func TestReflect_withoutParam(t *testing.T) {
+func TestReflectWithoutParam(t *testing.T) {
 	r, err := Call(funcs, "HelloWorld")
 	if err != nil {
 		t.Error(err)
@@ -31,7 +31,7 @@ func TestReflect_withoutParam(t *testing.T) {
 	}
 }
 
-func TestReflect_withParam(t *testing.T) {
+func TestReflectWithParam(t *testing.T) {
 	r, err := Call(funcs, "HelloWorld2", "World")
 	if err != nil {
 		t.Error(err)
@@ -40,4 +40,13 @@ func TestReflect_withParam(t *testing.T) {
 	if r != "Hello World" {
 		t.Error("mistmatch")
 	}
+}
+
+func TestReflectWithBedParamNumber(t *testing.T) {
+	_, err := Call(funcs, "HelloWorld2", "World", "Error")
+	if err == nil {
+		t.Fail()
+	}
+
+
 }

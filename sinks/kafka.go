@@ -6,8 +6,8 @@ import (
 
 	"encoding/binary"
 
+	"github.com/Pirionfr/goDcCrypto/crypto"
 	"github.com/Pirionfr/lookatch-agent/events"
-	"github.com/Pirionfr/lookatch-agent/util"
 	"github.com/Shopify/sarama"
 	"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"

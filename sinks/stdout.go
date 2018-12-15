@@ -3,8 +3,8 @@ package sinks
 import (
 	"encoding/json"
 
+	"github.com/Pirionfr/goDcCrypto/crypto"
 	"github.com/Pirionfr/lookatch-agent/events"
-	"github.com/Pirionfr/lookatch-agent/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -40,7 +40,7 @@ func (s *Stdout) Start(i ...interface{}) (err error) {
 			}
 			msg := string(bytes)
 			if s.encryptionkey != "" {
-				msg, err = util.EncryptString(string(bytes), s.encryptionkey)
+				msg, err = crypto.EncryptString(string(bytes), s.encryptionkey)
 				if err != nil {
 					log.WithFields(log.Fields{
 						"error": err,

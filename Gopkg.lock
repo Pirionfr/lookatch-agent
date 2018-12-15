@@ -26,6 +26,14 @@
   version = "v1.1.0"
 
 [[projects]]
+  branch = "master"
+  digest = "1:59434e9c40239ecfe26fd4f5c553dd6af686fb82c37d6b1485ea99c4b9d3a30d"
+  name = "github.com/Pirionfr/goDcCrypto"
+  packages = ["crypto"]
+  pruneopts = "NUT"
+  revision = "2773a8cccb611f61598cc0568c851811b6e4e3b0"
+
+[[projects]]
   digest = "1:d23be4935b3f63583b7a7f847dca8be74c89af8943a5f70d96cace715aed47c1"
   name = "github.com/Shopify/sarama"
   packages = ["."]
