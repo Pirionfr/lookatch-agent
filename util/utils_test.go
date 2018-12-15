@@ -39,8 +39,8 @@ func TestEscapeCtrl(t *testing.T) {
 }
 
 func TestEscapeCtrl2(t *testing.T) {
-	aString := []byte{0, 116, 101, 115, 116}
-	res := EscapeCtrl([]byte(aString))
+	aByteArray := []byte{0, 116, 101, 115, 116}
+	res := EscapeCtrl(aByteArray)
 
 	expected := []byte{92, 117, 48, 48, 48, 48, 116, 101, 115, 116}
 	if !reflect.DeepEqual(expected, res) {
