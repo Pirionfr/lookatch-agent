@@ -146,7 +146,7 @@ func (k *Kafka) processGenericEvent(genericMsg *events.GenericEvent) (*sarama.Pr
 	}
 	if len(k.encryptionkey) > 0 {
 		var err error
-		msgToSend, err = util.EncryptBytes(serializedEventPayload, k.encryptionkey)
+		msgToSend, err = crypto.EncryptBytes(serializedEventPayload, k.encryptionkey)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error": err,
@@ -190,7 +190,7 @@ func (k *Kafka) processSQLEvent(sqlEvent *events.SQLEvent) (*sarama.ProducerMess
 	}
 	if len(k.encryptionkey) > 0 {
 
-		result, err := util.EncryptString(string(serializedEventPayload[:]), k.encryptionkey)
+		result, err := crypto.EncryptString(string(serializedEventPayload[:]), k.encryptionkey)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error": err,
@@ -228,7 +228,7 @@ func (k *Kafka) processKafkaMsg(kafkaMsg *sarama.ConsumerMessage) (*sarama.Produ
 	var msgToSend []byte
 	if k.encryptionkey != "" {
 		var err error
-		msgToSend, err = util.EncryptBytes(kafkaMsg.Value, k.encryptionkey)
+		msgToSend, err = crypto.EncryptBytes(kafkaMsg.Value, k.encryptionkey)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error": err,
