@@ -24,7 +24,7 @@ all: init dep format lint release
 
 .PHONY: init
 init:
-	go get -u github.com/golang/dep/...
+	go get -u github.com/golang/dep/cmd/dep
 	go get -u github.com/alecthomas/gometalinter
 	go get -u github.com/onsi/ginkgo/ginkgo
 	go get -u golang.org/x/tools/cmd/cover
