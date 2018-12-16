@@ -8,7 +8,7 @@ import (
 
 // IsStandalone check if collector is in standalone mode
 func IsStandalone(v *viper.Viper) bool {
-	test:= v.Get("auth")
+	test := v.Get("auth")
 	return test == nil
 }
 

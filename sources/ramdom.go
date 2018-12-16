@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Pallinder/go-randomdata"
+	randomdata "github.com/Pallinder/go-randomdata"
 	"github.com/Pirionfr/lookatch-agent/control"
 	"github.com/Pirionfr/lookatch-agent/events"
 	log "github.com/sirupsen/logrus"

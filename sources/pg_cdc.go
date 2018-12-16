@@ -404,7 +404,7 @@ func (p *PostgreSQLCDC) decodeEvents() {
 }
 
 //processMsgs process Messages
-func (p *PostgreSQLCDC) processMsgs(msgs *Messages){
+func (p *PostgreSQLCDC) processMsgs(msgs *Messages) {
 	var fields string
 	var err error
 	var ev *events.LookatchEvent

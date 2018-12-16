@@ -48,5 +48,4 @@ func TestReflectWithBedParamNumber(t *testing.T) {
 		t.Fail()
 	}
 
-
 }

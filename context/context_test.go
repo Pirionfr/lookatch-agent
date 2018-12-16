@@ -2,6 +2,7 @@ package context
 
 import (
 	"testing"
+
 	"github.com/alicebob/miniredis"
 )
 
@@ -26,7 +27,7 @@ func TestContextRedisType(t *testing.T) {
 	}
 	defer s.Close()
 
-	ctx, err := NewContext("redis://"+ s.Addr())
+	ctx, err := NewContext("redis://" + s.Addr())
 	if err != nil {
 		t.Fail()
 	}
@@ -35,5 +36,5 @@ func TestContextRedisType(t *testing.T) {
 	if !ok {
 		t.Fail()
 	}
-
+	s.Close()
 }

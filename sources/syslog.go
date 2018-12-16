@@ -8,7 +8,7 @@ import (
 	"github.com/Pirionfr/lookatch-agent/control"
 	"github.com/Pirionfr/lookatch-agent/events"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/mcuadros/go-syslog.v2"
+	syslog "gopkg.in/mcuadros/go-syslog.v2"
 )
 
 // SyslogType type of source
