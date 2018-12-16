@@ -15,5 +15,5 @@
     "unused",
     "vet"
   ],
-  "Exclude": ["rpc/mock_rpc"]
+  "Exclude": ["rpc/mockrpc"]
 }
