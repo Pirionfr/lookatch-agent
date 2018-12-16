@@ -341,13 +341,9 @@ func (p *PostgreSQLCDC) checkStatus() {
 // decodeEvents Send all statement for this transaction
 func (p *PostgreSQLCDC) decodeEvents() {
 
-	var fields string
 	var err error
-	var ev *events.LookatchEvent
 	var msgs *Messages
 	var repMsg *pgx.ReplicationMessage
-	var timestamp int64
-	var key string
 
 	for {
 		repMsg, err = p.repConn.WaitForReplicationMessage(context.Background())
@@ -394,56 +390,7 @@ func (p *PostgreSQLCDC) decodeEvents() {
 				}).Error("failed parse to JSON from PG")
 				continue
 			} else {
-
-				for _, msg := range msgs.Change {
-
-					p.meta.LastState = "Waiting for next pg event"
-
-					if p.filter.IsFilteredTable(msg.Schema, msg.Table) {
-						continue
-					}
-
-					fields, err = p.fieldsToJSON(msg, &key)
-					if err != nil {
-						log.WithFields(log.Fields{
-							"error": err,
-						}).Error("Failed to parse statement")
-						continue
-					}
-
-					//when servertime == 0 send current time
-					if repMsg.WalMessage.ServerTime == 0 {
-						timestamp = time.Now().Unix()
-					} else {
-						timestamp = repMsg.WalMessage.Time().Unix()
-					}
-
-					ev = &events.LookatchEvent{
-						Header: &events.LookatchHeader{
-							EventType: MysqlCDCType,
-							Tenant:    p.AgentInfo.tenant,
-						},
-						Payload: &events.SQLEvent{
-
-							Timestamp:   strconv.FormatInt(timestamp, 10),
-							Environment: p.AgentInfo.tenant.Env,
-							Database:    p.config.Database,
-							Schema:      msg.Schema,
-							Table:       msg.Table,
-							Method:      strings.ToLower(msg.Kind),
-							Statement:   fields,
-							PrimaryKey:  key,
-							Offset: &events.Offset{
-								Database: strconv.FormatUint(p.meta.Lsn, 10),
-								Agent:    strconv.FormatInt(p.Offset, 10),
-							},
-						},
-					}
-					log.WithFields(log.Fields{
-						"table": msg.Table,
-					}).Debug("Event send")
-					p.OutputChannel <- ev
-				}
+				p.processMsgs(msgs)
 			}
 			//set the current position
 			if p.meta.Lsn < repMsg.WalMessage.WalStart {
@@ -454,6 +401,66 @@ func (p *PostgreSQLCDC) decodeEvents() {
 		}
 	}
 
+}
+
+//processMsgs process Messages
+func (p *PostgreSQLCDC) processMsgs(msgs *Messages){
+	var fields string
+	var err error
+	var ev *events.LookatchEvent
+	var repMsg *pgx.ReplicationMessage
+	var timestamp int64
+	var key string
+
+	for _, msg := range msgs.Change {
+
+		p.meta.LastState = "Waiting for next pg event"
+
+		if p.filter.IsFilteredTable(msg.Schema, msg.Table) {
+			continue
+		}
+
+		fields, err = p.fieldsToJSON(msg, &key)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"error": err,
+			}).Error("Failed to parse statement")
+			continue
+		}
+
+		//when servertime == 0 send current time
+		if repMsg.WalMessage.ServerTime == 0 {
+			timestamp = time.Now().Unix()
+		} else {
+			timestamp = repMsg.WalMessage.Time().Unix()
+		}
+
+		ev = &events.LookatchEvent{
+			Header: &events.LookatchHeader{
+				EventType: MysqlCDCType,
+				Tenant:    p.AgentInfo.tenant,
+			},
+			Payload: &events.SQLEvent{
+
+				Timestamp:   strconv.FormatInt(timestamp, 10),
+				Environment: p.AgentInfo.tenant.Env,
+				Database:    p.config.Database,
+				Schema:      msg.Schema,
+				Table:       msg.Table,
+				Method:      strings.ToLower(msg.Kind),
+				Statement:   fields,
+				PrimaryKey:  key,
+				Offset: &events.Offset{
+					Database: strconv.FormatUint(p.meta.Lsn, 10),
+					Agent:    strconv.FormatInt(p.Offset, 10),
+				},
+			},
+		}
+		log.WithFields(log.Fields{
+			"table": msg.Table,
+		}).Debug("Event send")
+		p.OutputChannel <- ev
+	}
 }
 
 // fieldsToJSON map fields to json
