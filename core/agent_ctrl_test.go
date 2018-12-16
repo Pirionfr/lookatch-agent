@@ -6,20 +6,20 @@ import (
 
 	"github.com/Pirionfr/lookatch-agent/control"
 	"github.com/Pirionfr/lookatch-agent/rpc"
-	rpcmock "github.com/Pirionfr/lookatch-agent/rpc/mock_rpc"
+	rpcmock "github.com/Pirionfr/lookatch-agent/rpc/mockrpc"
 	"github.com/golang/mock/gomock"
 	"google.golang.org/grpc/metadata"
 )
 
 func PrepareGrpcMockSend(crtlClient *Controller, ctrl *gomock.Controller, msg *rpc.Message) {
 
-	// Create mock for the stream returned by RouteChat
-	stream := rpcmock.NewMockController_ChannelClient(ctrl)
+	// Create mockrpc for the stream returned by RouteChat
+	stream := rpcmock.NewMockControllerChannelClient(ctrl)
 	// set expectation on sending.
 	stream.EXPECT().Send(
 		msg,
 	).Return(nil)
-	// Create mock for the client interface.
+	// Create mockrpc for the client interface.
 	rpcClient := rpcmock.NewMockControllerClient(ctrl)
 	// Set expectation on RouteChat
 

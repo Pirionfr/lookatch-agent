@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/Pirionfr/lookatch-agent/rpc"
-	rpcmock "github.com/Pirionfr/lookatch-agent/rpc/mock_rpc"
+	rpcmock "github.com/Pirionfr/lookatch-agent/rpc/mockrpc"
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/proto"
 	"github.com/spf13/viper"
@@ -64,8 +64,8 @@ func TestStartChannel(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	stream := rpcmock.NewMockController_ChannelClient(ctrl)
-	// Create mock for the stream
+	stream := rpcmock.NewMockControllerChannelClient(ctrl)
+	// Create mockrpc for the stream
 	chanClient := rpcmock.NewMockControllerClient(ctrl)
 
 	chanClient.EXPECT().Channel(gomock.Any()).Return(stream, nil)
@@ -95,8 +95,8 @@ func TestStartChannelWithAuth(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	stream := rpcmock.NewMockController_ChannelClient(ctrl)
-	// Create mock for the stream
+	stream := rpcmock.NewMockControllerChannelClient(ctrl)
+	// Create mockrpc for the stream
 	chanClient := rpcmock.NewMockControllerClient(ctrl)
 
 	chanClient.EXPECT().Channel(gomock.Any()).Return(stream, nil)
@@ -138,8 +138,8 @@ func TestRecvMessage(t *testing.T) {
 
 func PrepareGrpcMock(crtlClient *Controller, ctrl *gomock.Controller, msg *rpc.Message) {
 
-	// Create mock for the stream returned by Channel
-	stream := rpcmock.NewMockController_ChannelClient(ctrl)
+	// Create mockrpc for the stream returned by Channel
+	stream := rpcmock.NewMockControllerChannelClient(ctrl)
 	// set expectation on sending.
 	stream.EXPECT().Send(
 		msg,
@@ -147,7 +147,7 @@ func PrepareGrpcMock(crtlClient *Controller, ctrl *gomock.Controller, msg *rpc.M
 	// Set expectation on receiving.
 	stream.EXPECT().Recv().Return(msg, nil)
 	stream.EXPECT().Recv().Return(&rpc.Message{}, nil)
-	// Create mock for the client interface.
+	// Create mockrpc for the client interface.
 	rpcClient := rpcmock.NewMockControllerClient(ctrl)
 	// Set expectation on RouteChat
 	rpcClient.EXPECT().Channel(
