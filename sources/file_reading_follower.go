@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"io"
 	"strconv"
-	"sync"
-	"time"
+		"time"
 
 	"github.com/Pirionfr/lookatch-agent/control"
 	"github.com/Pirionfr/lookatch-agent/events"
 	"github.com/Pirionfr/lookatch-agent/util"
 	"github.com/papertrail/go-tail/follower"
 	log "github.com/sirupsen/logrus"
+	"sync"
 )
 
 // FileReadingFollower representation of FileReadingFollower
@@ -45,7 +45,11 @@ func newFileReadingFollower(s *Source) (SourceI, error) {
 
 // Init source
 func (f *FileReadingFollower) Init() {
-
+	if util.IsStandalone(f.Conf) {
+		f.status = control.SourceStatusRunning
+		f.config.Offset = 0
+		f.Offset = 0
+	}
 }
 
 // Stop source
@@ -55,20 +59,17 @@ func (f *FileReadingFollower) Stop() error {
 
 // Start source
 func (f *FileReadingFollower) Start(i ...interface{}) error {
-	if !util.IsStandalone(f.Conf) {
-		var wg sync.WaitGroup
-		wg.Add(1)
-		//wait for changeStatus
-		go func() {
-			for f.status == control.SourceStatusWaitingForMETA {
-				time.Sleep(time.Second)
-			}
-			wg.Done()
-		}()
-		wg.Wait()
-	} else {
-		f.status = control.SourceStatusRunning
-	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	//wait for changeStatus
+	go func() {
+		for f.status == control.SourceStatusWaitingForMETA {
+			time.Sleep(time.Second)
+		}
+		wg.Done()
+	}()
+	wg.Wait()
 	go f.read()
 	return nil
 }
