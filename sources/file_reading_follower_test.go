@@ -7,7 +7,7 @@ import (
 	"github.com/Pirionfr/lookatch-agent/control"
 	"github.com/Pirionfr/lookatch-agent/events"
 	"github.com/spf13/viper"
-	)
+)
 
 var vFileReadingFollower *viper.Viper
 var sFileReadingFollower *Source
@@ -24,8 +24,6 @@ func init() {
 	vFileReadingFollower.Set("sources.default.path", "../config-test.json")
 
 	eventChan := make(chan *events.LookatchEvent, 1)
-
-
 
 	agentInfo := &AgentHeader{
 		tenant: events.LookatchTenantInfo{
@@ -89,7 +87,6 @@ func TestFileReadingFollowerStop(t *testing.T) {
 		t.Fail()
 	}
 }
-
 
 func TestFileReadingFollowerGetName(t *testing.T) {
 	fileReadingFollower, ok := newFileReadingFollower(sFileReadingFollower)

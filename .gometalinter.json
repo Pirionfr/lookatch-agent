@@ -7,12 +7,10 @@
     "gofmt",
     "goimports",
     "golint",
-    "gosimple",
     "ineffassign",
     "interfacer",
     "misspell",
     "unconvert",
-    "unused",
     "vet"
   ],
   "Exclude": ["rpc/mockrpc"]

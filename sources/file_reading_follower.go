@@ -4,14 +4,15 @@ import (
 	"encoding/json"
 	"io"
 	"strconv"
-		"time"
+	"time"
+
+	"sync"
 
 	"github.com/Pirionfr/lookatch-agent/control"
 	"github.com/Pirionfr/lookatch-agent/events"
 	"github.com/Pirionfr/lookatch-agent/util"
 	"github.com/papertrail/go-tail/follower"
 	log "github.com/sirupsen/logrus"
-	"sync"
 )
 
 // FileReadingFollower representation of FileReadingFollower

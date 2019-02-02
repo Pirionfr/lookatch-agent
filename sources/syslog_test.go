@@ -25,8 +25,6 @@ func init() {
 
 	eventChan := make(chan *events.LookatchEvent, 1)
 
-
-
 	agentInfo := &AgentHeader{
 		tenant: events.LookatchTenantInfo{
 			ID:  vSyslog.GetString("agent.tenant"),
