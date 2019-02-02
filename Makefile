@@ -12,7 +12,8 @@ DFLAGS 				:= -race
 CFLAGS 				:= -X 'main.githash=$(GITHASH)' \
             -X 'main.date=$(DATE)' \
             -X 'main.version=$(VERSION)'
-CROSS				:= GOOS=linux GOARCH=amd64
+PLATFORMS=darwin linux windows
+ARCHITECTURES=386 amd64
 
 # Makefile variables
 VPATH 				:= $(BUILD_DIR)
@@ -75,7 +76,11 @@ release:
 
 .PHONY: dist
 dist:
-	$(CROSS) $(CC) -ldflags "-s -w $(CFLAGS)" -o $(BUILD_DIR)/lookatch-agent
+		@for GOOS in $(PLATFORMS) ; do \
+            for GOARCH in $(ARCHITECTURES) ; do \
+                GOOS=$${GOOS} GOARCH=$${GOARCH} $(CC) -ldflags "-s -w $(CFLAGS)" -o $(BUILD_DIR)/$${GOOS}/$${GOARCH}/lookatch-agent; \
+			done \
+		done
 
 .PHONY: install
 install: release
@@ -83,7 +88,10 @@ install: release
 
 .PHONY: deb
 deb:
-		rm -f lookatch-agent*.deb
+	rm -f lookatch-agent*.deb
+	rm -f package/deb/input-*
+	for ARCH in $(ARCHITECTURES) ; do \
+		sed "s/%ARCH%/$${ARCH}/g" <package/deb/input >package/deb/input-$${ARCH}; \
 		fpm -m "<Pirionfr>" \
 		  --description "replicate and synchronize your data" \
 			--url "https://github.com/Pirionfr/lookatch-agent" \
@@ -93,7 +101,7 @@ deb:
 			-d logrotate \
 			-s dir \
 			-t deb \
-			-a amd64 \
+			-a $${ARCH} \
 			--deb-user lookatch \
 			--deb-group lookatch \
 			--deb-no-default-config-files \
@@ -106,11 +114,15 @@ deb:
 			--after-upgrade package/deb/after-upgrade.sh \
 			--before-remove package/deb/before-remove.sh \
 			--after-remove package/deb/after-remove.sh \
-			--inputs package/deb/input
+			--inputs package/deb/input-$${ARCH} ; \
+	done
 
 .PHONY: rpm
 rpm:
-		rm -f lookatch-agent*.rpm
+	rm -f lookatch-agent*.rpm
+	rm -f package/rpm/input-*
+	for ARCH in $(ARCHITECTURES) ; do \
+		sed "s/%ARCH%/$${ARCH}/g" <package/rpm/input >package/rpm/input-$${ARCH}; \
 		fpm -m "<Pirionfr>" \
 		  --description "replicate and synchronize your data" \
 		    --url "https://github.com/Pirionfr/lookatch-agent" \
@@ -119,7 +131,7 @@ rpm:
 			-n lookatch-agent \
 			-s dir \
 			-t rpm \
-			-a amd64 \
+			-a $${ARCH} \
 			--rpm-user lookatch \
 			--rpm-group lookatch \
 			--config-files /etc/lookatch/config.json \
@@ -129,4 +141,5 @@ rpm:
 			--after-upgrade package/rpm/after-upgrade.sh \
 			--before-remove package/rpm/before-remove.sh \
 			--after-remove package/rpm/after-remove.sh \
-			--inputs package/rpm/input
+			--inputs package/rpm/input-$${ARCH} ; \
+	done
