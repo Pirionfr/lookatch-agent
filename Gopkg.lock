@@ -111,6 +111,14 @@
   revision = "fd9ec7deca8bf46ecd2a795baaacf2b3a9be1197"
 
 [[projects]]
+  digest = "1:13e9a236e56e18fecb73f5b2f2eb7f60060a1a9bc27e5a7328ab22e275ecb63e"
+  name = "github.com/go-sql-driver/mysql"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "72cd26f257d44c1114970e19afddcd812016007e"
+  version = "v1.4.1"
+
+[[projects]]
   digest = "1:b60efdeb75d3c0ceed88783ac2495256aba3491a537d0f31401202579fd62a94"
   name = "github.com/golang/mock"
   packages = ["gomock"]
@@ -351,11 +359,10 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:00a0e2e2f136f1d7747a78bf93d1bd1dfce7bea01b2819a8f0cc2c27d1bef995"
+  digest = "1:0a90a38e1dd9aa058a296183e9df979350150544eb14ce5270a9cb0de28de11a"
   name = "github.com/siddontang/go-mysql"
   packages = [
     "client",
-    "driver",
     "mysql",
     "packet",
     "replication",
@@ -505,6 +512,14 @@
   version = "v0.3.0"
 
 [[projects]]
+  digest = "1:c25289f43ac4a68d88b02245742347c94f1e108c534dda442188015ff80669b3"
+  name = "google.golang.org/appengine"
+  packages = ["cloudsql"]
+  pruneopts = "NUT"
+  revision = "e9657d882bb81064595ca3b56cbe2546bbabf7b1"
+  version = "v1.4.0"
+
+[[projects]]
   branch = "master"
   digest = "1:077c1c599507b3b3e9156d17d36e1e61928ee9b53a5b420f10f28ebd4a0b275c"
   name = "google.golang.org/genproto"
@@ -579,9 +594,11 @@
   analyzer-version = 1
   input-imports = [
     "github.com/Pallinder/go-randomdata",
+    "github.com/Pirionfr/goDcCrypto/crypto",
     "github.com/Shopify/sarama",
     "github.com/alicebob/miniredis",
     "github.com/denisenkom/go-mssqldb",
+    "github.com/go-sql-driver/mysql",
     "github.com/golang/mock/gomock",
     "github.com/golang/protobuf/proto",
     "github.com/google/uuid",
@@ -591,7 +608,6 @@
     "github.com/mediocregopher/radix.v2/pool",
     "github.com/papertrail/go-tail/follower",
     "github.com/remeh/sizedwaitgroup",
-    "github.com/siddontang/go-mysql/driver",
     "github.com/siddontang/go-mysql/mysql",
     "github.com/siddontang/go-mysql/replication",
     "github.com/sirupsen/logrus",

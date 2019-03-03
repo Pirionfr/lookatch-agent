@@ -8,7 +8,7 @@ import (
 	"github.com/Pirionfr/lookatch-agent/control"
 
 	// driver
-	_ "github.com/siddontang/go-mysql/driver"
+	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -79,7 +79,8 @@ func (m *MySQLQuery) HealthCheck() bool {
 // Connect connection to database
 func (m *MySQLQuery) Connect(schema string) {
 
-	dsn := fmt.Sprintf("%s:%s@%s:%d?%s", m.config.User, m.config.Password, m.config.Host, m.config.Port, schema)
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", m.config.User, m.config.Password, m.config.Host, m.config.Port, schema)
+	//dsn += "?tls=skip-verify"
 
 	//first check if db is not already established
 	db, err := sql.Open("mysql", dsn)
