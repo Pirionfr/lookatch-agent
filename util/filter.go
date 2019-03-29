@@ -20,51 +20,56 @@ func (f *Filter) isAccept() bool {
 // IsFilteredDatabase check if database is filtered
 func (f *Filter) IsFilteredDatabase(database string) bool {
 	found := false
-	if tableFilter, ok := f.Filter[strings.ToLower(database)]; ok {
-		if tableFilter == nil {
+	if f.Filter == nil {
+		found = true
+	} else {
+		if _, ok := f.Filter[strings.ToLower(database)]; ok {
 			found = true
-		} else {
-			return false
 		}
 	}
 	if found {
-		return f.isAccept()
+		return !f.isAccept()
 	}
-	return !f.isAccept()
+	return f.isAccept()
 }
 
 // IsFilteredTable check if table is filtered
 func (f *Filter) IsFilteredTable(database string, table string) bool {
 	found := false
-	if tableFilter, ok := f.Filter[strings.ToLower(database)].(map[string]interface{}); ok {
-		if columnFilter, ok := tableFilter[strings.ToLower(table)]; ok {
-			if columnFilter == nil {
+	if tableFilter, ok := f.Filter[strings.ToLower(database)]; ok {
+		if tableFilter == nil {
+			found = true
+		}else {
+			if _, ok := tableFilter.(map[string]interface{})[strings.ToLower(table)]; ok {
 				found = true
-			} else {
-				return false
 			}
 		}
+
 	}
 	if found {
-		return f.isAccept()
+		return !f.isAccept()
 	}
-	return !f.isAccept()
+	return f.isAccept()
 
 }
 
 // IsFilteredColumn check if column is filtered
 func (f *Filter) IsFilteredColumn(database string, table string, column string) bool {
 	found := false
-	if tableFilter, ok := f.Filter[strings.ToLower(database)].(map[string]interface{}); ok {
-		columnFilter := tableFilter[strings.ToLower(table)]
-		if columnFilter != nil {
-			found = contains(columnFilter.([]interface{}), column)
+	if tableFilter, ok := f.Filter[strings.ToLower(database)]; ok {
+		if columnFilter, ok := tableFilter.(map[string]interface{})[strings.ToLower(table)] ; ok {
+			if columnFilter != nil {
+				found = contains(columnFilter.([]interface{}), column)
+			} else {
+				found = true
+			}
 		}
 	}
+
 	if found {
-		return f.isAccept()
+		return !f.isAccept()
 	}
-	return !f.isAccept()
+	return f.isAccept()
 }
 
 // contains check if e is contain in s

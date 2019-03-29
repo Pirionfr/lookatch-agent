@@ -545,18 +545,3 @@ func (m *MysqlCDC) readOffset(offset string) {
 	}
 }
 
-// getSlotStatus get slot status
-func (p *PostgreSQLCDC) getSlotStatus() bool {
-	// Fetch the restart LSN of the slot, to establish a starting point
-	query := fmt.Sprintf("select active from pg_replication_slots where slot_name='%s'", p.config.SlotName)
-	result := p.query.QueryMeta(query)
-	if result == nil {
-		log.Error("Error while getting Slot Status")
-		return false
-	}
-
-	if !result[0]["active"].(bool) {
-		return false
-	}
-	return true
-}
