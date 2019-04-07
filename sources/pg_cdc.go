@@ -367,7 +367,7 @@ func (p *PostgreSQLCDC) decodeEvents() {
 		} else if repMsg.ServerHeartbeat != nil {
 			// If 1, the server is requesting a standby status message
 			// to be sent immediately.
-			if repMsg.ServerHeartbeat.ServerTime == 1 {
+			if repMsg.ServerHeartbeat.ReplyRequested == 1 {
 				standbyStatus, _ := pgx.NewStandbyStatus(p.meta.Lsn)
 				err := p.repConn.SendStandbyStatus(standbyStatus)
 				if err != nil {
