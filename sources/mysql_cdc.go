@@ -1,53 +1,78 @@
 package sources
 
 import (
-	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
-	"time"
 
-	"github.com/Pirionfr/lookatch-agent/control"
-	"github.com/Pirionfr/lookatch-agent/events"
-	"github.com/Pirionfr/lookatch-agent/util"
-	utils "github.com/Pirionfr/lookatch-agent/util"
+	"github.com/Pirionfr/structs"
+	mysqlLog "github.com/siddontang/go-log/log"
+	"github.com/siddontang/go-mysql/canal"
 	"github.com/siddontang/go-mysql/mysql"
 	"github.com/siddontang/go-mysql/replication"
+	"github.com/siddontang/go-mysql/schema"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/Pirionfr/lookatch-agent/events"
+	"github.com/Pirionfr/lookatch-agent/utils"
 )
 
 // MysqlCDCType type of source
 const MysqlCDCType = "MysqlCDC"
 
+const (
+	UpdateAction = "update"
+	InsertAction = "insert"
+	DeleteAction = "delete"
+
+	ModeGTID   = "GTID"
+	ModeBinlog = "binlog"
+
+	MariadDB = "mariadb"
+	Mysql    = "mysql"
+)
+
 type (
 	// MysqlCDC representation of Mysql change data capture
 	MysqlCDC struct {
 		*Source
-		config      MysqlCDCConfig
-		query       *MySQLQuery
-		filter      *utils.Filter
-		syncer      *replication.BinlogSyncer
-		logPosition atomic.Value
-		logFilename atomic.Value
-		status      string
+		config    MysqlCDCConfig
+		meta      MysqlCDCMeta
+		query     *MySQLQuery
+		filter    *utils.Filter
+		cdcOffset *MysqlOffset
 	}
 
 	// MysqlCDCConfig representation of Mysql change data capture configuration
 	MysqlCDCConfig struct {
-		Host         string                 `json:"host"`
-		Port         int                    `json:"port"`
-		User         string                 `json:"user"`
-		Password     string                 `json:"password"`
-		SlaveID      int                    `json:"slave_id" mapstructure:"slave_id"`
-		Offset       string                 `json:"offset"`
-		LogFile      string                 `json:"logfile"`
-		OldValue     bool                   `json:"old_value" mapstructure:"old_value"`
-		FilterPolicy string                 `json:"filter_policy" mapstructure:"filter_policy"`
-		Filter       map[string]interface{} `json:"filter"`
-		Enabled      bool                   `json:"enabled"`
+		Enabled          bool                   `json:"enabled"`
+		OldValue         bool                   `json:"old_value" mapstructure:"old_value"`
+		ColumnsMetaValue bool                   `json:"columns_meta" mapstructure:"columns_meta"`
+		SlaveID          uint32                 `json:"slave_id" mapstructure:"slave_id"`
+		Host             string                 `json:"host"`
+		Port             int                    `json:"port"`
+		User             string                 `json:"user"`
+		Password         string                 `json:"password"`
+		Offset           string                 `json:"offset"`
+		Flavor           string                 `json:"flavor"`
+		Mode             string                 `json:"mode"`
+		FilterPolicy     string                 `json:"filter_policy" mapstructure:"filter_policy"`
+		Filter           map[string]interface{} `json:"filter"`
+	}
+
+	//MysqlCDCMeta representation of metadata
+	MysqlCDCMeta struct {
+		ErrorEventNumber int    `json:"error_event_number"`
+		CommittedOffset  string `json:"committed_offset"`
+	}
+
+	//MysqlOffset representation of binlog and GTID Offset
+	MysqlOffset struct {
+		sync.RWMutex
+		pos  mysql.Position
+		gset mysql.GTIDSet
 	}
 )
 
@@ -59,11 +84,11 @@ func newMysqlCdc(s *Source) (SourceI, error) {
 		return nil, err
 	}
 	query := &MySQLQuery{
-		JDBCQuery: &JDBCQuery{
+		DBSQLQuery: &DBSQLQuery{
 			Source: s,
 		},
 		config: MysqlQueryConfig{
-			JDBCQueryConfig: &JDBCQueryConfig{
+			DBSQLQueryConfig: &DBSQLQueryConfig{
 				Host:     mysqlCDCConfig.Host,
 				Port:     mysqlCDCConfig.Port,
 				User:     mysqlCDCConfig.User,
@@ -73,42 +98,39 @@ func newMysqlCdc(s *Source) (SourceI, error) {
 			Schema: "information_schema",
 		},
 	}
+
 	m := &MysqlCDC{
 		Source: s,
 		query:  query,
 		config: mysqlCDCConfig,
-		status: control.SourceStatusWaitingForMETA,
 		filter: &utils.Filter{
 			FilterPolicy: mysqlCDCConfig.FilterPolicy,
 			Filter:       mysqlCDCConfig.Filter,
 		},
+		meta:      MysqlCDCMeta{},
+		cdcOffset: &MysqlOffset{},
+	}
+	//default value
+	if m.config.Flavor == "" {
+		m.config.Flavor = Mysql
+	}
+	if m.config.Mode == "" {
+		m.config.Mode = ModeBinlog
 	}
 
-	m.logFilename.Store("")
-	m.logPosition.Store(uint32(0))
-
-	m.readOffset(mysqlCDCConfig.Offset)
+	mysqlLog.SetLevel(mysqlLog.LevelError)
 
 	return m, nil
 }
 
 // Init source
 func (m *MysqlCDC) Init() {
-
-	//start bi Query Schema
-	err := m.query.QuerySchema()
-	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Error("Error while querying Schema")
-		return
-	}
-
+	m.query.Init()
 }
 
-// Stop source
-func (m *MysqlCDC) Stop() error {
-	return nil
+// GetSchema get schema
+func (m *MysqlCDC) GetSchema() map[string]map[string]*Column {
+	return m.query.GetSchema()
 }
 
 // Start source
@@ -118,430 +140,476 @@ func (m *MysqlCDC) Start(i ...interface{}) (err error) {
 		"type": MysqlCDCType,
 	}).Debug("Start")
 
-	cfg := replication.BinlogSyncerConfig{
-		ServerID: uint32(m.config.SlaveID),
-		Flavor:   "mysql",
-		Host:     m.config.Host,
-		Port:     uint16(m.config.Port),
-		User:     m.config.User,
-		Password: m.config.Password,
+	err = m.Source.Start(i)
+	if err != nil {
+		return err
 	}
-	m.syncer = replication.NewBinlogSyncer(cfg)
 
-	if !util.IsStandalone(m.Conf) {
-		var wg sync.WaitGroup
-		wg.Add(1)
-		//wait for changeStatus
-		go func() {
-			for m.status == control.SourceStatusWaitingForMETA {
-				time.Sleep(time.Second)
-			}
-			wg.Done()
-		}()
-		wg.Wait()
-	} else {
-		m.status = control.SourceStatusRunning
+	go m.UpdateCommittedLsn()
+
+	if m.meta.CommittedOffset == "" {
+		m.meta.CommittedOffset = m.config.Offset
 	}
-	m.readValidOffset()
 
-	streamer, err := m.syncer.StartSync(
-		mysql.Position{
-			Name: m.logFilename.Load().(string),
-			Pos:  m.logPosition.Load().(uint32),
-		},
-	)
+	if m.meta.CommittedOffset != "" {
+		errParse := m.GetValidOffset(m.config.Mode, m.config.Flavor, m.meta.CommittedOffset)
+		if errParse != nil {
+			//restart from beginning
+			m.config.Offset = ""
+		}
+	}
 
-	m.decodeBinlog(streamer)
-	return
-}
+	go func() {
+		err := m.StartCanal()
+		if err != nil {
+			log.WithError(err).Error("replication failed")
+		}
 
-// GetName get source source
-func (m *MysqlCDC) GetName() string {
-	return m.Name
-}
+	}()
 
-// GetOutputChan get output channel
-func (m *MysqlCDC) GetOutputChan() chan *events.LookatchEvent {
-	return m.OutputChannel
+	return err
 }
 
 // GetMeta get metadata
-func (m *MysqlCDC) GetMeta() map[string]interface{} {
-	meta := make(map[string]interface{})
-	if m.status != control.SourceStatusWaitingForMETA {
-		meta["offset"] = m.getOffset()
-		meta["offset_agent"] = m.Offset
+func (m *MysqlCDC) GetMeta() map[string]utils.Meta {
+	meta := m.Source.GetMeta()
+
+	for k, v := range structs.Map(m.meta) {
+		meta[k] = utils.NewMeta(k, v)
 	}
 
 	return meta
 }
 
-// IsEnable check if source is enable
-func (m *MysqlCDC) IsEnable() bool {
-	return m.config.Enabled
-}
-
-// GetSchema get schema
-func (m *MysqlCDC) GetSchema() interface{} {
-	return m.query.schemas
-}
-
-// GetStatus get status
-func (m *MysqlCDC) GetStatus() interface{} {
-	return m.status
-}
-
-// HealthCheck returns true if ok
-func (m *MysqlCDC) HealthCheck() bool {
-	return m.status == control.SourceStatusRunning
-}
-
-// GetAvailableActions returns available actions
-func (m *MysqlCDC) GetAvailableActions() map[string]*control.ActionDescription {
-	availableAction := make(map[string]*control.ActionDescription)
-	return availableAction
-}
-
 // Process action
 func (m *MysqlCDC) Process(action string, params ...interface{}) interface{} {
-
 	switch action {
-	case control.SourceMeta:
-		meta := &control.Meta{}
-		payload := params[0].([]byte)
-		err := json.Unmarshal(payload, meta)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"error": err,
-			}).Fatal("Unable to unmarshal MySQL Query Statement event")
-		} else {
-			if val, ok := meta.Data["offset"].(string); ok {
-				m.readOffset(val)
-			}
-
-			if val, ok := meta.Data["offset_agent"].(string); ok {
-				m.Offset, _ = strconv.ParseInt(val, 10, 64)
-			}
-
-			m.status = control.SourceStatusRunning
+	case utils.SourceMeta:
+		meta := params[0].(map[string]utils.Meta)
+		//TODO define offset
+		if val, ok := meta["CommittedOffset"]; ok {
+			m.meta.CommittedOffset, _ = val.Value.(string)
 		}
 
+		if val, ok := meta["OffsetAgent"]; ok {
+			m.Offset, _ = strconv.ParseInt(val.Value.(string), 10, 64)
+		}
+
+		m.Status = SourceStatusRunning
+
 	default:
-		log.WithFields(log.Fields{
-			"action": action,
-		}).Error("action not implemented")
+		return errors.New("task not implemented")
 	}
 	return nil
 }
 
-// decodeBinlog decode Binlog event
-func (m *MysqlCDC) decodeBinlog(streamer *replication.BinlogStreamer) {
-	defer func() {
-		err := recover()
-		if err != nil {
-			m.status = control.SourceStatusOnError
-			log.WithFields(log.Fields{
-				"error": err,
-			}).Fatal("MySQLBinlog.Start() has crashed")
-		}
+// StartCanal decode  event
+func (m *MysqlCDC) StartCanal() error {
 
-	}()
-	ctx := context.Background()
-	var schema, table string
-	var ts int64
-	for {
+	cfg := canal.NewDefaultConfig()
+	cfg.Addr = fmt.Sprintf("%s:%d", m.config.Host, m.config.Port)
+	cfg.User = m.config.User
+	cfg.Password = m.config.Password
+	cfg.Flavor = m.config.Flavor
+	if m.config.SlaveID != 0 {
+		cfg.ServerID = m.config.SlaveID
+	}
+	cfg.Dump.ExecutionPath = ""
 
-		event, err := streamer.GetEvent(ctx)
-		if err != nil {
-			m.status = control.SourceStatusOnError
-			log.WithFields(log.Fields{
-				"error": err,
-			}).Error("Error Getting Event")
-			continue
-		}
-		m.status = control.SourceStatusRunning
-		if event.Header.LogPos != 0 {
-			m.logPosition.Store(event.Header.LogPos)
-		}
+	c, _ := canal.NewCanal(cfg)
 
-		switch e := event.Event.(type) {
-		case *replication.RowsEvent:
-			//log.Debug(e)
-			schema = string(e.Table.Schema)
-			table = string(e.Table.Table)
-			//ts = event.Header.Timestamp
-			ts = time.Now().UnixNano()
-			if m.filter.IsFilteredTable(schema, table) {
-				log.WithFields(log.Fields{
-					"schema": schema,
-					"table":  table,
-				}).Debug("event filtered")
-				continue
+	// Register a handler to handle RowsEvent
+	c.SetEventHandler(m)
+
+	// setup Pos
+	switch {
+	case m.meta.CommittedOffset == "":
+		return c.Run()
+	case m.config.Mode == ModeGTID:
+		log.WithFields(
+			log.Fields{
+				"mode":   ModeGTID,
+				"offset": m.cdcOffset.GTIDSet(),
+			}).Info("Start replication")
+		return c.StartFromGTID(m.cdcOffset.GTIDSet())
+	case m.config.Mode == ModeBinlog:
+		log.WithFields(
+			log.Fields{
+				"mode":   ModeBinlog,
+				"offset": m.cdcOffset.Position().String(),
+			}).Info("Start replication")
+		return c.RunFrom(m.cdcOffset.Position())
+	default:
+		return c.Run()
+	}
+
+}
+
+// OnPosSynced Use your own way to sync position. When force is true, sync position immediately.
+func (m *MysqlCDC) OnPosSynced(pos mysql.Position, gset mysql.GTIDSet, force bool) error {
+	return nil
+}
+
+// OnXID store binlog Position
+func (m *MysqlCDC) OnXID(pos mysql.Position) error {
+	m.cdcOffset.Update(pos)
+	return nil
+}
+
+// OnGTID store GTID Position
+func (m *MysqlCDC) OnGTID(gset mysql.GTIDSet) error {
+	m.cdcOffset.UpdateGTIDSet(gset)
+	return nil
+}
+
+// OnRotate store binlog Position
+func (m *MysqlCDC) OnRotate(e *replication.RotateEvent) error {
+	pos := mysql.Position{
+		Name: string(e.NextLogName),
+		Pos:  uint32(e.Position),
+	}
+	m.cdcOffset.Update(pos)
+	return nil
+}
+
+// OnTableChanged
+func (m *MysqlCDC) OnTableChanged(schema string, table string) error {
+	return nil
+}
+
+// OnDDL
+func (m *MysqlCDC) OnDDL(nextPos mysql.Position, queryEvent *replication.QueryEvent) error {
+	return nil
+}
+
+// OnRow send row to multiplexer
+func (m *MysqlCDC) OnRow(e *canal.RowsEvent) error {
+
+	if m.filter.IsFilteredTable(e.Table.Schema, e.Table.Name) {
+		return nil
+	}
+
+	switch e.Action {
+	case canal.InsertAction:
+		return m.parseEvent(e)
+	case canal.DeleteAction:
+		return m.parseEvent(e)
+	case canal.UpdateAction:
+		return m.parseUpdate(e)
+	default:
+		return nil
+	}
+}
+
+// String
+func (m *MysqlCDC) String() string {
+	return "LookatchEventHandler"
+}
+
+// parseEvent parse insert and delete rows
+func (m *MysqlCDC) parseEvent(e *canal.RowsEvent) error {
+	for _, row := range e.Rows {
+
+		event := make(map[string]interface{})
+		columnMeta := make(map[string]events.ColumnsMeta)
+
+		for index, column := range e.Table.Columns {
+			if len(e.Table.Columns[index].EnumValues) > 0 {
+				event[column.Name] = e.Table.Columns[index].EnumValues[int(row[index].(int64))-1]
+			} else {
+				event[column.Name] = row[index]
 			}
+			if m.config.ColumnsMetaValue {
+				columnMeta[column.Name] = events.ColumnsMeta{
+					Type:     e.Table.Columns[index].RawType,
+					Position: index,
+				}
+			}
+		}
 
-			switch event.Header.EventType {
-			case replication.WRITE_ROWS_EVENTv0, replication.WRITE_ROWS_EVENTv1, replication.WRITE_ROWS_EVENTv2:
-				m.getRows(ts, e.Rows[0], schema, table, "insert")
-			case replication.DELETE_ROWS_EVENTv0, replication.DELETE_ROWS_EVENTv1, replication.DELETE_ROWS_EVENTv2:
-				m.getRows(ts, e.Rows[0], schema, table, "delete")
-			case replication.UPDATE_ROWS_EVENTv0, replication.UPDATE_ROWS_EVENTv1, replication.UPDATE_ROWS_EVENTv2:
-				if m.config.OldValue {
-					m.getRowsWithOldValue(ts, e.Rows, schema, table, "update")
+		m.sendEvent(e.Header.Timestamp, e.Action, e.Table, event, nil, columnMeta)
+
+	}
+	return nil
+}
+
+// parseUpdate parse update rows
+func (m *MysqlCDC) parseUpdate(e *canal.RowsEvent) error {
+	for i := 0; i < len(e.Rows); i += 2 {
+		oldRow := e.Rows[i]
+		row := e.Rows[i+1]
+		event := make(map[string]interface{})
+		oldEvent := make(map[string]interface{})
+		columnMeta := make(map[string]events.ColumnsMeta)
+
+		for index, column := range e.Table.Columns {
+			if len(e.Table.Columns[index].EnumValues) > 0 {
+				event[column.Name] = e.Table.Columns[index].EnumValues[int(row[index].(int64))-1]
+			} else {
+				event[e.Table.Columns[index].Name] = row[index]
+			}
+			if m.config.ColumnsMetaValue {
+				columnMeta[e.Table.Columns[index].Name] = events.ColumnsMeta{
+					Type:     e.Table.Columns[index].RawType,
+					Position: index,
+				}
+			}
+			if m.config.OldValue {
+				if len(e.Table.Columns[index].EnumValues) > 0 {
+					oldEvent[e.Table.Columns[index].Name] = e.Table.Columns[index].EnumValues[int(oldRow[index].(int64))-1]
 				} else {
-					m.getRows(ts, e.Rows[1], schema, table, "update")
+					oldEvent[e.Table.Columns[index].Name] = oldRow[index]
 				}
-
-			default:
-				continue
 			}
-
-		case *replication.RotateEvent:
-			m.logPosition.Store(uint32(e.Position))
-			m.logFilename.Store(string(e.NextLogName))
 
 		}
 
+		m.sendEvent(e.Header.Timestamp, e.Action, e.Table, event, oldEvent, columnMeta)
 	}
+	return nil
 }
 
-// getRows decode rows
-func (m *MysqlCDC) getRows(timestamp int64, row []interface{}, schema, table, method string) {
-
-	//log.Debug("getRows(): event: ",method,schema,table)
-	//Columns loop
-	colmap := make(map[string]interface{})
-
-	var key string
-
-	for i, col := range row {
-
-		columnIDStr := strconv.Itoa(i)
-		columnValue := col
-
-		columnName := ""
-		if columnSchema, ok := m.query.schemas[schema][table][columnIDStr]; ok {
-			columnName = columnSchema.ColumnName
-
-			if !m.filter.IsFilteredColumn(schema, table, columnName) {
-				//Output row number, column number, column type and column value
-
-				colmap[columnName] = columnValue
-				if ok := m.query.isPrimary(schema, table, columnIDStr); ok && key == "" {
-					key = columnName
-				}
-			}
-		}
+// sendEvent send event to channel
+func (m *MysqlCDC) sendEvent(ts uint32, action string, table *schema.Table, event map[string]interface{}, oldEvent map[string]interface{}, columnMeta map[string]events.ColumnsMeta) {
+	primaryKey := make([]string, 0)
+	for i := range table.PKColumns {
+		primaryKey = append(primaryKey, table.Columns[i].Name)
 	}
-	// Serialize
-	j, err := json.Marshal(colmap)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Fatal("json.Marshal() error")
-	} else {
-		m.Offset++
-		m.OutputChannel <- &events.LookatchEvent{
-			Header: &events.LookatchHeader{
-				EventType: MysqlCDCType,
-				Tenant:    m.AgentInfo.tenant,
+
+	m.Offset++
+	m.OutputChannel <- events.LookatchEvent{
+		Header: events.LookatchHeader{
+			EventType: MysqlCDCType,
+			Tenant:    m.AgentInfo.tenant,
+		},
+		Payload: events.SQLEvent{
+			Timestamp:    fmt.Sprint(ts),
+			Environment:  m.AgentInfo.tenant.Env,
+			Database:     table.Schema,
+			Table:        table.Name,
+			Method:       action,
+			ColumnsMeta:  columnMeta,
+			OldStatement: oldEvent,
+			Statement:    event,
+			PrimaryKey:   strings.Join(primaryKey, ","),
+			Offset: &events.Offset{
+				Source: m.cdcOffset.OffsetString(m.config.Mode),
+				Agent:  strconv.FormatInt(m.Offset, 10),
 			},
-			Payload: &events.SQLEvent{
-				Timestamp:   strconv.FormatInt(timestamp, 10),
-				Environment: m.AgentInfo.tenant.Env,
-				Schema:      schema,
-				Table:       table,
-				Method:      method,
-				Statement:   string(j),
-				PrimaryKey:  key,
-				Offset: &events.Offset{
-					Database: m.getOffset(),
-					Agent:    strconv.FormatInt(m.Offset, 10),
-				},
-			},
-		}
+		},
 	}
 
 }
 
-// getRowsWithOldValue decode old row value
-func (m *MysqlCDC) getRowsWithOldValue(timestamp int64, rows [][]interface{}, schema, table, method string) {
-
-	//log.Debug("getRows(): event: ",method,schema,table)
-	//Columns loop
-	colmap := make(map[string]interface{})
-	colmapOld := make(map[string]interface{})
-	var key string
-
-	for i, col := range rows[1] {
-		columnIDStr := strconv.Itoa(i)
-		columnValue := col
-		columnValueOld := rows[0][i]
-		columnName := m.query.schemas[schema][table][strconv.Itoa(i)].ColumnName
-
-		if !m.filter.IsFilteredColumn(schema, table, columnName) {
-			//Output row number, column number, column type and column value
-			//println(fmt.Sprintf("%d %d %d %v", i, j, col.GetType(), col.GetValue()))
-			//log.Printf("%v=%v", columnName, columnValue)
-			colmap[columnName] = columnValue
-			colmapOld[columnName] = columnValueOld
-			if ok := m.query.isPrimary(schema, table, columnIDStr); ok && key == "" {
-				key = columnName
+// GetValidOffset return a valid offset
+func (m *MysqlCDC) GetValidOffset(mode string, flavor string, offset string) error {
+	if mode == ModeGTID {
+		if flavor == Mysql {
+			uuidSet, err := m.GetValidMysqlGTIDFromOffset(offset)
+			if err != nil {
+				return err
 			}
-
+			m.cdcOffset.UpdateGTIDSet(uuidSet)
+		} else {
+			uuidSet, err := m.GetValidMariaDBGTIDFromOffset(offset)
+			if err != nil {
+				return err
+			}
+			m.cdcOffset.UpdateGTIDSet(uuidSet)
 		}
-	}
-	// Serialize
-	j, err := json.Marshal(colmap)
-	if err != nil {
-		errMsg := "json.Marshal() error"
-		log.Panic(errMsg, err)
-	}
-	k, err := json.Marshal(colmapOld)
-	if err != nil {
-		errMsg := "json.Marshal() error"
-		log.Panic(errMsg, err)
 	} else {
-		m.Offset++
-		m.OutputChannel <- &events.LookatchEvent{
-			Header: &events.LookatchHeader{
-				EventType: MysqlCDCType,
-				Tenant:    m.AgentInfo.tenant,
-			},
-			Payload: &events.SQLEvent{
-				Timestamp:    strconv.Itoa(int(timestamp)),
-				Environment:  m.AgentInfo.tenant.Env,
-				Database:     schema,
-				Table:        table,
-				Method:       method,
-				Statement:    string(j),
-				StatementOld: string(k),
-				PrimaryKey:   key,
-				Offset: &events.Offset{
-					Database: m.getOffset(),
-					Agent:    strconv.FormatInt(m.Offset, 10),
-				},
-			},
+		pos := m.GetValidBinlogFromOffset(offset)
+		m.cdcOffset.Update(pos)
+	}
+	return nil
+}
+
+// ParsePosition parse binlog offset from string
+func (m *MysqlCDC) ParsePosition(offset string) (mysql.Position, error) {
+	pos := mysql.Position{}
+
+	tabFile := strings.Split(offset, ":")
+
+	if len(tabFile) >= 2 && tabFile[0] != "" && tabFile[1] != "" {
+		parsePos, err := strconv.Atoi(tabFile[1])
+		if err != nil {
+			return pos, errors.New("conversion error")
 		}
+		pos.Pos = uint32(parsePos)
+		pos.Name = tabFile[0]
+	} else {
+		return pos, errors.New("conversion error")
+	}
+	return pos, nil
+}
+
+// GetValidBinlogFromOffset return a valid binlog offset
+// if offset is invalid return first binlog offset
+// if offset is greater than master position offset return master position
+// else return parse offset
+func (m *MysqlCDC) GetValidBinlogFromOffset(offset string) mysql.Position {
+
+	firstPosition, _ := m.GetFirstBinlog()
+	LastPosition, _ := m.GetLastBinlog()
+
+	storePosition, err := m.ParsePosition(offset)
+	if err != nil {
+		return firstPosition
 	}
 
+	switch {
+	case storePosition.Compare(firstPosition) >= 0 && storePosition.Compare(LastPosition) <= 0:
+		return storePosition
+	case storePosition.Compare(LastPosition) >= 0:
+		return LastPosition
+	default:
+		return firstPosition
+	}
+
+}
+
+// GetValidBinlogFromOffset return a valid Mariadb GTID offset
+// if offset is invalid return first GTID offset
+// if offset is greater than master position offset return master position
+// else return parse GTID offset
+func (m *MysqlCDC) GetValidMariaDBGTIDFromOffset(offset string) (mysql.GTIDSet, error) {
+
+	pos, _ := m.GetFirstBinlog()
+	firstGTIDSet, _ := m.GetGTIDFromMariaDBPosition(pos)
+
+	uuidSet, err := mysql.ParseMariadbGTIDSet(offset)
+	if err != nil {
+		return firstGTIDSet, nil
+	}
+
+	pos, _ = m.GetLastBinlog()
+	LastGTIDSet, _ := m.GetGTIDFromMariaDBPosition(pos)
+
+	switch {
+	case uuidSet.Contain(firstGTIDSet) && LastGTIDSet.Contain(uuidSet):
+		return uuidSet, nil
+	case uuidSet.Contain(LastGTIDSet):
+		return LastGTIDSet, nil
+	default:
+		return firstGTIDSet, nil
+	}
+
+}
+
+// GetGTIDFromMariaDBPosition return mariadb GTID from binlog position
+func (m *MysqlCDC) GetGTIDFromMariaDBPosition(pos mysql.Position) (mysql.GTIDSet, error) {
+	result, err := m.query.QueryMeta(fmt.Sprintf(`SELECT BINLOG_GTID_POS("%s", %d) as GTID`, pos.Name, pos.Pos))
+	if err != nil {
+		return nil, err
+	}
+
+	if result[0]["GTID"] != nil {
+		return mysql.ParseMariadbGTIDSet(result[0]["GTID"].(string))
+
+	}
+	return nil, errors.New("can't parse result")
+}
+
+// GetValidMysqlGTIDFromOffset return a valid Mariadb GTID offset
+// parse string offset and add purge GTIDset if exist
+func (m *MysqlCDC) GetValidMysqlGTIDFromOffset(offset string) (mysql.GTIDSet, error) {
+	var uuid string
+	var pos uint32
+	_, err := fmt.Sscanf(offset, "%36s:%d", &uuid, &pos)
+	if err != nil {
+		return nil, errors.New("malformed offset")
+	}
+	offset = fmt.Sprintf("%s:%d-%d", uuid, 1, pos)
+	uuidSet, _ := mysql.ParseMysqlGTIDSet(offset)
+	purge, err := m.query.QueryMeta("SELECT @@gtid_purged")
+	if err != nil {
+		return nil, err
+	}
+	if len(purge) > 0 {
+		gtidPurge, _ := mysql.ParseMysqlGTIDSet(purge[0]["@@gtid_purged"].(string))
+		uuidSet, _ = mysql.ParseMysqlGTIDSet(fmt.Sprintf("%s,%s", gtidPurge.String(), offset))
+	}
+	return uuidSet, nil
 }
 
 // GetFirstBinlog Get First Binlog offset
-func (m *MysqlCDC) GetFirstBinlog() (string, uint32) {
-	m.query.Connect("information_schema")
-	defer m.query.db.Close()
-	err := m.query.db.Ping()
+func (m *MysqlCDC) GetFirstBinlog() (mysql.Position, error) {
+	pos := mysql.Position{}
+	result, err := m.query.QueryMeta("SHOW BINLOG EVENTS limit 1")
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Error("Connection is dead")
-	}
-	q := "SHOW BINLOG EVENTS limit 1"
-
-	result := m.query.QueryMeta(q)
-	if result == nil {
-		log.Error("Querying first binlog failed")
-		return "", 0
+		return pos, err
 	}
 
 	if result[0]["Log_name"] != nil && result[0]["Pos"] != nil {
-		pos, _ := strconv.ParseInt(fmt.Sprintf("%v", result[0]["Pos"]), 10, 32)
-		return result[0]["Log_name"].(string), uint32(pos)
+		readPos, _ := strconv.ParseInt(fmt.Sprintf("%v", result[0]["Pos"]), 10, 32)
+		pos.Name = result[0]["Log_name"].(string)
+		pos.Pos = uint32(readPos)
+		return pos, nil
 	}
-	return "", 0
+	return pos, errors.New("can't parse result")
 }
 
-// GetlastBinlog Get last Binlog offset
-func (m *MysqlCDC) GetlastBinlog() (string, uint32) {
-	m.query.Connect("information_schema")
-	defer m.query.db.Close()
-	err := m.query.db.Ping()
+// GetLastBinlog Get last Binlog offset
+func (m *MysqlCDC) GetLastBinlog() (mysql.Position, error) {
+	pos := mysql.Position{}
+	result, err := m.query.QueryMeta("SHOW MASTER STATUS")
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Error("Connection is dead")
-	}
-	q := "SHOW MASTER STATUS"
-
-	result := m.query.QueryMeta(q)
-	if result == nil {
-		log.Error("Querying first binlog failed")
-		return "", 0
+		return pos, err
 	}
 
 	if result[0]["File"] != nil && result[0]["Position"] != nil {
-		pos, _ := strconv.ParseInt(fmt.Sprintf("%v", result[0]["Position"]), 10, 32)
-		return result[0]["File"].(string), uint32(pos)
+		readPos, _ := strconv.ParseInt(fmt.Sprintf("%v", result[0]["Position"]), 10, 32)
+		pos.Name = result[0]["File"].(string)
+		pos.Pos = uint32(readPos)
+		return pos, nil
 	}
-	return "", 0
+	return pos, errors.New("can't parse result")
 }
 
-// readValidOffset read Valid Offset
-func (m *MysqlCDC) readValidOffset() {
-
-	firstFile, firstOffset := m.GetFirstBinlog()
-	lastFile, lastOffset := m.GetlastBinlog()
-
-	// ex mysql-db.0005 , 305
-	// split mysql file to get increment value
-	tabFirstFile := strings.Split(firstFile, ".")
-	tabLastFile := strings.Split(lastFile, ".")
-	logfile := m.logFilename.Load().(string)
-	tabLogfile := strings.Split(logfile, ".")
-	pos := m.logPosition.Load().(uint32)
-	//check is base filename match
-	if tabLogfile[0] == tabFirstFile[0] {
-		fileNumCurrent, _ := strconv.Atoi(tabLogfile[1])
-		fileNumFirst, _ := strconv.Atoi(tabFirstFile[1])
-		fileNumLast, _ := strconv.Atoi(tabLastFile[1])
-		//check is filename number between first and last file increment
-		if fileNumCurrent >= fileNumFirst && fileNumCurrent <= fileNumLast {
-			// check if position is valid
-			if fileNumCurrent == fileNumLast {
-				if pos <= lastOffset {
-					return
-				}
-			} else {
-				return
-			}
-		}
+// OffsetString convert offset to string
+func (m *MysqlOffset) OffsetString(mode string) string {
+	if mode == ModeGTID {
+		return m.GTIDSet().String()
 	}
-
-	m.logFilename.Store(firstFile)
-	pos2 := fmt.Sprint(firstOffset)
-
-	log.WithFields(log.Fields{
-		"file":        logfile,
-		"position":    pos,
-		"firstOffset": firstFile + ":" + pos2,
-	}).Debug("Invalid offset restore to first offset")
-	m.logPosition.Store(firstOffset)
-
+	return fmt.Sprintf("%s:%d:", m.pos.Name, m.pos.Pos)
 }
 
-// getOffset read offset
-func (m *MysqlCDC) getOffset() string {
-	position := m.logPosition.Load().(uint32)
-	logFilename := m.logFilename.Load().(string)
-	m.config.Offset = logFilename + ":" + strconv.Itoa(int(position)) + ":"
-	return m.config.Offset
+// Update set pos
+func (m *MysqlOffset) Update(pos mysql.Position) {
+	m.Lock()
+	m.pos = pos
+	m.Unlock()
 }
 
-// readOffset decode offset
-func (m *MysqlCDC) readOffset(offset string) {
-	tabFile := strings.Split(offset, ":")
+// UpdateGTIDSet set GTID pos
+func (m *MysqlOffset) UpdateGTIDSet(gset mysql.GTIDSet) {
+	m.Lock()
+	m.gset = gset
+	m.Unlock()
+}
 
-	if tabFile[0] != "" && tabFile[1] != "" {
-		pos, err := strconv.Atoi(tabFile[1])
-		if err == nil {
-			m.logPosition.Store(uint32(pos))
+// Position get Position
+func (m *MysqlOffset) Position() mysql.Position {
+	m.RLock()
+	defer m.RUnlock()
 
-		} else {
-			log.WithFields(log.Fields{
-				"error": err,
-			}).Error("Conversion error")
-		}
-		m.logFilename.Store(tabFile[0])
+	return m.pos
+}
+
+// GTIDSet get GTID
+func (m *MysqlOffset) GTIDSet() mysql.GTIDSet {
+	m.RLock()
+	defer m.RUnlock()
+
+	if m.gset == nil {
+		return nil
+	}
+	return m.gset.Clone()
+}
+
+// UpdateCommittedLsn  update CommittedLsn
+func (m *MysqlCDC) UpdateCommittedLsn() {
+	for committedOffset := range m.CommitChannel {
+		m.meta.CommittedOffset = committedOffset.(string)
 	}
 }
-

@@ -1,25 +1,23 @@
 package sources
 
 import (
-	"encoding/json"
+	"errors"
 	"io"
+	"path/filepath"
 	"strconv"
 	"time"
 
-	"sync"
-
-	"github.com/Pirionfr/lookatch-agent/control"
-	"github.com/Pirionfr/lookatch-agent/events"
-	"github.com/Pirionfr/lookatch-agent/util"
 	"github.com/papertrail/go-tail/follower"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/Pirionfr/lookatch-agent/events"
+	"github.com/Pirionfr/lookatch-agent/utils"
 )
 
 // FileReadingFollower representation of FileReadingFollower
 type FileReadingFollower struct {
 	*Source
 	config FileReadingFollowerConfig
-	status string
 }
 
 // FileReadingFollowerConfig representation of FileReadingFollower Config
@@ -29,125 +27,82 @@ type FileReadingFollowerConfig struct {
 }
 
 // FileReadingFollowerType type of source
-const FileReadingFollowerType = "fileReadingFollower"
+const FileReadingFollowerType = "FileReadingFollower"
 
 // create new FileReadingFollower source
 func newFileReadingFollower(s *Source) (SourceI, error) {
-
 	fileReadingFollowerConfig := FileReadingFollowerConfig{}
-	s.Conf.UnmarshalKey("sources."+s.Name, &fileReadingFollowerConfig)
-
+	err := s.Conf.UnmarshalKey("sources."+s.Name, &fileReadingFollowerConfig)
+	if err != nil {
+		return nil, err
+	}
 	return &FileReadingFollower{
 		Source: s,
 		config: fileReadingFollowerConfig,
-		status: control.SourceStatusWaitingForMETA,
 	}, nil
 }
 
-// Init source
-func (f *FileReadingFollower) Init() {
-	if util.IsStandalone(f.Conf) {
-		f.status = control.SourceStatusRunning
-		f.config.Offset = 0
-		f.Offset = 0
-	}
-}
-
-// Stop source
-func (f *FileReadingFollower) Stop() error {
-	return nil
-}
-
 // Start source
-func (f *FileReadingFollower) Start(i ...interface{}) error {
+func (f *FileReadingFollower) Start(i ...interface{}) (err error) {
+	err = f.Source.Start(i)
+	if err != nil {
+		return
+	}
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-	//wait for changeStatus
-	go func() {
-		for f.status == control.SourceStatusWaitingForMETA {
-			time.Sleep(time.Second)
-		}
-		wg.Done()
-	}()
-	wg.Wait()
+	go f.UpdateCommittedLsn()
+
 	go f.read()
-	return nil
-}
-
-// GetName get source name
-func (f *FileReadingFollower) GetName() string {
-	return f.Name
-}
-
-// GetOutputChan get output channel
-func (f *FileReadingFollower) GetOutputChan() chan *events.LookatchEvent {
-	return f.OutputChannel
-}
-
-// IsEnable check if source is enable
-func (f *FileReadingFollower) IsEnable() bool {
-	return true
-}
-
-// HealthCheck return true if ok
-func (f *FileReadingFollower) HealthCheck() bool {
-	return f.status == control.SourceStatusRunning
+	return
 }
 
 // GetMeta get source meta
-func (f *FileReadingFollower) GetMeta() map[string]interface{} {
-	meta := make(map[string]interface{})
-	if f.status != control.SourceStatusWaitingForMETA {
-		meta["offset"] = f.config.Offset
-		meta["offset_agent"] = f.Offset
+func (f *FileReadingFollower) GetMeta() map[string]utils.Meta {
+	meta := f.Source.GetMeta()
+	if f.Status != SourceStatusWaitingForMETA {
+		meta["offset"] = utils.NewMeta("offset", f.config.Offset)
 	}
 	return meta
 }
 
 // GetSchema Get source Schema
-func (f *FileReadingFollower) GetSchema() interface{} {
-	return "String"
+func (f *FileReadingFollower) GetSchema() map[string]map[string]*Column {
+	filename := filepath.Base(f.config.Path)
+	return map[string]map[string]*Column{
+		filename: {
+			"line": &Column{
+				Column:       "line",
+				ColumnOrdPos: 0,
+				DataType:     "string",
+				ColumnType:   "string",
+			},
+		},
+	}
 }
 
-// GetStatus Get source status
-func (f *FileReadingFollower) GetStatus() interface{} {
-	return f.status
-}
-
-// GetAvailableActions returns available actions
-func (f *FileReadingFollower) GetAvailableActions() map[string]*control.ActionDescription {
-	availableAction := make(map[string]*control.ActionDescription)
+// GetCapabilities returns available actions
+func (f *FileReadingFollower) GetCapabilities() map[string]*utils.TaskDescription {
+	availableAction := make(map[string]*utils.TaskDescription)
 	return availableAction
 }
 
 // Process action
 func (f *FileReadingFollower) Process(action string, params ...interface{}) interface{} {
 	switch action {
-	case control.SourceMeta:
-		meta := &control.Meta{}
-		payload := params[0].([]byte)
-		err := json.Unmarshal(payload, meta)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"error": err,
-			}).Fatal("Unable to unmarshal meta event")
-		} else {
-			if val, ok := meta.Data["offset"].(float64); ok {
-				f.config.Offset = int64(val)
-			}
+	case utils.SourceMeta:
+		meta := params[0].(map[string]utils.Meta)
 
-			if val, ok := meta.Data["offset_agent"].(float64); ok {
-				f.Offset = int64(val)
-			}
-
-			f.status = control.SourceStatusRunning
+		if val, ok := meta["offset"]; ok {
+			f.config.Offset = int64(val.Value.(float64))
 		}
 
+		if val, ok := meta["offset_agent"]; ok {
+			f.Offset = int64(val.Value.(float64))
+		}
+
+		f.Status = SourceStatusRunning
+
 	default:
-		log.WithFields(log.Fields{
-			"action": action,
-		}).Error("action not implemented")
+		return errors.New("task not implemented")
 	}
 	return nil
 }
@@ -162,25 +117,37 @@ func (f *FileReadingFollower) read() {
 		log.WithError(err).Error("Error while start reader")
 	}
 
-	for line := range t.Lines() {
+	currentOffset := f.config.Offset
 
-		f.OutputChannel <- &events.LookatchEvent{
-			Header: &events.LookatchHeader{
+	for line := range t.Lines() {
+		f.OutputChannel <- events.LookatchEvent{
+			Header: events.LookatchHeader{
 				EventType: FileReadingFollowerType,
 			},
-			Payload: &events.GenericEvent{
-				Tenant:      f.AgentInfo.tenant.ID,
-				AgentID:     f.AgentInfo.uuid,
+			Payload: events.GenericEvent{
 				Timestamp:   strconv.Itoa(int(time.Now().Unix())),
 				Environment: f.AgentInfo.tenant.Env,
 				Value:       line.String(),
+				Offset: &events.Offset{
+					Source: strconv.FormatInt(currentOffset, 10),
+					Agent:  strconv.FormatInt(f.Offset, 10),
+				},
 			},
 		}
-		f.config.Offset++
+		currentOffset++
 		f.Offset++
 	}
 
 	if t.Err() != nil {
 		log.WithError(t.Err()).Error("Error while reading File")
+	}
+}
+
+// UpdateCommittedLsn update CommittedLsn
+func (f *FileReadingFollower) UpdateCommittedLsn() {
+	for committedLsn := range f.CommitChannel {
+		if f.Offset > committedLsn.(int64) {
+			f.Offset = committedLsn.(int64)
+		}
 	}
 }

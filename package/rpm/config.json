@@ -2,9 +2,6 @@
   "agent": {
     "loglevel": "debug"
   },
-  "auth": {
-    "service": "https://datacollector.ovh.com/auth/token"
-  },
   "controller": {
     "address": "controller.datacollector.ovh.com",
     "port": 443,

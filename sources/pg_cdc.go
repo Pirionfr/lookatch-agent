@@ -3,47 +3,48 @@ package sources
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
-	"github.com/Pirionfr/lookatch-agent/control"
-	"github.com/Pirionfr/lookatch-agent/events"
-	"github.com/Pirionfr/lookatch-agent/util"
-	utils "github.com/Pirionfr/lookatch-agent/util"
-	"github.com/jackc/pgx"
+	"github.com/Pirionfr/structs"
+	"github.com/jackc/pgconn"
+	"github.com/jackc/pglogrepl"
+	"github.com/jackc/pgproto3/v2"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/Pirionfr/lookatch-agent/events"
+	"github.com/Pirionfr/lookatch-agent/utils"
 )
 
 type (
 	// PostgreSQLCDC representation of PostgreSQL change data capture
 	PostgreSQLCDC struct {
 		*Source
-		config  PostgreSQLCDCConf
-		query   *PostgreSQLQuery
-		filter  *utils.Filter
-		repConn *pgx.ReplicationConn
-		status  string
-		meta    Meta
+		config PostgreSQLCDCConf
+		query  *PostgreSQLQuery
+		filter *utils.Filter
+		conn   *pgconn.PgConn
+		meta   Meta
+		ctx    context.Context
 	}
 
 	// PostgreSQLCDCConf representation of PostgreSQL change data capture configuration
 	PostgreSQLCDCConf struct {
-		Host         string                 `json:"host"`
-		Port         int                    `json:"port"`
-		User         string                 `json:"user"`
-		Password     string                 `json:"password"`
-		SslMode      string                 `json:"sslmode"`
-		Database     string                 `json:"database"`
-		Offset       string                 `json:"offset"`
-		SlotName     string                 `json:"slot_name" mapstructure:"slot_name"`
-		OldValue     bool                   `json:"old_value" mapstructure:"old_value"`
-		FilterPolicy string                 `json:"filter_policy" mapstructure:"filter_policy"`
-		Filter       map[string]interface{} `json:"filter"`
-		Enabled      bool                   `json:"enabled"`
+		Enabled          bool                   `json:"enabled"`
+		OldValue         bool                   `json:"old_value" mapstructure:"old_value"`
+		ColumnsMetaValue bool                   `json:"columns_meta" mapstructure:"columns_meta"`
+		Host             string                 `json:"host"`
+		Port             int                    `json:"port"`
+		User             string                 `json:"user"`
+		Password         string                 `json:"password"`
+		SslMode          string                 `json:"sslmode"`
+		Database         string                 `json:"database"`
+		SlotName         string                 `json:"slot_name" mapstructure:"slot_name"`
+		FilterPolicy     string                 `json:"filter_policy" mapstructure:"filter_policy"`
+		Filter           map[string]interface{} `json:"filter"`
 	}
 
 	// Messages representation of messages
@@ -71,14 +72,15 @@ type (
 
 	// Meta representation of metadata
 	Meta struct {
-		LastState  string `json:"laststate"`
-		Lsn        uint64 `json:"offset"`
-		SlotStatus bool   `json:"slotstatus"`
+		LastState    string        `json:"laststate"`
+		CurrentLsn   pglogrepl.LSN `json:"current_lsn"`
+		CommittedLsn pglogrepl.LSN `json:"committed_lsn"`
+		SlotStatus   bool          `json:"slotstatus"`
 	}
 )
 
 // PostgreSQLCDCType type of source
-const PostgreSQLCDCType = "postgresqlCDC"
+const PostgreSQLCDCType = "PostgresqlCDC"
 
 // TickerValue number second to wait between to tick
 const TickerValue = 10
@@ -92,11 +94,11 @@ func newPostgreSQLCdc(s *Source) (SourceI, error) {
 	}
 
 	query := &PostgreSQLQuery{
-		JDBCQuery: &JDBCQuery{
+		DBSQLQuery: &DBSQLQuery{
 			Source: s,
 		},
 		config: PostgreSQLQueryConfig{
-			JDBCQueryConfig: &JDBCQueryConfig{
+			DBSQLQueryConfig: &DBSQLQueryConfig{
 				Host:     postgreSQLCDCConf.Host,
 				Port:     postgreSQLCDCConf.Port,
 				User:     postgreSQLCDCConf.User,
@@ -111,11 +113,11 @@ func newPostgreSQLCdc(s *Source) (SourceI, error) {
 		Source: s,
 		query:  query,
 		config: postgreSQLCDCConf,
-		status: control.SourceStatusWaitingForMETA,
 		filter: &utils.Filter{
 			FilterPolicy: postgreSQLCDCConf.FilterPolicy,
 			Filter:       postgreSQLCDCConf.Filter,
 		},
+		ctx: context.Background(),
 	}
 
 	return p, nil
@@ -123,398 +125,332 @@ func newPostgreSQLCdc(s *Source) (SourceI, error) {
 
 // Init source
 func (p *PostgreSQLCDC) Init() {
-
-	//start bi Query Schema
-	err := p.query.QuerySchema()
-	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Error("Error while querying Schema")
-		return
-	}
+	p.query.Init()
 }
 
-// Stop source
-func (p *PostgreSQLCDC) Stop() error {
-	return nil
+// GetSchema get schema
+func (p *PostgreSQLCDC) GetSchema() map[string]map[string]*Column {
+	return p.query.GetSchema()
 }
 
 // Start source
 func (p *PostgreSQLCDC) Start(i ...interface{}) (err error) {
-	log.WithFields(log.Fields{
-		"type": PostgreSQLCDCType,
-	}).Debug("Start")
+	log.WithField("type", PostgreSQLCDCType).Info("Start")
 
-	if !util.IsStandalone(p.Conf) {
-		var wg sync.WaitGroup
-		wg.Add(1)
-		//wait for changeStatus
-		go func() {
-			for p.status == control.SourceStatusWaitingForMETA {
-				time.Sleep(time.Second)
-			}
-			wg.Done()
-		}()
-		wg.Wait()
-	} else {
-		p.status = control.SourceStatusRunning
-	}
-
-	p.repConn, err = p.NewReplicator()
+	err = p.Source.Start(i)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Fatal("NewReplicator error")
+		return
 	}
+
+	p.conn, err = p.NewConn()
+	if err != nil {
+		log.WithError(err).Error("Unable to start replication")
+		return err
+	}
+
+	go p.UpdateCommittedLsn()
+
 	p.StartReplication()
 	// consume events
-	go p.checkStatus()
 	go p.decodeEvents()
 
 	return nil
 }
 
-// GetName get source name
-func (p *PostgreSQLCDC) GetName() string {
-	return p.Name
-}
-
-// GetOutputChan get output channel
-func (p *PostgreSQLCDC) GetOutputChan() chan *events.LookatchEvent {
-	return p.OutputChannel
-}
-
 // GetMeta get metadata
-func (p *PostgreSQLCDC) GetMeta() map[string]interface{} {
-	meta := make(map[string]interface{})
-	if p.status != control.SourceStatusWaitingForMETA {
-		meta["offset"] = p.meta.Lsn
-		meta["offset_agent"] = p.Offset
-		meta["slot_status"] = p.meta.SlotStatus
+func (p *PostgreSQLCDC) GetMeta() map[string]utils.Meta {
+	meta := p.Source.GetMeta()
+
+	for k, v := range structs.Map(p.meta) {
+		meta[k] = utils.NewMeta(k, v)
 	}
-
 	return meta
-}
-
-// IsEnable check if source is enable
-func (p *PostgreSQLCDC) IsEnable() bool {
-	return p.config.Enabled
-}
-
-// GetSchema get schema
-func (p *PostgreSQLCDC) GetSchema() interface{} {
-	return p.query.schemas
-}
-
-// GetStatus get status
-func (p *PostgreSQLCDC) GetStatus() interface{} {
-	return p.status
 }
 
 // HealthCheck returns true if ok
 func (p *PostgreSQLCDC) HealthCheck() bool {
-	return p.status == control.SourceStatusRunning && p.meta.SlotStatus
-}
-
-// GetAvailableActions returns available actions
-func (p *PostgreSQLCDC) GetAvailableActions() map[string]*control.ActionDescription {
-	availableAction := make(map[string]*control.ActionDescription)
-	return availableAction
+	return p.Source.HealthCheck() && p.meta.SlotStatus
 }
 
 // Process action
 func (p *PostgreSQLCDC) Process(action string, params ...interface{}) interface{} {
-
 	switch action {
-	case control.SourceMeta:
-		meta := &control.Meta{}
-		payload := params[0].([]byte)
-		err := json.Unmarshal(payload, meta)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"error": err,
-			}).Fatal("Unable to unmarshal MySQL Query Statement event :")
-		} else {
-			if val, ok := meta.Data["offset"]; ok {
-				p.meta.Lsn = uint64(val.(float64))
-			}
+	case utils.SourceMeta:
+		meta := params[0].(map[string]utils.Meta)
 
-			if val, ok := meta.Data["offset_agent"]; ok {
-				p.Offset = int64(val.(float64))
-			}
-
-			p.status = control.SourceStatusRunning
+		if val, ok := meta["offset_agent"]; ok {
+			p.Offset, _ = strconv.ParseInt(val.Value.(string), 10, 64)
 		}
 
+		p.Status = SourceStatusRunning
+
 	default:
-		log.WithFields(log.Fields{
-			"action": action,
-		}).Error("action not implemented")
+		return errors.New("task not implemented")
 	}
 	return nil
 }
 
-// NewReplicator create new pg logical decoding connection
-func (p *PostgreSQLCDC) NewReplicator() (*pgx.ReplicationConn, error) {
+// NewConn create new pg connection
+func (p *PostgreSQLCDC) NewConn() (*pgconn.PgConn, error) {
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?replication=database&sslmode=%s", p.config.User, p.config.Password, p.config.Host, p.config.Port, p.config.Database, p.config.SslMode)
 
-	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s", p.config.Host, p.config.Port, p.config.User, p.config.Password, p.config.Database, p.config.SslMode)
-	config, err := pgx.ParseDSN(dsn)
+	conn, err := pgconn.Connect(p.ctx, dsn)
 	if err != nil {
 		return nil, err
 	}
 
-	conn, err := pgx.ReplicationConnect(config)
-	if err != nil {
-		return nil, err
-	}
-	if conn.IsAlive() {
-		log.Debug("connection OK")
-	}
 	return conn, nil
-
 }
 
 // StartReplication Start Replication
 func (p *PostgreSQLCDC) StartReplication() {
-	// start replication
-	log.WithFields(log.Fields{
-		"offset": p.meta.Lsn,
-	}).Debug("StartReplication")
 
-	err := p.repConn.StartReplication(p.config.SlotName, p.meta.Lsn, -1)
+	sysident, err := pglogrepl.IdentifySystem(context.Background(), p.conn)
+	if err != nil {
+		log.Fatalln("Identify System failed:", err)
+	}
+	p.meta.CommittedLsn = sysident.XLogPos
+	p.meta.CurrentLsn = sysident.XLogPos
+	// start replication
+	log.WithField("offset", p.meta.CommittedLsn).Debug("Starting replication")
+
+	options := pglogrepl.StartReplicationOptions{
+		PluginArgs: []string{},
+	}
+
+	err = pglogrepl.StartReplication(p.ctx, p.conn, p.config.SlotName, p.meta.CommittedLsn, options)
 	if err != nil {
 		//slot not created waiting for event
 		for strings.Contains(err.Error(), "SQLSTATE 42704") {
-			log.Warn("NewReplicator()", err.Error())
+			log.WithError(err).Warn("NewConn()")
 			log.Warn("Waiting 5 seconds to try again")
 			time.Sleep(5 * time.Second)
-			err = p.repConn.StartReplication(p.config.SlotName, p.meta.Lsn, -1)
+			err = pglogrepl.StartReplication(p.ctx, p.conn, p.config.SlotName, p.meta.CommittedLsn, options)
 		}
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Fatal("Unable to StartReplication")
-		os.Exit(1)
+		log.WithError(err).Fatal("Unable to Start Replication")
 	}
 }
 
 // checkStatus check Status
 func (p *PostgreSQLCDC) checkStatus() {
 	var err error
-	defer log.WithFields(log.Fields{
-		"LastOffset": err,
-	}).Info("Stop writing Lsn on file")
-	for range (time.NewTicker(time.Second * TickerValue)).C {
-
-		// Stream closed
-		if !p.repConn.IsAlive() {
-			//reconnect
-			log.Debug("NewTicker Reconnecting...")
-			p.repConn, err = p.NewReplicator()
-			if err != nil {
-				log.WithFields(log.Fields{
-					"error": err,
-				}).Fatal("NewReplicator()")
-			}
-
-		}
-
-		p.meta.SlotStatus = p.getSlotStatus()
-		if !p.meta.SlotStatus {
-			p.StartReplication()
-		}
-
-		//send standbyStatus
-		log.WithFields(log.Fields{
-			"offset":     p.meta.Lsn,
-			"SlotStatus": p.meta.SlotStatus,
-		}).Info("Send agent Status")
-		standbyStatus, _ := pgx.NewStandbyStatus(p.meta.Lsn)
-		err := p.repConn.SendStandbyStatus(standbyStatus)
+	// Stream closed
+	if p.conn.IsClosed() {
+		//reconnect
+		log.Debug("NewTicker Reconnecting...")
+		p.conn, err = p.NewConn()
 		if err != nil {
-			log.WithFields(log.Fields{
-				"error": err,
-			}).Error("Error waiting for replication message")
+			log.WithError(err).Fatal("NewConn()")
 		}
 	}
+
+	p.meta.SlotStatus = p.GetSlotStatus()
+	if !p.meta.SlotStatus {
+		p.StartReplication()
+	}
+
+	standbyStatusUpdate := pglogrepl.StandbyStatusUpdate{
+		WALWritePosition: p.meta.CommittedLsn,
+	}
+
+	err = pglogrepl.SendStandbyStatusUpdate(p.ctx, p.conn, standbyStatusUpdate)
+	if err != nil {
+		log.WithError(err).Error("SendStandbyStatusUpdate failed")
+	}
+	log.WithFields(log.Fields{
+		"commitedLsn": p.meta.CommittedLsn,
+		"currentLsn":  p.meta.CurrentLsn,
+		"SlotStatus":  p.meta.SlotStatus,
+	}).Info("Send agent Status")
 }
 
 // decodeEvents Send all statement for this transaction
 func (p *PostgreSQLCDC) decodeEvents() {
-
 	var err error
 	var msgs *Messages
-	var repMsg *pgx.ReplicationMessage
+	var repMsg pgproto3.BackendMessage
+
+	standbyTimeout := time.Second * TickerValue
+	nextStatusSend := time.Now().Add(standbyTimeout)
 
 	for {
-		repMsg, err = p.repConn.WaitForReplicationMessage(context.Background())
+		if time.Now().After(nextStatusSend) {
+			p.checkStatus()
+			nextStatusSend = time.Now().Add(standbyTimeout)
+		}
+
+		ctx, cancel := context.WithDeadline(p.ctx, nextStatusSend)
+		repMsg, err = p.conn.ReceiveMessage(ctx)
+		cancel()
 		if err != nil {
-			//check connection
-			if !p.repConn.IsAlive() {
+			if pgconn.Timeout(err) {
+				continue
+			}
+			if p.conn.IsClosed() {
 				//reconnect
 				log.Debug("Reconnecting...")
-				p.repConn, err = p.NewReplicator()
+				p.conn, err = p.NewConn()
 				if err != nil {
-					errMsg := "NewReplicator() : "
-					log.Fatal(errMsg, err.Error())
+					log.WithError(err).Fatal("connection dead")
 				}
 				p.StartReplication()
 			}
-			log.WithFields(log.Fields{
-				"error": err,
-			}).Error("Error decoding event")
+			log.WithError(err).Error("Error decoding event")
+			continue
 		} else if repMsg == nil {
 			//do noting
-		} else if repMsg.ServerHeartbeat != nil {
-			// If 1, the server is requesting a standby status message
-			// to be sent immediately.
-			if repMsg.ServerHeartbeat.ReplyRequested == 1 {
-				standbyStatus, _ := pgx.NewStandbyStatus(p.meta.Lsn)
-				err := p.repConn.SendStandbyStatus(standbyStatus)
+			continue
+		}
+
+		switch msg := repMsg.(type) {
+		case *pgproto3.CopyData:
+			switch msg.Data[0] {
+			case pglogrepl.PrimaryKeepaliveMessageByteID:
+				pkm, err := pglogrepl.ParsePrimaryKeepaliveMessage(msg.Data[1:])
+				if err != nil {
+					log.WithError(err).Fatal("Parse PrimaryKeepaliveMessage failed")
+				}
+
+				if pkm.ReplyRequested {
+					nextStatusSend = time.Time{}
+				}
+
+			case pglogrepl.XLogDataByteID:
+				xld, err := pglogrepl.ParseXLogData(msg.Data[1:])
+				if err != nil {
+					log.WithError(err).Fatal("ParseXLogData failed:", err)
+				}
+				p.meta.CurrentLsn = xld.WALStart + pglogrepl.LSN(len(xld.WALData))
+				msgs = &Messages{}
+				err = json.Unmarshal(utils.EscapeCtrl(xld.WALData), msgs)
 				if err != nil {
 					log.WithFields(log.Fields{
 						"error": err,
-					}).Error("Error waiting for replication message")
+						"json":  string(xld.WALData),
+					}).Error("failed parse to JSON from PG")
+					continue
+				} else {
+					p.processMsgs(msgs, xld.ServerTime.UnixNano())
 				}
 			}
-			p.meta.LastState = repMsg.ServerHeartbeat.String()
-
-		} else if repMsg.WalMessage != nil && repMsg.WalMessage.WalData != nil {
-			msgs = &Messages{}
-
-			err = json.Unmarshal(util.EscapeCtrl(repMsg.WalMessage.WalData), msgs)
-			if err != nil {
-				//TODO maybe do fatal
-				log.WithFields(log.Fields{
-					"error": err,
-					"json":  string(repMsg.WalMessage.WalData),
-				}).Error("failed parse to JSON from PG")
-				continue
-			} else {
-				p.processMsgs(msgs)
-			}
-			//set the current position
-			if p.meta.Lsn < repMsg.WalMessage.WalStart {
-				p.meta.Lsn = repMsg.WalMessage.WalStart
-				p.Offset++
-			}
-
+		default:
+			log.Printf("Received unexpected message: %#v\n", msg)
 		}
 	}
-
 }
 
 //processMsgs process Messages
-func (p *PostgreSQLCDC) processMsgs(msgs *Messages) {
-	var fields string
-	var err error
-	var ev *events.LookatchEvent
-	var repMsg *pgx.ReplicationMessage
+func (p *PostgreSQLCDC) processMsgs(msgs *Messages, serverTime int64) {
 	var timestamp int64
-	var key string
 
 	for _, msg := range msgs.Change {
-
 		p.meta.LastState = "Waiting for next pg event"
 
 		if p.filter.IsFilteredTable(msg.Schema, msg.Table) {
 			continue
 		}
 
-		fields, err = p.fieldsToJSON(msg, &key)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"error": err,
-			}).Error("Failed to parse statement")
-			continue
-		}
-
 		//when servertime == 0 send current time
-		if repMsg.WalMessage.ServerTime == 0 {
-			timestamp = time.Now().Unix()
+		if serverTime == 0 {
+			timestamp = time.Now().UnixNano()
 		} else {
-			timestamp = repMsg.WalMessage.Time().Unix()
+			timestamp = serverTime
 		}
 
-		ev = &events.LookatchEvent{
-			Header: &events.LookatchHeader{
-				EventType: MysqlCDCType,
+		statement, OldStatement, columTypes, key := p.fieldsToMap(msg)
+
+		p.OutputChannel <- events.LookatchEvent{
+			Header: events.LookatchHeader{
+				EventType: PostgreSQLCDCType,
 				Tenant:    p.AgentInfo.tenant,
 			},
-			Payload: &events.SQLEvent{
+			Payload: events.SQLEvent{
 
-				Timestamp:   strconv.FormatInt(timestamp, 10),
-				Environment: p.AgentInfo.tenant.Env,
-				Database:    p.config.Database,
-				Schema:      msg.Schema,
-				Table:       msg.Table,
-				Method:      strings.ToLower(msg.Kind),
-				Statement:   fields,
-				PrimaryKey:  key,
+				Timestamp:    strconv.FormatInt(timestamp, 10),
+				Environment:  p.AgentInfo.tenant.Env,
+				Database:     p.config.Database,
+				Schema:       msg.Schema,
+				Table:        msg.Table,
+				Method:       strings.ToLower(msg.Kind),
+				Statement:    statement,
+				OldStatement: OldStatement,
+				ColumnsMeta:  columTypes,
+				PrimaryKey:   key,
 				Offset: &events.Offset{
-					Database: strconv.FormatUint(p.meta.Lsn, 10),
-					Agent:    strconv.FormatInt(p.Offset, 10),
+					Source: p.meta.CurrentLsn.String(),
+					Agent:  strconv.FormatInt(p.Offset, 10),
 				},
 			},
 		}
-		log.WithFields(log.Fields{
-			"table": msg.Table,
-		}).Debug("Event send")
-		p.OutputChannel <- ev
+		log.WithField("table", msg.Table).Debug("Event send")
 	}
 }
 
 // fieldsToJSON map fields to json
-func (p *PostgreSQLCDC) fieldsToJSON(msg Message, key *string) (string, error) {
-
-	var columnnames []string
-	var columnvalues []interface{}
+func (p *PostgreSQLCDC) fieldsToMap(msg Message) (map[string]interface{}, map[string]interface{}, map[string]events.ColumnsMeta, string) {
+	var key string
+	var columnNames []string
+	var columnTypes []string
+	var columnValues []interface{}
 
 	if msg.Kind == "delete" {
-		columnnames = msg.Oldkeys.Keynames
-		columnvalues = msg.Oldkeys.Keyvalues
+		columnNames = msg.Oldkeys.Keynames
+		columnValues = msg.Oldkeys.Keyvalues
+		columnTypes = msg.Oldkeys.Keytypes
 	} else {
-		columnnames = msg.Columnnames
-		columnvalues = msg.Columnvalues
+		columnNames = msg.Columnnames
+		columnValues = msg.Columnvalues
+		columnTypes = msg.Columntypes
 	}
 
-	m := make(map[string]interface{})
-	for index, element := range columnnames {
-		if !p.filter.IsFilteredColumn(msg.Schema, msg.Table, element) {
-			if ok := p.query.isPrimary(msg.Schema, msg.Table, strconv.Itoa(index)); ok && *key == "" {
-				*key = element
+	s := make(map[string]interface{})
+	o := make(map[string]interface{})
+	c := make(map[string]events.ColumnsMeta)
+	key = strings.Join(msg.Oldkeys.Keynames, ",")
+	if p.config.OldValue {
+		if msg.Kind != "insert" {
+			for index, element := range msg.Oldkeys.Keynames {
+				if !p.filter.IsFilteredColumn(msg.Schema, msg.Table, element) {
+					o[element] = msg.Oldkeys.Keyvalues[index]
+				}
 			}
-			m[element] = columnvalues[index]
 		}
 	}
-	return fieldsMap2Json(m)
-}
 
-// fieldsMap2Json Convert a map key -> value into json
-func fieldsMap2Json(i map[string]interface{}) (string, error) {
-
-	j, err := json.Marshal(i)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Error("Failed to parse map statement")
+	for index, element := range columnNames {
+		if !p.filter.IsFilteredColumn(msg.Schema, msg.Table, element) {
+			s[element] = columnValues[index]
+			if p.config.ColumnsMetaValue {
+				c[element] = events.ColumnsMeta{
+					Type:     columnTypes[index],
+					Position: index + 1,
+				}
+			}
+		}
 	}
-	return string(j), err
+	return s, o, c, key
 }
 
-
-
-// getSlotStatus get slot status
-func (p *PostgreSQLCDC) getSlotStatus() bool {
+// GetSlotStatus get slot status
+func (p *PostgreSQLCDC) GetSlotStatus() bool {
 	// Fetch the restart LSN of the slot, to establish a starting point
 	query := fmt.Sprintf("select active from pg_replication_slots where slot_name='%s'", p.config.SlotName)
-	result := p.query.QueryMeta(query)
-	if result == nil {
+	result, err := p.query.QueryMeta(query)
+	if err != nil {
 		log.Error("Error while getting Slot Status")
 		return false
 	}
 
-	if !result[0]["active"].(bool) {
-		return false
+	return result[0]["active"].(bool)
+}
+
+// UpdateCommittedLsn  update CommittedLsn
+func (p *PostgreSQLCDC) UpdateCommittedLsn() {
+	for committedLsn := range p.CommitChannel {
+		lsn, err := pglogrepl.ParseLSN(committedLsn.(string))
+		if err != nil {
+			log.WithError(err).Error("Error while updating committed Lsn")
+		}
+		p.meta.CommittedLsn = lsn
 	}
-	return true
 }

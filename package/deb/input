@@ -1,2 +1,2 @@
-build/linux/%ARCH%/lookatch-agent=/usr/bin/
+build/lookatch-agent=/usr/bin/
 package/deb/config.json=/etc/lookatch/config.json

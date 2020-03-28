@@ -2,10 +2,12 @@ package sources
 
 import (
 	"database/sql"
-	"encoding/json"
+	"errors"
 	"fmt"
 
-	"github.com/Pirionfr/lookatch-agent/control"
+	"github.com/mitchellh/mapstructure"
+
+	"github.com/Pirionfr/lookatch-agent/utils"
 
 	// driver
 	_ "github.com/lib/pq"
@@ -13,18 +15,18 @@ import (
 )
 
 // PostgreSQLQueryType type of source
-const PostgreSQLQueryType = "postgresqlQuery"
+const PostgreSQLQueryType = "PostgresqlQuery"
 
 type (
 	// PostgreSQLQuery representation of PostgreSQL Query source
 	PostgreSQLQuery struct {
-		*JDBCQuery
+		*DBSQLQuery
 		config PostgreSQLQueryConfig
 	}
 
 	//PostgreSQLQueryConfig representation PostgreSQL Query configuration
 	PostgreSQLQueryConfig struct {
-		*JDBCQueryConfig
+		*DBSQLQueryConfig
 		SslMode  string `json:"sslmode"`
 		Database string `json:"database"`
 	}
@@ -32,7 +34,7 @@ type (
 
 // newPostgreSQLQuery create a PostgreSQL Query source
 func newPostgreSQLQuery(s *Source) (SourceI, error) {
-	jdbcQuery := NewJDBCQuery(s)
+	gdbcQuery := NewDBSQLQuery(s)
 
 	pgQueryConfig := PostgreSQLQueryConfig{}
 	err := s.Conf.UnmarshalKey("sources."+s.Name, &pgQueryConfig)
@@ -40,23 +42,21 @@ func newPostgreSQLQuery(s *Source) (SourceI, error) {
 		return nil, err
 	}
 
-	pgQueryConfig.JDBCQueryConfig = &jdbcQuery.Config
+	pgQueryConfig.DBSQLQueryConfig = &gdbcQuery.Config
 
 	return &PostgreSQLQuery{
-		JDBCQuery: &jdbcQuery,
-		config:    pgQueryConfig,
+		DBSQLQuery: &gdbcQuery,
+		config:     pgQueryConfig,
 	}, nil
 }
 
 // Init initialisation of PostgreSQL Query source
 func (p *PostgreSQLQuery) Init() {
-
 	//start bi Query Schema
+	p.Connect()
 	err := p.QuerySchema()
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Error("Error while querying Schema")
+		log.WithError(err).Error("Error while querying Schema")
 		return
 	}
 	log.Debug("Init Done")
@@ -64,71 +64,56 @@ func (p *PostgreSQLQuery) Init() {
 
 // GetStatus returns current status of connexion
 func (p *PostgreSQLQuery) GetStatus() interface{} {
-	p.Connect()
-	defer p.db.Close()
-	return p.JDBCQuery.GetStatus()
+	return p.DBSQLQuery.GetStatus()
 }
 
-// HealthCheck returns true if source is ok
+// HealthCheck returns true if the source is correctly configured and the collector is connected to it
 func (p *PostgreSQLQuery) HealthCheck() bool {
-	p.Connect()
-	defer p.db.Close()
-	return p.JDBCQuery.HealthCheck()
+	return p.DBSQLQuery.HealthCheck()
 }
 
 // Connect connection to database
 func (p *PostgreSQLQuery) Connect() {
-
 	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s", p.config.Host, p.config.Port, p.config.User, p.config.Password, p.config.Database, p.config.SslMode)
 	db, err := sql.Open("postgres", dsn)
 	//first check if db is not already established
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Fatal("open mysql connection")
+		log.WithError(err).Error("open connection")
 	} else {
 		p.db = db
 	}
 
 	err = p.db.Ping()
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Error("Connection is dead")
+		log.WithError(err).Error("Connection is dead")
 	}
-
 }
 
 // Process process an action
 func (p *PostgreSQLQuery) Process(action string, params ...interface{}) interface{} {
-
 	switch action {
-	case control.SourceQuery:
+	case utils.SourceQuery:
 		evSQLQuery := &Query{}
-		payload := params[0].([]byte)
-		err := json.Unmarshal(payload, evSQLQuery)
+		err := mapstructure.Decode(params[0], evSQLQuery)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"error": err,
-			}).Fatal("Unable to unmarshal MySQL Query Statement event :")
+			log.WithError(err).Error("Unable to unmarshal Query Statement event :")
 		} else {
-			p.Query(evSQLQuery.Query)
+			err = p.Query(evSQLQuery.Query)
+			log.WithError(err).WithField("query", evSQLQuery.Query).Error("Query Error")
 		}
 
 	default:
-		log.WithFields(log.Fields{
-			"action": action,
-		}).Error("action not implemented")
+		return errors.New("task not implemented")
 	}
 	return nil
 }
 
 // QuerySchema extract schema from database
 func (p *PostgreSQLQuery) QuerySchema() (err error) {
-
-	p.Connect()
-	defer p.db.Close()
-
+	err = p.db.Ping()
+	if err != nil {
+		return err
+	}
 	q := `SELECT
 	    c.table_catalog,
 	    c.table_schema,
@@ -156,21 +141,15 @@ func (p *PostgreSQLQuery) QuerySchema() (err error) {
 	    AND a.attname = c.column_name
 	    AND a.attrelid = (quote_ident(c.table_schema) || '.' || quote_ident(c.table_name))::regclass;`
 
-	p.JDBCQuery.QuerySchema(q)
-
-	return
+	return p.DBSQLQuery.QuerySchema(q)
 }
 
 // Query execute query string
-func (p *PostgreSQLQuery) Query(query string) {
-	p.Connect()
-	defer p.db.Close()
-	p.JDBCQuery.Query(p.config.Database, query)
+func (p *PostgreSQLQuery) Query(query string) error {
+	return p.DBSQLQuery.Query(p.config.Database, query)
 }
 
 // QueryMeta execute query meta string
-func (p *PostgreSQLQuery) QueryMeta(query string) []map[string]interface{} {
-	p.Connect()
-	defer p.db.Close()
-	return p.JDBCQuery.QueryMeta(query)
+func (p *PostgreSQLQuery) QueryMeta(query string) ([]map[string]interface{}, error) {
+	return p.DBSQLQuery.QueryMeta(query)
 }

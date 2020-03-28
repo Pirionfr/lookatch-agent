@@ -4,17 +4,14 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/Pirionfr/lookatch-agent/events"
 	"github.com/spf13/viper"
 )
 
 var (
 	vSink *viper.Viper
-	in    chan *events.LookatchEvent
 )
 
 func init() {
-	in = make(chan *events.LookatchEvent, 1)
 	vSink = viper.New()
 	vSink.Set("sinks.default.autostart", true)
 	vSink.Set("sinks.default.enabled", true)
@@ -22,7 +19,7 @@ func init() {
 
 func TestCreateSink(t *testing.T) {
 	rch := make(chan error)
-	r, err := New("default", "stdout", vSink, rch, in)
+	r, err := New("default", "Stdout", vSink, rch)
 	if err != nil {
 		t.Error(err)
 	}

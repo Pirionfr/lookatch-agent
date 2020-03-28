@@ -1,18 +1,21 @@
 package sources
 
 import (
+	"errors"
 	"strconv"
 	"sync"
 	"time"
 
-	"github.com/Pirionfr/lookatch-agent/control"
-	"github.com/Pirionfr/lookatch-agent/events"
+	"github.com/Pirionfr/lookatch-agent/utils"
+
 	log "github.com/sirupsen/logrus"
 	syslog "gopkg.in/mcuadros/go-syslog.v2"
+
+	"github.com/Pirionfr/lookatch-agent/events"
 )
 
 // SyslogType type of source
-const SyslogType = "syslog"
+const SyslogType = "Syslog"
 
 // Syslog representation of Random
 type Syslog struct {
@@ -32,7 +35,6 @@ type SyslogConfig struct {
 
 // newSyslog create new syslog source
 func newSyslog(s *Source) (SourceI, error) {
-
 	syslogConfig := SyslogConfig{}
 	err := s.Conf.UnmarshalKey("sources."+s.Name, &syslogConfig)
 	if err != nil {
@@ -46,15 +48,24 @@ func newSyslog(s *Source) (SourceI, error) {
 }
 
 // GetMeta returns source meta
-func (s *Syslog) GetMeta() map[string]interface{} {
-	meta := make(map[string]interface{})
-	meta["nbMessages"] = s.NbMessages
+func (s *Syslog) GetMeta() map[string]utils.Meta {
+	meta := make(map[string]utils.Meta)
+	meta["nbMessages"] = utils.NewMeta("nbMessages", s.NbMessages)
 	return meta
 }
 
 // GetSchema returns schema
-func (s *Syslog) GetSchema() interface{} {
-	return nil
+func (s *Syslog) GetSchema() map[string]map[string]*Column {
+	return map[string]map[string]*Column{
+		"syslog": {
+			"line": &Column{
+				Column:       "line",
+				ColumnOrdPos: 0,
+				DataType:     "string",
+				ColumnType:   "string",
+			},
+		},
+	}
 }
 
 // Init syslog source
@@ -75,24 +86,23 @@ func (s *Syslog) Stop() error {
 
 // Start syslog source
 func (s *Syslog) Start(i ...interface{}) error {
-
-	s.server.ListenUDP("0.0.0.0:" + strconv.Itoa(s.config.Port))
-	s.server.Boot()
-
+	err := s.server.ListenUDP("0.0.0.0:" + strconv.Itoa(s.config.Port))
+	if err != nil {
+		return err
+	}
+	err = s.server.Boot()
+	if err != nil {
+		return err
+	}
 	go func() {
 		for logParts := range s.channel {
+			log.WithField("logParts", logParts).Debug("Run syslog")
 
-			log.WithFields(log.Fields{
-				"logParts": logParts,
-			}).Debug("Run syslog")
-
-			s.OutputChannel <- &events.LookatchEvent{
-				Header: &events.LookatchHeader{
+			s.OutputChannel <- events.LookatchEvent{
+				Header: events.LookatchHeader{
 					EventType: SyslogType,
 				},
-				Payload: &events.GenericEvent{
-					Tenant:      s.AgentInfo.tenant.ID,
-					AgentID:     s.AgentInfo.uuid,
+				Payload: events.GenericEvent{
 					Timestamp:   strconv.Itoa(int(time.Now().Unix())),
 					Environment: s.AgentInfo.tenant.Env,
 					Value:       logParts,
@@ -101,7 +111,6 @@ func (s *Syslog) Start(i ...interface{}) error {
 			s.metaMutex.Lock()
 			s.NbMessages++
 			s.metaMutex.Unlock()
-
 		}
 	}()
 
@@ -114,13 +123,18 @@ func (s *Syslog) GetName() string {
 }
 
 // GetOutputChan get output channel
-func (s *Syslog) GetOutputChan() chan *events.LookatchEvent {
+func (s *Syslog) GetOutputChan() chan events.LookatchEvent {
 	return s.OutputChannel
+}
+
+//GetCommitChan return commit channel attach to source
+func (s *Syslog) GetCommitChan() chan interface{} {
+	return s.CommitChannel
 }
 
 // GetStatus get source status
 func (s *Syslog) GetStatus() interface{} {
-	return control.SourceStatusRunning
+	return SourceStatusRunning
 }
 
 // IsEnable check if source is enable
@@ -128,17 +142,17 @@ func (s *Syslog) IsEnable() bool {
 	return true
 }
 
-// HealthCheck return true if ok
+// GetStatus returns the collector's source status
 func (s *Syslog) HealthCheck() bool {
 	return true
 }
 
-// GetAvailableActions returns available actions
-func (s *Syslog) GetAvailableActions() map[string]*control.ActionDescription {
+// GetCapabilities returns available actions
+func (s *Syslog) GetCapabilities() map[string]*utils.TaskDescription {
 	return nil
 }
 
 // Process action
 func (s *Syslog) Process(action string, params ...interface{}) interface{} {
-	return nil
+	return errors.New("task not implemented")
 }

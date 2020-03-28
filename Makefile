@@ -11,7 +11,7 @@ CC 					:= go build
 DFLAGS 				:= -race
 CFLAGS 				:= -X 'main.githash=$(GITHASH)' \
             -X 'main.date=$(DATE)' \
-            -X 'main.version=$(VERSION)'
+            -X 'main.version=0.2.0'
 PLATFORMS=darwin linux windows
 ARCHITECTURES=386 amd64
 
@@ -21,25 +21,21 @@ VPATH 				:= $(BUILD_DIR)
 
 .SECONDEXPANSION:
 .PHONY: all
-all: init dep format lint release
+all: init format lint release
 
 .PHONY: init
 init:
-	go get -u github.com/golang/dep/cmd/dep
-	go get -u github.com/alecthomas/gometalinter
+	curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 	go get -u github.com/onsi/ginkgo/ginkgo
 	go get -u golang.org/x/tools/cmd/cover
 	go get -u github.com/modocache/gover
-	$(GOPATH)/bin/gometalinter --install --no-vendored-linters
+	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+	go get golang.org/x/tools/cmd/goimports
 
-.PHONY: clean
+.PHONY: cleanmake
 clean:
 	rm -rf $(BUILD_DIR)
 	rm -rf dist
-
-.PHONY: dep
-dep:
-	$(GOPATH)/bin/dep ensure -v
 
 .PHONY: format
 format:
@@ -48,7 +44,9 @@ format:
 
 .PHONY: lint
 lint:
-	$(GOPATH)/bin/gometalinter --disable-all --config .gometalinter.json $(LINT_PATHS)
+	@command -v golangci-lint >/dev/null 2>&1 || { echo >&2 "golangci-lint is required but not available please follow instructions from https://github.com/golangci/golangci-lint"; exit 1; }
+	golangci-lint run  --config golangci.yml
+
 
 .PHONY: test
 test:

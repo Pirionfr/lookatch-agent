@@ -16,14 +16,14 @@ var (
 )
 
 func init() {
-	eventChan := make(chan *events.LookatchEvent, 1)
+	eventChan := make(chan events.LookatchEvent, 1)
 	stop := make(chan error)
 
 	vStdout = viper.New()
 	vStdout.Set("sinks.default.autostart", true)
 	vStdout.Set("sinks.default.enabled", true)
 
-	sink = &Sink{eventChan, stop, "stdout", "", vStdout.Sub("sinks.default")}
+	sink = &Sink{eventChan, stop, commitChan, "Stdout", "", vStdout.Sub("sinks.default")}
 }
 
 func TestNewStdout(t *testing.T) {
@@ -43,7 +43,7 @@ func TestGetInputChan(t *testing.T) {
 		t.Error(err)
 	}
 
-	if reflect.TypeOf(r.GetInputChan()).String() != "chan *events.LookatchEvent" {
+	if reflect.TypeOf(r.GetInputChan()).String() != "chan events.LookatchEvent" {
 		t.Fail()
 	}
 }
@@ -71,32 +71,20 @@ func TestStart2(t *testing.T) {
 		t.Error(err)
 	}
 
-	r.GetInputChan() <- &events.LookatchEvent{
-		Header: &events.LookatchHeader{
+	r.GetInputChan() <- events.LookatchEvent{
+		Header: events.LookatchHeader{
 			EventType: "test",
 		},
-		Payload: &events.GenericEvent{
-			Tenant:      "test",
-			AgentID:     "test",
+		Payload: events.GenericEvent{
 			Timestamp:   strconv.Itoa(int(time.Now().Unix())),
 			Environment: "test",
 			Value:       "test",
+			Offset: &events.Offset{
+				Source: "1",
+				Agent:  "1",
+			},
 		},
 	}
-}
-
-func TestStartNil(t *testing.T) {
-	r, err := newStdout(sink)
-	if err != nil {
-		t.Error(err)
-	}
-
-	err = r.Start()
-	if err != nil {
-		t.Error(err)
-	}
-
-	r.GetInputChan() <- nil
 }
 
 func TestStartBadEvent(t *testing.T) {
@@ -110,8 +98,8 @@ func TestStartBadEvent(t *testing.T) {
 		t.Error(err)
 	}
 
-	r.GetInputChan() <- &events.LookatchEvent{
-		Header: &events.LookatchHeader{
+	r.GetInputChan() <- events.LookatchEvent{
+		Header: events.LookatchHeader{
 			EventType: "test",
 		},
 		Payload: "test",

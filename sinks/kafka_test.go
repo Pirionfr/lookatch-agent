@@ -8,20 +8,20 @@ import (
 
 	"strconv"
 	"time"
-
-	"github.com/Shopify/sarama"
 )
 
 var (
-	vKafka    *viper.Viper
-	eventChan chan *events.LookatchEvent
-	stop      chan error
-	threshold int
+	vKafka     *viper.Viper
+	eventChan  chan events.LookatchEvent
+	commitChan chan interface{}
+	stop       chan error
+	threshold  int
 )
 
 func init() {
 	threshold = 10 << 10
-	eventChan = make(chan *events.LookatchEvent, 1)
+	eventChan = make(chan events.LookatchEvent, 1)
+	commitChan = make(chan interface{}, 1)
 	stop = make(chan error)
 
 	vKafka = viper.New()
@@ -35,7 +35,7 @@ func init() {
 			"nb_producer":       1,
 			"tls":               true,
 			"topic_prefix":      "lookatch.test_batch",
-			"type":              "kafka",
+			"type":              "Kafka",
 			"producer": map[string]interface{}{
 				"user":     "lookatch.test",
 				"password": "test",
@@ -51,7 +51,7 @@ func init() {
 
 func TestBuildKafkaSinkConfig(t *testing.T) {
 
-	sink = &Sink{eventChan, stop, "kafka", "", vKafka.Sub("sinks.kafka")}
+	sink = &Sink{eventChan, stop, commitChan, "kafka", "", vKafka.Sub("sinks.kafka")}
 
 	ksink, err := newKafka(sink)
 	if err != nil {
@@ -80,7 +80,7 @@ func TestBuildKafkaSinkConfig(t *testing.T) {
 func TestBuildKafkaSinkConfigTopicSet(t *testing.T) {
 
 	vKafka.Set("sinks.kafka.topic", "test")
-	sink = &Sink{eventChan, stop, "kafka", "", vKafka.Sub("sinks.kafka")}
+	sink = &Sink{eventChan, stop, commitChan, "kafka", "", vKafka.Sub("sinks.kafka")}
 
 	ksink, err := newKafka(sink)
 	if err != nil {
@@ -96,7 +96,7 @@ func TestBuildKafkaSinkConfigTopicSet(t *testing.T) {
 func TestBuildKafkaSinktls(t *testing.T) {
 
 	vKafka.Set("sinks.kafka.tls", false)
-	sink = &Sink{eventChan, stop, "kafka", "", vKafka.Sub("sinks.kafka")}
+	sink = &Sink{eventChan, stop, commitChan, "kafka", "", vKafka.Sub("sinks.kafka")}
 
 	ksink, err := newKafka(sink)
 	if err != nil {
@@ -112,7 +112,7 @@ func TestBuildKafkaSinktls(t *testing.T) {
 func TestBuildKafkaSinkClientID(t *testing.T) {
 
 	vKafka.Set("sinks.kafka.client_id", "test")
-	sink = &Sink{eventChan, stop, "kafka", "", vKafka.Sub("sinks.kafka")}
+	sink = &Sink{eventChan, stop, commitChan, "kafka", "", vKafka.Sub("sinks.kafka")}
 
 	ksink, err := newKafka(sink)
 	if err != nil {
@@ -127,7 +127,7 @@ func TestBuildKafkaSinkClientID(t *testing.T) {
 
 func TestBuildKafkaSinkSecret(t *testing.T) {
 
-	sink = &Sink{eventChan, stop, "kafka", "test", vKafka.Sub("sinks.kafka")}
+	sink = &Sink{eventChan, stop, commitChan, "kafka", "test", vKafka.Sub("sinks.kafka")}
 
 	ksink, err := newKafka(sink)
 	if err != nil {
@@ -141,7 +141,7 @@ func TestBuildKafkaSinkSecret(t *testing.T) {
 }
 
 func TestProcessGenericEvent(t *testing.T) {
-	sink = &Sink{eventChan, stop, "kafka", "", vKafka.Sub("sinks.kafka")}
+	sink = &Sink{eventChan, stop, commitChan, "kafka", "", vKafka.Sub("sinks.kafka")}
 
 	ksink, err := newKafka(sink)
 	if err != nil {
@@ -151,8 +151,6 @@ func TestProcessGenericEvent(t *testing.T) {
 
 	genericMsg := &events.GenericEvent{
 		Environment: "Envtest",
-		AgentID:     "IdTest",
-		Tenant:      "faketenant",
 		Timestamp:   timestamp,
 		Value:       "test",
 	}
@@ -162,13 +160,13 @@ func TestProcessGenericEvent(t *testing.T) {
 		t.Error(err)
 	}
 
-	if msg.Value.Length() == 0 {
+	if msg.Value == nil {
 		t.Fail()
 	}
 }
 
 func TestProcessSqlEvent(t *testing.T) {
-	sink = &Sink{eventChan, stop, "kafka", "", vKafka.Sub("sinks.kafka")}
+	sink = &Sink{eventChan, stop, commitChan, "kafka", "", vKafka.Sub("sinks.kafka")}
 
 	ksink, err := newKafka(sink)
 	if err != nil {
@@ -184,7 +182,9 @@ func TestProcessSqlEvent(t *testing.T) {
 		Timestamp:   timestamp,
 		Method:      "insert",
 		PrimaryKey:  "ID",
-		Statement:   "test",
+		Statement: map[string]interface{}{
+			"test": "test",
+		},
 	}
 
 	msg, err := ksink.(*Kafka).processSQLEvent(msgSQL)
@@ -192,35 +192,7 @@ func TestProcessSqlEvent(t *testing.T) {
 		t.Error(err)
 	}
 
-	if msg.Value.Length() == 0 {
-		t.Fail()
-	}
-}
-
-func TestProcessKafkaMsg(t *testing.T) {
-	sink = &Sink{eventChan, stop, "kafka", "", vKafka.Sub("sinks.kafka")}
-
-	ksink, err := newKafka(sink)
-	if err != nil {
-		t.Error(err)
-	}
-
-	msgKafka := &sarama.ConsumerMessage{
-		Value:          []byte("test"),
-		Timestamp:      time.Now(),
-		Topic:          "test",
-		Offset:         1,
-		Key:            []byte("test"),
-		BlockTimestamp: time.Now(),
-		Partition:      1,
-	}
-
-	msg, err := ksink.(*Kafka).processKafkaMsg(msgKafka)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if msg.Value.Length() == 0 {
+	if msg.Value == nil {
 		t.Fail()
 	}
 }

@@ -6,13 +6,12 @@
 [![codecov](https://codecov.io/gh/Pirionfr/lookatch-agent/branch/master/graph/badge.svg)](https://codecov.io/gh/Pirionfr/lookatch-agent)
 
 
-
-lookatch allows you to replicate and synchronize your database
+Lookatch is a pure Go client for dealing with Query and change data capture (CDC)
 
 That way, you can process data no matter the backend it comes from and feed any application with changes that remotely happened on databases.
 
 
-### Configuration example
+### Configuration standalone example
 ```
 {
   "agent": {
@@ -22,7 +21,7 @@ That way, you can process data no matter the backend it comes from and feed any 
   "sinks": {
     "default": {
       "enabled": true,
-      "type" : "stdout"
+      "type" : "Stdout"
     }
   },
   "sources": {
@@ -35,6 +34,26 @@ That way, you can process data no matter the backend it comes from and feed any 
     }
   }
 }
+``` 
+
+### Configuration remote example
+```
+{
+  "agent": {
+    "loglevel": "debug"
+  },
+  "controller": {
+    "base_url": "http://localhost:8080",
+    "poller_ticker" : "10s"
+  },
+  "sinks": {
+
+  },
+  "sources": {
+
+  }
+}
+
 ``` 
 
 ## Run
@@ -50,3 +69,6 @@ export SECRETKEY=xxxxx
 ```
 lookatch-agent run -c config.json
 ```
+
+
+

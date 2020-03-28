@@ -3,10 +3,13 @@ package sources
 import (
 	"reflect"
 	"testing"
+	"time"
 
-	"github.com/Pirionfr/lookatch-agent/control"
-	"github.com/Pirionfr/lookatch-agent/events"
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/spf13/viper"
+	"gopkg.in/guregu/null.v3"
+
+	"github.com/Pirionfr/lookatch-agent/events"
 )
 
 var vPgcdc *viper.Viper
@@ -15,18 +18,17 @@ var sPgcdc *Source
 func init() {
 	vPgcdc = viper.New()
 	vPgcdc.Set("agent.hostname", "test")
-	vPgcdc.Set("agent.tenant", "test")
 	vPgcdc.Set("agent.env", "test")
 	vPgcdc.Set("agent.uuid", "test")
 
 	vPgcdc.Set("sources.default.autostart", true)
 	vPgcdc.Set("sources.default.enabled", true)
 
-	eventChan := make(chan *events.LookatchEvent, 1)
+	eventChan := make(chan events.LookatchEvent, 1)
 
 	agentInfo := &AgentHeader{
 		tenant: events.LookatchTenantInfo{
-			ID:  vPgcdc.GetString("agent.tenant"),
+			ID:  vPgcdc.GetString("agent.uuid"),
 			Env: vPgcdc.GetString("agent.env"),
 		},
 		hostname: vPgcdc.GetString("agent.hostname"),
@@ -48,29 +50,7 @@ func TestPgcdcGetMeta(t *testing.T) {
 		t.Fail()
 	}
 
-	if len(Pgcdc.GetMeta()) != 0 {
-		t.Fail()
-	}
-}
-
-func TestPgcdcGetMeta2(t *testing.T) {
-	Pgcdc, ok := newPostgreSQLCdc(sPgcdc)
-	if ok != nil {
-		t.Fail()
-	}
-
-	if len(Pgcdc.GetMeta()) != 0 {
-		t.Fail()
-	}
-}
-
-func TestPgcdcGetSchema(t *testing.T) {
-	Pgcdc, ok := newPostgreSQLCdc(sPgcdc)
-	if ok != nil {
-		t.Fail()
-	}
-
-	if len(Pgcdc.GetMeta()) != 0 {
+	if len(Pgcdc.GetMeta()) == 0 {
 		t.Fail()
 	}
 }
@@ -95,18 +75,6 @@ func TestPgcdcStop(t *testing.T) {
 	}
 }
 
-//TODO add standalone mode
-//func TestPgcdcStart(t *testing.T) {
-//	Pgcdc, ok := newPostgreSQLCdc(sPgcdc)
-//	if ok != nil {
-//		t.Fail()
-//	}
-//
-//	if Pgcdc.Start() != nil {
-//		t.Fail()
-//	}
-//}
-
 func TestPgcdcGetName(t *testing.T) {
 	Pgcdc, ok := newPostgreSQLCdc(sPgcdc)
 	if ok != nil {
@@ -124,7 +92,7 @@ func TestPgcdcGetStatus(t *testing.T) {
 		t.Fail()
 	}
 
-	if Pgcdc.GetStatus() != control.SourceStatusWaitingForMETA {
+	if Pgcdc.GetStatus() == nil {
 		t.Fail()
 	}
 }
@@ -157,7 +125,7 @@ func TestPgcdcGetAvailableActions(t *testing.T) {
 		t.Fail()
 	}
 
-	if Pgcdc.GetAvailableActions() == nil {
+	if Pgcdc.GetCapabilities() == nil {
 		t.Fail()
 	}
 }
@@ -168,7 +136,7 @@ func TestPgcdcProcess(t *testing.T) {
 		t.Fail()
 	}
 
-	if Pgcdc.Process("") != nil {
+	if Pgcdc.Process("") == nil {
 		t.Fail()
 	}
 }
@@ -179,7 +147,264 @@ func TestPgcdcGetOutputChan(t *testing.T) {
 		t.Fail()
 	}
 
-	if reflect.TypeOf(Pgcdc.GetOutputChan()).String() != "chan *events.LookatchEvent" {
+	if reflect.TypeOf(Pgcdc.GetOutputChan()).String() != "chan events.LookatchEvent" {
+		t.Fail()
+	}
+}
+
+func TestGetSlotStatus(t *testing.T) {
+	pgQuery, ok := newPostgreSQLCdc(sPgcdc)
+	if ok != nil {
+		t.Fail()
+	}
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	mock.ExpectQuery("select active from pg_replication_slots where slot_name='slot_test'").WillReturnRows(
+		sqlmock.NewRows([]string{"active"}).
+			AddRow(true))
+
+	pCDC := pgQuery.(*PostgreSQLCDC)
+	pCDC.query.db = db
+	pCDC.config.SlotName = "slot_test"
+
+	if !pCDC.GetSlotStatus() {
+		t.Fail()
+	}
+}
+
+func TestFieldsToMaps1(t *testing.T) {
+	pgQuery, ok := newPostgreSQLCdc(sPgcdc)
+	if ok != nil {
+		t.Fail()
+	}
+	pCDC := pgQuery.(*PostgreSQLCDC)
+	pCDC.filter.FilterPolicy = "accept"
+	pCDC.config.Database = "test"
+
+	pCDC.query.schemas = SQLSchema{
+		"SchemaTest": {
+			"TableTest": {
+				"0": &Column{
+					Database:               "test",
+					Schema:                 "SchemaTest",
+					Table:                  "TableTest",
+					Column:                 "col1",
+					ColumnOrdPos:           0,
+					Nullable:               false,
+					DataType:               "INT4",
+					CharacterMaximumLength: null.Int{},
+					NumericPrecision:       null.Int{},
+					NumericScale:           null.Int{},
+					ColumnType:             "INT4",
+					ColumnKey:              "PRI",
+				},
+			},
+		},
+	}
+	msg := Message{
+		Columnnames: []string{
+			"col1",
+		},
+		Columntypes: []string{
+			"INT4",
+		},
+		Columnvalues: []interface{}{
+			1,
+		},
+		Kind:   "update",
+		Schema: "SchemaTest",
+		Table:  "TableTest",
+		Oldkeys: Oldkeys{
+			Keynames: []string{
+				"col1",
+			},
+			Keytypes: []string{
+				"INT4",
+			},
+			Keyvalues: []interface{}{
+				2,
+			},
+		},
+	}
+
+	event, oldEvent, cMeta, pk := pCDC.fieldsToMap(msg)
+
+	if event["col1"] != 1 {
+		t.Fail()
+	}
+
+	if len(oldEvent) > 0 {
+		t.Fail()
+	}
+
+	if len(cMeta) > 0 {
+		t.Fail()
+	}
+
+	if pk != "col1" {
+		t.Fail()
+	}
+}
+
+func TestFieldsToMaps2(t *testing.T) {
+	pgQuery, ok := newPostgreSQLCdc(sPgcdc)
+	if ok != nil {
+		t.Fail()
+	}
+	pCDC := pgQuery.(*PostgreSQLCDC)
+	pCDC.filter.FilterPolicy = "accept"
+	pCDC.config.OldValue = true
+	pCDC.config.ColumnsMetaValue = true
+	msg := Message{
+		Columnnames: []string{
+			"col1",
+		},
+		Columntypes: []string{
+			"INT4",
+		},
+		Columnvalues: []interface{}{
+			1,
+		},
+		Kind:   "update",
+		Schema: "SchemaTest",
+		Table:  "TableTest",
+		Oldkeys: Oldkeys{
+			Keynames: []string{
+				"col1",
+			},
+			Keytypes: []string{
+				"INT4",
+			},
+			Keyvalues: []interface{}{
+				2,
+			},
+		},
+	}
+
+	event, oldEvent, cMeta, pk := pCDC.fieldsToMap(msg)
+
+	if event["col1"] != 1 {
+		t.Fail()
+	}
+
+	if oldEvent["col1"] != 2 {
+		t.Fail()
+	}
+
+	if cMeta["col1"].Type != "INT4" {
+		t.Fail()
+	}
+
+	if pk != "col1" {
+		t.Fail()
+	}
+}
+
+func TestFieldsToMaps3(t *testing.T) {
+	pgQuery, ok := newPostgreSQLCdc(sPgcdc)
+	if ok != nil {
+		t.Fail()
+	}
+	pCDC := pgQuery.(*PostgreSQLCDC)
+	pCDC.filter.FilterPolicy = "accept"
+	msg := Message{
+		Columnnames: []string{
+			"col1",
+		},
+		Columntypes: []string{
+			"INT4",
+		},
+		Columnvalues: []interface{}{
+			1,
+		},
+		Kind:   "delete",
+		Schema: "SchemaTest",
+		Table:  "TableTest",
+		Oldkeys: Oldkeys{
+			Keynames: []string{
+				"col1",
+			},
+			Keytypes: []string{
+				"INT4",
+			},
+			Keyvalues: []interface{}{
+				2,
+			},
+		},
+	}
+
+	event, oldEvent, cMeta, pk := pCDC.fieldsToMap(msg)
+
+	if event["col1"] != 2 {
+		t.Fail()
+	}
+
+	if len(oldEvent) > 0 {
+		t.Fail()
+	}
+
+	if len(cMeta) > 0 {
+		t.Fail()
+	}
+
+	if pk != "col1" {
+		t.Fail()
+	}
+}
+
+func TestProcessMsgs(t *testing.T) {
+	pgQuery, ok := newPostgreSQLCdc(sPgcdc)
+	if ok != nil {
+		t.Fail()
+	}
+	pCDC := pgQuery.(*PostgreSQLCDC)
+	pCDC.filter.FilterPolicy = "accept"
+	pCDC.config.OldValue = true
+	pCDC.config.ColumnsMetaValue = true
+	msg := Message{
+		Columnnames: []string{
+			"col1",
+		},
+		Columntypes: []string{
+			"INT4",
+		},
+		Columnvalues: []interface{}{
+			1,
+		},
+		Kind:   "update",
+		Schema: "SchemaTest",
+		Table:  "TableTest",
+		Oldkeys: Oldkeys{
+			Keynames: []string{
+				"col1",
+			},
+			Keytypes: []string{
+				"INT4",
+			},
+			Keyvalues: []interface{}{
+				2,
+			},
+		},
+	}
+	msgs := &Messages{
+		Change: []Message{
+			msg,
+		},
+	}
+	serverTime := time.Now().UnixNano()
+	pCDC.processMsgs(msgs, serverTime)
+
+	lk := <-pgQuery.GetOutputChan()
+
+	if lk.Payload.(events.SQLEvent).Table != "TableTest" {
+		t.Fail()
+	}
+
+	if lk.Payload.(events.SQLEvent).Statement["col1"] != 1 {
 		t.Fail()
 	}
 }
