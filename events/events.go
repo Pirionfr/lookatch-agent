@@ -3,31 +3,37 @@ package events
 type (
 	// Offset events format
 	Offset struct {
-		Database string `json:"database"`
-		Agent    string `json:"agent"`
+		Source string `json:"source"`
+		Agent  string `json:"agent"`
+	}
+
+	// ColumnsMeta metadata of column
+	ColumnsMeta struct {
+		Type     string `json:"type"`
+		Position int    `json:"position"`
 	}
 
 	// SQLEvent events format
 	SQLEvent struct {
-		Tenant       string  `json:"tenant,omitempty"`
-		Environment  string  `json:"environment"`
-		Timestamp    string  `json:"timestamp"`
-		Database     string  `json:"database"`
-		Schema       string  `json:"schema"`
-		Table        string  `json:"table"`
-		Method       string  `json:"method"`
-		PrimaryKey   string  `json:"primaryKey,omitempty"`
-		Offset       *Offset `json:"offset,omitempty"`
-		Statement    string  `json:"statement"`
-		StatementOld string  `json:"statementOld,omitempty"`
+		Tenant       string                 `json:"tenant,omitempty"`
+		Environment  string                 `json:"environment"`
+		Timestamp    string                 `json:"timestamp"`
+		Database     string                 `json:"database"`
+		Schema       string                 `json:"schema"`
+		Table        string                 `json:"table"`
+		Method       string                 `json:"method"`
+		PrimaryKey   string                 `json:"primary_key,omitempty"`
+		Offset       *Offset                `json:"offset,omitempty"`
+		ColumnsMeta  map[string]ColumnsMeta `json:"columns_meta,omitempty"`
+		Statement    map[string]interface{} `json:"statement"`
+		OldStatement map[string]interface{} `json:"old_statement,omitempty"`
 	}
 
 	// GenericEvent events format
 	GenericEvent struct {
-		Tenant      string      `json:"tenant"`
 		Environment string      `json:"environment"`
 		Timestamp   string      `json:"timestamp"`
-		AgentID     string      `json:"agentID"`
+		Offset      *Offset     `json:"offset,omitempty"`
 		Value       interface{} `json:"value"`
 	}
 
@@ -45,7 +51,7 @@ type (
 
 	// LookatchEvent wire message format
 	LookatchEvent struct {
-		Header  *LookatchHeader
+		Header  LookatchHeader
 		Payload interface{}
 	}
 

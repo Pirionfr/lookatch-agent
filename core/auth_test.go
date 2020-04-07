@@ -1,139 +1,163 @@
 package core
 
 import (
-	"testing"
-
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"testing"
+	"time"
 )
 
 func TestNewAuth(t *testing.T) {
-	auth := newAuth("tenant", "uuid", "", "secret", "host", "url")
+	auth := NewAuth("uuid", "", "url")
 
-	if auth.tenant != "tenant" {
-		t.Fail()
-	}
 	if auth.uuid != "uuid" {
 		t.Fail()
 	}
-	if auth.secretkey != "secret" {
-		t.Fail()
-	}
-	if auth.hostname != "host" {
-		t.Fail()
-	}
 
-	if auth.authURL != "url" {
+	if auth.authURL != "url"+AuthPath {
+		t.Fail()
+	}
+}
+
+func TestNewError(t *testing.T) {
+	auth := NewAuth("uuid", "", "url%%2")
+
+	if auth != nil {
 		t.Fail()
 	}
 }
 
 func TestNewAuthPwd(t *testing.T) {
-	auth := newAuth("tenant", "uuid", "password", "", "host", "url")
+	auth := NewAuth("uuid", "password", "url")
 
-	if auth.tenant != "tenant" {
-		t.Fail()
-	}
 	if auth.uuid != "uuid" {
 		t.Fail()
 	}
 	if auth.password != "password" {
 		t.Fail()
 	}
-	if auth.hostname != "host" {
-		t.Fail()
-	}
 
-	if auth.authURL != "url" {
+	if auth.authURL != "url"+AuthPath {
 		t.Fail()
 	}
 }
 
-func TestAuth_GetToken(t *testing.T) {
+func TestAuthAuthenticate(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get(HeaderDcc) != "1" {
+			t.Fail()
+		}
 
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		io.WriteString(w, `{"token":"test"}`)
+		io.WriteString(w, `test`)
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(handler))
 	defer server.Close()
 
-	auth := newAuth("tenant", "uuid", "", "secret", "host", server.URL)
+	auth := NewAuth("uuid", "", server.URL)
 
-	token, err := auth.GetToken()
+	err := auth.authenticate()
 	if err != nil {
 		t.Fail()
 	}
-	if token != "test" {
+	if auth.token != "test" {
 		t.Fail()
 	}
 }
 
-func TestAuth_GetTokenPwd(t *testing.T) {
+func TestAuthAuthenticatePwd(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		io.WriteString(w, `{"token":"test"}`)
+		io.WriteString(w, `test`)
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(handler))
 	defer server.Close()
 
-	auth := newAuth("tenant", "uuid", "password", "", "host", server.URL)
+	auth := NewAuth("uuid", "password", server.URL)
 
-	token, err := auth.GetToken()
+	err := auth.authenticate()
 	if err != nil {
 		t.Fail()
 	}
-	if token != "test" {
+	if auth.token != "test" {
 		t.Fail()
 	}
 }
 
-func TestAuth_GetTokenError(t *testing.T) {
+func TestAuthAuthenticateError(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(http.StatusInternalServerError)
 		io.WriteString(w, `{"error":"test"}`)
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(handler))
 	defer server.Close()
 
-	auth := newAuth("tenant", "uuid", "", "secret", "host", server.URL)
+	auth := NewAuth("uuid", "", server.URL)
 
-	token, err := auth.GetToken()
+	err := auth.authenticate()
 
 	if err == nil {
 		t.Fail()
 	}
 
-	if token != "" {
+	if auth.token != "" {
 		t.Fail()
 	}
 }
 
-func TestAuth_GetUnmarshallError(t *testing.T) {
+func TestAuthAuthenticateBodyError(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		io.WriteString(w, `error`)
+		w.WriteHeader(http.StatusOK)
+
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(handler))
 	defer server.Close()
 
-	auth := newAuth("tenant", "uuid", "", "secret", "host", server.URL)
+	auth := NewAuth("uuid", "", server.URL)
 
-	token, err := auth.GetToken()
+	auth.GetToken()
 
-	if err == nil {
+	if auth.GetToken() != "" {
 		t.Fail()
 	}
 
-	if token != "" {
+}
+
+func TestGetTokenFirstError(t *testing.T) {
+	nbcall := 0
+
+	handler := func(w http.ResponseWriter, r *http.Request) {
+
+		if nbcall == 0 {
+			w.WriteHeader(http.StatusUnauthorized)
+		} else {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("token"))
+		}
+		nbcall++
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(handler))
+	defer server.Close()
+
+	auth := NewAuth("uuid", "", server.URL)
+
+	WaitAuth = time.Millisecond
+
+	auth.GetToken()
+
+	if auth.GetToken() != "token" {
 		t.Fail()
 	}
+
 }

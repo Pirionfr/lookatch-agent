@@ -1,11 +1,11 @@
 package core
 
 import (
-	"crypto/tls"
-	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
+	"time"
 
 	"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"
@@ -13,85 +13,86 @@ import (
 
 // Auth representation of auth
 type Auth struct {
-	tenant    string
-	uuid      string
-	password  string
-	secretkey string
-	hostname  string
-	authURL   string
-	client    *http.Client
+	uuid     string
+	password string
+	authURL  string
+	client   *http.Client
+	token    string
 }
 
-// newAuth create new auth
-func newAuth(tenant string, uuid string, password string, secretkey string, hostname string, authURL string) *Auth {
+// AuthPath path of the authentication endpoint
+const AuthPath = "/auth/token"
+const HeaderDcc = "X-Dcc-Auth"
 
-	u, err := url.Parse(authURL)
+// WaitAuth number of second to wait if authentication failed
+var WaitAuth = time.Second * 5
+
+// NewAuth creates a new Auth using the given collector uuid, password and remote base url
+func NewAuth(uuid string, password string, baseURL string) *Auth {
+	u, err := url.Parse(baseURL + AuthPath)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Debug("parsing url")
+		log.WithError(err).Error("parsing url")
 		return nil
 	}
 
-	ht := &http.Transport{
-		TLSClientConfig: &tls.Config{ServerName: u.Host},
-	}
-
 	return &Auth{
-		tenant:    tenant,
-		uuid:      uuid,
-		secretkey: secretkey,
-		password:  password,
-		hostname:  hostname,
-		authURL:   authURL,
+		uuid:     uuid,
+		password: password,
+		authURL:  u.String(),
 		client: &http.Client{
-			Transport: ht,
+			Transport: &http.Transport{
+				Proxy: http.ProxyFromEnvironment,
+			},
 		},
 	}
-
 }
 
-//GetToken get new token
-func (a *Auth) GetToken() (token string, err error) {
-
-	req, err := http.NewRequest("GET", a.authURL, nil)
+// GetToken get token from server
+func (a *Auth) authenticate() (err error) {
+	req, err := http.NewRequest(http.MethodPost, a.authURL, nil)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Debug("get Token")
-		return token, err
+		return
 	}
 
-	req.Header.Add("X-OVH-TENANT", a.tenant)
-	req.Header.Add("X-OVH-UUID", a.uuid)
-	req.Header.Add("X-OVH-PWD", a.password)
-	req.Header.Add("X-OVH-KEY", a.secretkey)
-	req.Header.Add("X-OVH-HOST", a.hostname)
+	//set specific header for auth
+	req.Header.Set(HeaderDcc, "1")
+	req.SetBasicAuth(a.uuid, a.password)
 
 	resp, err := a.client.Do(req)
 	if err != nil {
-		return token, err
+		return
 	}
 
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return token, errors.Annotate(err, "Unable to read Body")
+		err = errors.Annotate(err, "Unable to read Body")
+		return
 	}
 
-	var auth map[string]string
-	if err = json.Unmarshal(body, &auth); err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-			"body":  string(body),
-		}).Error("unmarshal error")
-		return token, errors.Annotate(err, "error unmarshal response body")
+	if resp.StatusCode != http.StatusOK {
+		err = errors.New(resp.Status)
+		return
 	}
 
-	if auth["error"] != "" {
-		return "", errors.New(auth["error"])
+	log.WithField("url", a.authURL).Println("Connected")
+
+	a.token = strings.Replace(string(body), "\"", "", -1)
+
+	return nil
+}
+
+// GetToken return the current token if it exists, get a new one otherwise
+func (a *Auth) GetToken() string {
+	if a.token == "" {
+		err := a.authenticate()
+		for err != nil {
+			log.WithError(err).Error("Error while authenticating. Waiting " + WaitAuth.String() + " before retrying...")
+			time.Sleep(WaitAuth)
+			err = a.authenticate()
+		}
 	}
-	token = auth["token"]
-	return
+
+	return a.token
 }

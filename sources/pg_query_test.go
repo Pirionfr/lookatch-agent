@@ -1,13 +1,13 @@
 package sources
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 
-	"github.com/Pirionfr/lookatch-agent/control"
-	"github.com/Pirionfr/lookatch-agent/events"
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/spf13/viper"
+
+	"github.com/Pirionfr/lookatch-agent/events"
 )
 
 var vPostgreSQLQuery *viper.Viper
@@ -16,18 +16,17 @@ var sPostgreSQLQuery *Source
 func init() {
 	vPostgreSQLQuery = viper.New()
 	vPostgreSQLQuery.Set("agent.hostname", "test")
-	vPostgreSQLQuery.Set("agent.tenant", "test")
 	vPostgreSQLQuery.Set("agent.env", "test")
 	vPostgreSQLQuery.Set("agent.uuid", "test")
 
 	vPostgreSQLQuery.Set("sources.default.autostart", true)
 	vPostgreSQLQuery.Set("sources.default.enabled", true)
 
-	eventChan := make(chan *events.LookatchEvent, 1)
+	eventChan := make(chan events.LookatchEvent, 1)
 
 	agentInfo := &AgentHeader{
 		tenant: events.LookatchTenantInfo{
-			ID:  vPostgreSQLQuery.GetString("agent.tenant"),
+			ID:  vPostgreSQLQuery.GetString("agent.uuid"),
 			Env: vPostgreSQLQuery.GetString("agent.env"),
 		},
 		hostname: vPostgreSQLQuery.GetString("agent.hostname"),
@@ -49,18 +48,7 @@ func TestPostgreSQLQueryGetMeta(t *testing.T) {
 		t.Fail()
 	}
 
-	if len(PostgreSQLQuery.GetMeta()) != 0 {
-		t.Fail()
-	}
-}
-
-func TestPostgreSQLQueryGetSchema(t *testing.T) {
-	PostgreSQLQuery, ok := newPostgreSQLQuery(sPostgreSQLQuery)
-	if ok != nil {
-		t.Fail()
-	}
-
-	if len(PostgreSQLQuery.GetMeta()) != 0 {
+	if len(PostgreSQLQuery.GetMeta()) == 0 {
 		t.Fail()
 	}
 }
@@ -109,12 +97,20 @@ func TestPostgreSQLQueryGetName(t *testing.T) {
 }
 
 func TestPostgreSQLQueryGetStatus(t *testing.T) {
-	PostgreSQLQuery, ok := newPostgreSQLQuery(sPostgreSQLQuery)
+	pgQuery, ok := newPostgreSQLQuery(sPostgreSQLQuery)
 	if ok != nil {
 		t.Fail()
 	}
-	fmt.Println(PostgreSQLQuery.GetStatus())
-	if PostgreSQLQuery.GetStatus() != control.SourceStatusOnError {
+	db, _, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	pQuery := pgQuery.(*PostgreSQLQuery)
+	pQuery.db = db
+
+	if pgQuery.GetStatus() != SourceStatusRunning {
 		t.Fail()
 	}
 }
@@ -131,12 +127,20 @@ func TestPostgreSQLQueryIsEnable(t *testing.T) {
 }
 
 func TestPostgreSQLQueryHealtCheck(t *testing.T) {
-	PostgreSQLQuery, ok := newPostgreSQLQuery(sPostgreSQLQuery)
+	pgQuery, ok := newPostgreSQLQuery(sPostgreSQLQuery)
 	if ok != nil {
 		t.Fail()
 	}
+	db, _, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
 
-	if PostgreSQLQuery.HealthCheck() {
+	pQuery := pgQuery.(*PostgreSQLQuery)
+	pQuery.db = db
+
+	if !pgQuery.HealthCheck() {
 		t.Fail()
 	}
 }
@@ -147,7 +151,7 @@ func TestPostgreSQLQueryGetAvailableActions(t *testing.T) {
 		t.Fail()
 	}
 
-	if PostgreSQLQuery.GetAvailableActions() == nil {
+	if PostgreSQLQuery.GetCapabilities() == nil {
 		t.Fail()
 	}
 }
@@ -158,7 +162,7 @@ func TestPostgreSQLQueryProcess(t *testing.T) {
 		t.Fail()
 	}
 
-	if PostgreSQLQuery.Process("") != nil {
+	if PostgreSQLQuery.Process("") == nil {
 		t.Fail()
 	}
 }
@@ -169,7 +173,7 @@ func TestPostgreSQLQueryGetOutputChan(t *testing.T) {
 		t.Fail()
 	}
 
-	if reflect.TypeOf(PostgreSQLQuery.GetOutputChan()).String() != "chan *events.LookatchEvent" {
+	if reflect.TypeOf(PostgreSQLQuery.GetOutputChan()).String() != "chan events.LookatchEvent" {
 		t.Fail()
 	}
 }

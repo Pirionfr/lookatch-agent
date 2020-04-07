@@ -9,15 +9,15 @@
   "sinks": {
     "default": {
       "enabled": true,
-      "type" : "stdout"
+      "type" : "Stdout"
     }
   },
   "sources": {
     "default": {
       "autostart": true,
       "enabled": true,
-      "type" : "random",
-      "sinks": ["default"],
+      "type" : "Random",
+      "linked_sinks": ["default"],
       "wait" : "1s"
     }
   }

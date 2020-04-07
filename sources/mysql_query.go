@@ -2,10 +2,12 @@ package sources
 
 import (
 	"database/sql"
-	"encoding/json"
+	"errors"
 	"fmt"
 
-	"github.com/Pirionfr/lookatch-agent/control"
+	"github.com/mitchellh/mapstructure"
+
+	"github.com/Pirionfr/lookatch-agent/utils"
 
 	// driver
 	_ "github.com/go-sql-driver/mysql"
@@ -18,13 +20,13 @@ const MysqlQueryType = "MysqlQuery"
 type (
 	// MySQLQuery representation of MySQL Query source
 	MySQLQuery struct {
-		*JDBCQuery
+		*DBSQLQuery
 		config MysqlQueryConfig
 	}
 
 	// MysqlQueryConfig representation MySQL Query configuration
 	MysqlQueryConfig struct {
-		*JDBCQueryConfig
+		*DBSQLQueryConfig
 		Schema  string   `json:"schema"`
 		Exclude []string `json:"exclude"`
 	}
@@ -32,7 +34,7 @@ type (
 
 // newMysqlQuery create a Mysql Query source
 func newMysqlQuery(s *Source) (SourceI, error) {
-	jdbcQuery := NewJDBCQuery(s)
+	gdbcQuery := NewDBSQLQuery(s)
 
 	mysqlQueryConfig := MysqlQueryConfig{}
 	err := s.Conf.UnmarshalKey("sources."+s.Name, &mysqlQueryConfig)
@@ -40,23 +42,25 @@ func newMysqlQuery(s *Source) (SourceI, error) {
 		return nil, err
 	}
 
-	mysqlQueryConfig.JDBCQueryConfig = &jdbcQuery.Config
+	mysqlQueryConfig.DBSQLQueryConfig = &gdbcQuery.Config
 
 	return &MySQLQuery{
-		JDBCQuery: &jdbcQuery,
-		config:    mysqlQueryConfig,
+		DBSQLQuery: &gdbcQuery,
+		config:     mysqlQueryConfig,
 	}, nil
 }
 
 // Init initialisation of Mysql Query source
 func (m *MySQLQuery) Init() {
-
 	//start bi Query Schema
-	err := m.QuerySchema()
+	err := m.Connect("information_schema")
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Error("Error while querying Schema")
+		log.WithError(err).Error("Error while querying Schema")
+		return
+	}
+	err = m.QuerySchema()
+	if err != nil {
+		log.WithError(err).Error("Error while querying Schema")
 		return
 	}
 	log.Debug("Init Done")
@@ -64,73 +68,52 @@ func (m *MySQLQuery) Init() {
 
 // GetStatus returns current status of connexion
 func (m *MySQLQuery) GetStatus() interface{} {
-	m.Connect("information_schema")
-	defer m.db.Close()
-	return m.JDBCQuery.GetStatus()
+	return m.DBSQLQuery.GetStatus()
 }
 
 // HealthCheck returns true if source is ok
 func (m *MySQLQuery) HealthCheck() bool {
-	m.Connect("information_schema")
-	defer m.db.Close()
-	return m.JDBCQuery.HealthCheck()
+	return m.DBSQLQuery.HealthCheck()
 }
 
 // Connect connection to database
-func (m *MySQLQuery) Connect(schema string) {
-
+func (m *MySQLQuery) Connect(schema string) error {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", m.config.User, m.config.Password, m.config.Host, m.config.Port, schema)
 	//dsn += "?tls=skip-verify"
 
 	//first check if db is not already established
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Fatal("open mysql connection")
-	} else {
-		m.db = db
+		return err
 	}
+	m.db = db
 
 	err = m.db.Ping()
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Error("Connection is dead")
-	}
-
-}
-
-// Process process an action
-func (m *MySQLQuery) Process(action string, params ...interface{}) interface{} {
-
-	switch action {
-	case control.SourceQuery:
-		evSQLQuery := &Query{}
-		payload := params[0].([]byte)
-		err := json.Unmarshal(payload, evSQLQuery)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"error": err,
-			}).Fatal("Unable to unmarshal MySQL Query Statement event")
-		} else {
-			m.Query(evSQLQuery.Query)
-		}
-
-	default:
-		log.WithFields(log.Fields{
-			"action": action,
-		}).Error("action not implemented")
+		return err
 	}
 	return nil
 }
 
+// Process process an action
+func (m *MySQLQuery) Process(action string, params ...interface{}) interface{} {
+	switch action {
+	case utils.SourceQuery:
+		evSQLQuery := &Query{}
+		err := mapstructure.Decode(params[0], evSQLQuery)
+		if err != nil {
+			log.WithError(err).Error("Unable to decode MySQL Query Statement event")
+			return err
+		}
+		return m.Query(evSQLQuery.Query)
+
+	default:
+		return errors.New("task not implemented")
+	}
+}
+
 // QuerySchema extract schema from database
 func (m *MySQLQuery) QuerySchema() (err error) {
-
-	m.Connect("information_schema")
-	defer m.db.Close()
-
 	excluded := m.config.Exclude
 	notin := "'information_schema','mysql','performance_schema','sys'"
 
@@ -140,26 +123,20 @@ func (m *MySQLQuery) QuerySchema() (err error) {
 	}
 	log.Info("exclude:", notin)
 
-	q := "SELECT TABLE_CATALOG ,TABLE_SCHEMA ,TABLE_NAME, COLUMN_NAME, ORDINAL_POSITION, IS_NULLABLE, DATA_TYPE, " +
+	q := "SELECT TABLE_CATALOG ,TABLE_SCHEMA ,TABLE_NAME, COLUMN_NAME, ORDINAL_POSITION, " +
+		"CASE WHEN IS_NULLABLE = 'YES' THEN true ELSE false END AS IS_NULLABLE, DATA_TYPE, " +
 		"CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE, COLUMN_TYPE, COLUMN_KEY FROM COLUMNS " +
 		"WHERE TABLE_SCHEMA NOT IN (" + notin + ") ORDER BY TABLE_NAME"
 
-	m.JDBCQuery.QuerySchema(q)
-
-	return
+	return m.DBSQLQuery.QuerySchema(q)
 }
 
 // Query execute query string
-func (m *MySQLQuery) Query(query string) {
-	m.Connect("information_schema")
-	defer m.db.Close()
-	m.JDBCQuery.Query("", query)
+func (m *MySQLQuery) Query(query string) error {
+	return m.DBSQLQuery.Query("", query)
 }
 
 // QueryMeta execute query meta string
-func (m *MySQLQuery) QueryMeta(query string) []map[string]interface{} {
-	m.Connect("information_schema")
-	defer m.db.Close()
-	return m.JDBCQuery.QueryMeta(query)
-
+func (m *MySQLQuery) QueryMeta(query string) ([]map[string]interface{}, error) {
+	return m.DBSQLQuery.QueryMeta(query)
 }
