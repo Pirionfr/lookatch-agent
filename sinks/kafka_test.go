@@ -53,7 +53,7 @@ func TestBuildKafkaSinkConfig(t *testing.T) {
 
 	sink = &Sink{eventChan, stop, commitChan, "kafka", "", vKafka.Sub("sinks.kafka")}
 
-	ksink, err := newKafka(sink)
+	ksink, err := NewKafka(sink)
 	if err != nil {
 		t.Error(err)
 	}
@@ -82,7 +82,7 @@ func TestBuildKafkaSinkConfigTopicSet(t *testing.T) {
 	vKafka.Set("sinks.kafka.topic", "test")
 	sink = &Sink{eventChan, stop, commitChan, "kafka", "", vKafka.Sub("sinks.kafka")}
 
-	ksink, err := newKafka(sink)
+	ksink, err := NewKafka(sink)
 	if err != nil {
 		t.Error(err)
 	}
@@ -98,7 +98,7 @@ func TestBuildKafkaSinktls(t *testing.T) {
 	vKafka.Set("sinks.kafka.tls", false)
 	sink = &Sink{eventChan, stop, commitChan, "kafka", "", vKafka.Sub("sinks.kafka")}
 
-	ksink, err := newKafka(sink)
+	ksink, err := NewKafka(sink)
 	if err != nil {
 		t.Error(err)
 	}
@@ -114,7 +114,7 @@ func TestBuildKafkaSinkClientID(t *testing.T) {
 	vKafka.Set("sinks.kafka.client_id", "test")
 	sink = &Sink{eventChan, stop, commitChan, "kafka", "", vKafka.Sub("sinks.kafka")}
 
-	ksink, err := newKafka(sink)
+	ksink, err := NewKafka(sink)
 	if err != nil {
 		t.Error(err)
 	}
@@ -129,7 +129,7 @@ func TestBuildKafkaSinkSecret(t *testing.T) {
 
 	sink = &Sink{eventChan, stop, commitChan, "kafka", "test", vKafka.Sub("sinks.kafka")}
 
-	ksink, err := newKafka(sink)
+	ksink, err := NewKafka(sink)
 	if err != nil {
 		t.Error(err)
 	}
@@ -143,7 +143,7 @@ func TestBuildKafkaSinkSecret(t *testing.T) {
 func TestProcessGenericEvent(t *testing.T) {
 	sink = &Sink{eventChan, stop, commitChan, "kafka", "", vKafka.Sub("sinks.kafka")}
 
-	ksink, err := newKafka(sink)
+	ksink, err := NewKafka(sink)
 	if err != nil {
 		t.Error(err)
 	}
@@ -168,7 +168,7 @@ func TestProcessGenericEvent(t *testing.T) {
 func TestProcessSqlEvent(t *testing.T) {
 	sink = &Sink{eventChan, stop, commitChan, "kafka", "", vKafka.Sub("sinks.kafka")}
 
-	ksink, err := newKafka(sink)
+	ksink, err := NewKafka(sink)
 	if err != nil {
 		t.Error(err)
 	}

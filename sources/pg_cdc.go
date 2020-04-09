@@ -45,6 +45,7 @@ type (
 		SlotName         string                 `json:"slot_name" mapstructure:"slot_name"`
 		FilterPolicy     string                 `json:"filter_policy" mapstructure:"filter_policy"`
 		Filter           map[string]interface{} `json:"filter"`
+		DefinedPk        map[string]string      `json:"defined_pk" mapstructure:"defined_pk"`
 	}
 
 	// Messages representation of messages
@@ -85,8 +86,8 @@ const PostgreSQLCDCType = "PostgresqlCDC"
 // TickerValue number second to wait between to tick
 const TickerValue = 10
 
-// newPostgreSQLCdc create new PostgreSQL CDC source
-func newPostgreSQLCdc(s *Source) (SourceI, error) {
+// NewPostgreSQLCdc create new PostgreSQL CDC source
+func NewPostgreSQLCdc(s *Source) (SourceI, error) {
 	postgreSQLCDCConf := PostgreSQLCDCConf{}
 	err := s.Conf.UnmarshalKey("sources."+s.Name, &postgreSQLCDCConf)
 	if err != nil {
@@ -99,11 +100,12 @@ func newPostgreSQLCdc(s *Source) (SourceI, error) {
 		},
 		config: PostgreSQLQueryConfig{
 			DBSQLQueryConfig: &DBSQLQueryConfig{
-				Host:     postgreSQLCDCConf.Host,
-				Port:     postgreSQLCDCConf.Port,
-				User:     postgreSQLCDCConf.User,
-				Password: postgreSQLCDCConf.Password,
-				NbWorker: 1,
+				Host:      postgreSQLCDCConf.Host,
+				Port:      postgreSQLCDCConf.Port,
+				User:      postgreSQLCDCConf.User,
+				Password:  postgreSQLCDCConf.Password,
+				NbWorker:  1,
+				DefinedPk: postgreSQLCDCConf.DefinedPk,
 			},
 			Database: postgreSQLCDCConf.Database,
 			SslMode:  postgreSQLCDCConf.SslMode,
@@ -362,12 +364,12 @@ func (p *PostgreSQLCDC) processMsgs(msgs *Messages, serverTime int64) {
 		p.OutputChannel <- events.LookatchEvent{
 			Header: events.LookatchHeader{
 				EventType: PostgreSQLCDCType,
-				Tenant:    p.AgentInfo.tenant,
+				Tenant:    p.AgentInfo.Tenant,
 			},
 			Payload: events.SQLEvent{
 
 				Timestamp:    strconv.FormatInt(timestamp, 10),
-				Environment:  p.AgentInfo.tenant.Env,
+				Environment:  p.AgentInfo.Tenant.Env,
 				Database:     p.config.Database,
 				Schema:       msg.Schema,
 				Table:        msg.Table,
@@ -406,7 +408,7 @@ func (p *PostgreSQLCDC) fieldsToMap(msg Message) (map[string]interface{}, map[st
 	s := make(map[string]interface{})
 	o := make(map[string]interface{})
 	c := make(map[string]events.ColumnsMeta)
-	key = strings.Join(msg.Oldkeys.Keynames, ",")
+
 	if p.config.OldValue {
 		if msg.Kind != "insert" {
 			for index, element := range msg.Oldkeys.Keynames {
@@ -416,7 +418,7 @@ func (p *PostgreSQLCDC) fieldsToMap(msg Message) (map[string]interface{}, map[st
 			}
 		}
 	}
-
+	keys := make([]string, 0)
 	for index, element := range columnNames {
 		if !p.filter.IsFilteredColumn(msg.Schema, msg.Table, element) {
 			s[element] = columnValues[index]
@@ -426,8 +428,18 @@ func (p *PostgreSQLCDC) fieldsToMap(msg Message) (map[string]interface{}, map[st
 					Position: index + 1,
 				}
 			}
+			if ok := p.query.isPrimary(msg.Schema, msg.Table, strconv.Itoa(index)); ok {
+				keys = append(keys, element)
+			}
+
 		}
 	}
+	if len(keys) == 0 {
+		key = p.config.DefinedPk[msg.Schema+"."+msg.Table]
+	} else {
+		key = strings.Join(keys, ",")
+	}
+
 	return s, o, c, key
 }
 

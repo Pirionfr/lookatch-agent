@@ -23,9 +23,9 @@ type (
 	// AgentHeader representation of Agent Header
 	// contain agent auth information for events
 	AgentHeader struct {
-		tenant   events.LookatchTenantInfo
-		hostname string
-		uuid     string
+		Tenant   events.LookatchTenantInfo
+		Hostname string
+		UUID     string
 	}
 
 	// Column representation of schema
@@ -79,32 +79,32 @@ type (
 // sourceCreatorT source Creator func
 type sourceCreatorT func(*Source) (SourceI, error)
 
-// factory source factory
-var factory = map[string]sourceCreatorT{
-	RandomType:              newRandom,
-	MysqlQueryType:          newMysqlQuery,
-	MysqlCDCType:            newMysqlCdc,
-	PostgreSQLQueryType:     newPostgreSQLQuery,
-	PostgreSQLCDCType:       newPostgreSQLCdc,
-	SqlserverQueryType:      newSqlserverSQLQuery,
-	SqlserverCDCType:        newSqlserverCDC,
-	SyslogType:              newSyslog,
-	FileReadingFollowerType: newFileReadingFollower,
+// Factory source Factory
+var Factory = map[string]sourceCreatorT{
+	RandomType:              NewRandom,
+	MysqlQueryType:          NewMysqlQuery,
+	MysqlCDCType:            NewMysqlCdc,
+	PostgreSQLQueryType:     NewPostgreSQLQuery,
+	PostgreSQLCDCType:       NewPostgreSQLCdc,
+	SqlserverQueryType:      NewSqlserverSQLQuery,
+	SqlserverCDCType:        NewSqlserverCDC,
+	SyslogType:              NewSyslog,
+	FileReadingFollowerType: NewFileReadingFollower,
 }
 
 // New create new source
 func New(name string, sourceType string, config *viper.Viper) (s SourceI, err error) {
 	//setup agentHeader
 	agentInfo := &AgentHeader{
-		tenant: events.LookatchTenantInfo{
-			ID:  config.GetString("agent.uuid"),
+		Tenant: events.LookatchTenantInfo{
+			ID:  config.GetString("agent.UUID"),
 			Env: config.GetString("agent.env"),
 		},
-		hostname: config.GetString("agent.hostname"),
-		uuid:     config.GetString("agent.uuid"),
+		Hostname: config.GetString("agent.Hostname"),
+		UUID:     config.GetString("agent.UUID"),
 	}
 
-	sourceCreatorFunc, found := factory[sourceType]
+	sourceCreatorFunc, found := Factory[sourceType]
 	if !found {
 		return nil, errors.Errorf("Source type not found '%s'", sourceType)
 	}

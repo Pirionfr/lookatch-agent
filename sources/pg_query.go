@@ -32,8 +32,8 @@ type (
 	}
 )
 
-// newPostgreSQLQuery create a PostgreSQL Query source
-func newPostgreSQLQuery(s *Source) (SourceI, error) {
+// NewPostgreSQLQuery create a PostgreSQL Query source
+func NewPostgreSQLQuery(s *Source) (SourceI, error) {
 	gdbcQuery := NewDBSQLQuery(s)
 
 	pgQueryConfig := PostgreSQLQueryConfig{}
@@ -97,15 +97,13 @@ func (p *PostgreSQLQuery) Process(action string, params ...interface{}) interfac
 		err := mapstructure.Decode(params[0], evSQLQuery)
 		if err != nil {
 			log.WithError(err).Error("Unable to unmarshal Query Statement event :")
-		} else {
-			err = p.Query(evSQLQuery.Query)
-			log.WithError(err).WithField("query", evSQLQuery.Query).Error("Query Error")
+			return err
 		}
+		return p.Query(evSQLQuery.Query)
 
 	default:
 		return errors.New("task not implemented")
 	}
-	return nil
 }
 
 // QuerySchema extract schema from database

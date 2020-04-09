@@ -32,8 +32,8 @@ type (
 	}
 )
 
-// newMysqlQuery create a Mysql Query source
-func newMysqlQuery(s *Source) (SourceI, error) {
+// NewMysqlQuery create a Mysql Query source
+func NewMysqlQuery(s *Source) (SourceI, error) {
 	gdbcQuery := NewDBSQLQuery(s)
 
 	mysqlQueryConfig := MysqlQueryConfig{}

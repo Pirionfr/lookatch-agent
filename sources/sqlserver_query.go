@@ -32,8 +32,8 @@ type (
 	}
 )
 
-// newSqlserverSQLQuery create a Sqlserver Query source
-func newSqlserverSQLQuery(s *Source) (SourceI, error) {
+// NewSqlserverSQLQuery create a Sqlserver Query source
+func NewSqlserverSQLQuery(s *Source) (SourceI, error) {
 	gdbcQuery := NewDBSQLQuery(s)
 
 	pgQueryConfig := SqlserverQueryConfig{}

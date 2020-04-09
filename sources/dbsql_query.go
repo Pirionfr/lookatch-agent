@@ -15,6 +15,8 @@ import (
 	"github.com/Pirionfr/lookatch-agent/events"
 )
 
+const PRI = "PRI"
+
 type (
 	// DBSQLQuery representation of DBSQL query
 	DBSQLQuery struct {
@@ -26,13 +28,14 @@ type (
 
 	// DBSQLQueryConfig representation of DBSQL query configuration
 	DBSQLQueryConfig struct {
-		Host             string `json:"host"`
-		Port             int    `json:"port"`
-		User             string `json:"user"`
-		Password         string `json:"password"`
-		BatchSize        int    `json:"batch_size" mapstructure:"batch_size"`
-		NbWorker         int    `json:"nb_worker"  mapstructure:"nb_worker"`
-		ColumnsMetaValue bool   `json:"columns_meta" mapstructure:"columns_meta"`
+		Host             string            `json:"host"`
+		Port             int               `json:"port"`
+		User             string            `json:"user"`
+		Password         string            `json:"password"`
+		BatchSize        int               `json:"batch_size" mapstructure:"batch_size"`
+		NbWorker         int               `json:"nb_worker"  mapstructure:"nb_worker"`
+		ColumnsMetaValue bool              `json:"columns_meta" mapstructure:"columns_meta"`
+		DefinedPk        map[string]string `json:"defined_pk" mapstructure:"defined_pk"`
 	}
 
 	// Query representation of query action
@@ -142,6 +145,13 @@ func (d *DBSQLQuery) QuerySchema(q string) (err error) {
 		if _, ok := d.schemas[cs.Schema][cs.Table]; !ok {
 			c := make(map[string]*Column)
 			d.schemas[cs.Schema][cs.Table] = c
+		}
+
+		// Get Defined Primary Key
+		dPk := d.Config.DefinedPk[cs.Schema+"."+cs.Table]
+
+		if dPk != "" && utils.InSlice(strings.Split(dPk, ","), cs.Column) {
+			cs.ColumnKey = PRI
 		}
 
 		d.schemas[cs.Schema][cs.Table][strconv.Itoa(cs.ColumnOrdPos-1)] = cs
@@ -262,14 +272,14 @@ func (d *DBSQLQuery) MarshallWorker(mapchan chan map[string]interface{}, databas
 
 	header := events.LookatchHeader{
 		EventType: MysqlQueryType,
-		Tenant:    d.AgentInfo.tenant,
+		Tenant:    d.AgentInfo.Tenant,
 	}
 	for colmap := range mapchan {
 		d.Source.OutputChannel <- events.LookatchEvent{
 			Header: header,
 			Payload: events.SQLEvent{
-				Tenant:      d.AgentInfo.tenant.ID,
-				Environment: d.AgentInfo.tenant.Env,
+				Tenant:      d.AgentInfo.Tenant.ID,
+				Environment: d.AgentInfo.Tenant.Env,
 				Timestamp:   strconv.FormatInt(time.Now().UnixNano(), 10),
 				Method:      "query",
 				Database:    database,
@@ -383,6 +393,7 @@ func (d *DBSQLQuery) isPrimary(schema, table, columnIDStr string) bool {
 		if columnSchema.ColumnKey == "PRI" {
 			return true
 		}
+
 	}
 	return false
 }

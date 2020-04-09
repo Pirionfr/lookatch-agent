@@ -15,9 +15,9 @@ var sPostgreSQLQuery *Source
 
 func init() {
 	vPostgreSQLQuery = viper.New()
-	vPostgreSQLQuery.Set("agent.hostname", "test")
+	vPostgreSQLQuery.Set("agent.Hostname", "test")
 	vPostgreSQLQuery.Set("agent.env", "test")
-	vPostgreSQLQuery.Set("agent.uuid", "test")
+	vPostgreSQLQuery.Set("agent.UUID", "test")
 
 	vPostgreSQLQuery.Set("sources.default.autostart", true)
 	vPostgreSQLQuery.Set("sources.default.enabled", true)
@@ -25,12 +25,12 @@ func init() {
 	eventChan := make(chan events.LookatchEvent, 1)
 
 	agentInfo := &AgentHeader{
-		tenant: events.LookatchTenantInfo{
-			ID:  vPostgreSQLQuery.GetString("agent.uuid"),
+		Tenant: events.LookatchTenantInfo{
+			ID:  vPostgreSQLQuery.GetString("agent.UUID"),
 			Env: vPostgreSQLQuery.GetString("agent.env"),
 		},
-		hostname: vPostgreSQLQuery.GetString("agent.hostname"),
-		uuid:     vPostgreSQLQuery.GetString("agent.uuid"),
+		Hostname: vPostgreSQLQuery.GetString("agent.Hostname"),
+		UUID:     vPostgreSQLQuery.GetString("agent.UUID"),
 	}
 
 	sPostgreSQLQuery = &Source{
@@ -43,7 +43,7 @@ func init() {
 }
 
 func TestPostgreSQLQueryGetMeta(t *testing.T) {
-	PostgreSQLQuery, ok := newPostgreSQLQuery(sPostgreSQLQuery)
+	PostgreSQLQuery, ok := NewPostgreSQLQuery(sPostgreSQLQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -54,7 +54,7 @@ func TestPostgreSQLQueryGetMeta(t *testing.T) {
 }
 
 func TestPostgreSQLQueryInit(t *testing.T) {
-	PostgreSQLQuery, ok := newPostgreSQLQuery(sPostgreSQLQuery)
+	PostgreSQLQuery, ok := NewPostgreSQLQuery(sPostgreSQLQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -63,7 +63,7 @@ func TestPostgreSQLQueryInit(t *testing.T) {
 }
 
 func TestPostgreSQLQueryStop(t *testing.T) {
-	PostgreSQLQuery, ok := newPostgreSQLQuery(sPostgreSQLQuery)
+	PostgreSQLQuery, ok := NewPostgreSQLQuery(sPostgreSQLQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -75,7 +75,7 @@ func TestPostgreSQLQueryStop(t *testing.T) {
 
 //TODO add standalone mode
 //func TestPostgreSQLQueryStart(t *testing.T) {
-//	PostgreSQLQuery, ok := newPostgreSQLQuery(sPostgreSQLQuery)
+//	PostgreSQLQuery, ok := NewPostgreSQLQuery(sPostgreSQLQuery)
 //	if ok != nil {
 //		t.Fail()
 //	}
@@ -86,7 +86,7 @@ func TestPostgreSQLQueryStop(t *testing.T) {
 //}
 
 func TestPostgreSQLQueryGetName(t *testing.T) {
-	PostgreSQLQuery, ok := newPostgreSQLQuery(sPostgreSQLQuery)
+	PostgreSQLQuery, ok := NewPostgreSQLQuery(sPostgreSQLQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -97,7 +97,7 @@ func TestPostgreSQLQueryGetName(t *testing.T) {
 }
 
 func TestPostgreSQLQueryGetStatus(t *testing.T) {
-	pgQuery, ok := newPostgreSQLQuery(sPostgreSQLQuery)
+	pgQuery, ok := NewPostgreSQLQuery(sPostgreSQLQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -116,7 +116,7 @@ func TestPostgreSQLQueryGetStatus(t *testing.T) {
 }
 
 func TestPostgreSQLQueryIsEnable(t *testing.T) {
-	PostgreSQLQuery, ok := newPostgreSQLQuery(sPostgreSQLQuery)
+	PostgreSQLQuery, ok := NewPostgreSQLQuery(sPostgreSQLQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -127,7 +127,7 @@ func TestPostgreSQLQueryIsEnable(t *testing.T) {
 }
 
 func TestPostgreSQLQueryHealtCheck(t *testing.T) {
-	pgQuery, ok := newPostgreSQLQuery(sPostgreSQLQuery)
+	pgQuery, ok := NewPostgreSQLQuery(sPostgreSQLQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -146,7 +146,7 @@ func TestPostgreSQLQueryHealtCheck(t *testing.T) {
 }
 
 func TestPostgreSQLQueryGetAvailableActions(t *testing.T) {
-	PostgreSQLQuery, ok := newPostgreSQLQuery(sPostgreSQLQuery)
+	PostgreSQLQuery, ok := NewPostgreSQLQuery(sPostgreSQLQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -157,7 +157,7 @@ func TestPostgreSQLQueryGetAvailableActions(t *testing.T) {
 }
 
 func TestPostgreSQLQueryProcess(t *testing.T) {
-	PostgreSQLQuery, ok := newPostgreSQLQuery(sPostgreSQLQuery)
+	PostgreSQLQuery, ok := NewPostgreSQLQuery(sPostgreSQLQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -168,7 +168,7 @@ func TestPostgreSQLQueryProcess(t *testing.T) {
 }
 
 func TestPostgreSQLQueryGetOutputChan(t *testing.T) {
-	PostgreSQLQuery, ok := newPostgreSQLQuery(sPostgreSQLQuery)
+	PostgreSQLQuery, ok := NewPostgreSQLQuery(sPostgreSQLQuery)
 	if ok != nil {
 		t.Fail()
 	}

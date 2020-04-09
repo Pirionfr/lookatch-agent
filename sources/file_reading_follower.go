@@ -29,8 +29,8 @@ type FileReadingFollowerConfig struct {
 // FileReadingFollowerType type of source
 const FileReadingFollowerType = "FileReadingFollower"
 
-// create new FileReadingFollower source
-func newFileReadingFollower(s *Source) (SourceI, error) {
+// NewFileReadingFollower create new FileReadingFollower source
+func NewFileReadingFollower(s *Source) (SourceI, error) {
 	fileReadingFollowerConfig := FileReadingFollowerConfig{}
 	err := s.Conf.UnmarshalKey("sources."+s.Name, &fileReadingFollowerConfig)
 	if err != nil {
@@ -126,7 +126,7 @@ func (f *FileReadingFollower) read() {
 			},
 			Payload: events.GenericEvent{
 				Timestamp:   strconv.Itoa(int(time.Now().Unix())),
-				Environment: f.AgentInfo.tenant.Env,
+				Environment: f.AgentInfo.Tenant.Env,
 				Value:       line.String(),
 				Offset: &events.Offset{
 					Source: strconv.FormatInt(currentOffset, 10),

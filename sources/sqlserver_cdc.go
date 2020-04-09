@@ -57,8 +57,8 @@ type (
 	}
 )
 
-// newSqlserverCDC create a Sqlserver Query source
-func newSqlserverCDC(s *Source) (SourceI, error) {
+// NewSqlserverCDC create a Sqlserver Query source
+func NewSqlserverCDC(s *Source) (SourceI, error) {
 	MSSqlCDCConfig := SqlserverCDCConfig{}
 	err := s.Conf.UnmarshalKey("sources."+s.Name, &MSSqlCDCConfig)
 	if err != nil {
@@ -279,11 +279,11 @@ func (s *SqlserverCDC) ProcessRow(row map[string]interface{}, schema string, tab
 	s.OutputChannel <- events.LookatchEvent{
 		Header: events.LookatchHeader{
 			EventType: SqlserverCDCType,
-			Tenant:    s.AgentInfo.tenant,
+			Tenant:    s.AgentInfo.Tenant,
 		},
 		Payload: events.SQLEvent{
 			Timestamp:   strconv.FormatInt(s.GetTimestampFromLsn(row["__$start_lsn"].([]byte)), 10),
-			Environment: s.AgentInfo.tenant.Env,
+			Environment: s.AgentInfo.Tenant.Env,
 			Database:    s.config.Database,
 			Schema:      schema,
 			Table:       table,

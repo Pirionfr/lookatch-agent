@@ -16,9 +16,9 @@ var sMysqlQuery *Source
 
 func init() {
 	vMysqlQuery = viper.New()
-	vMysqlQuery.Set("agent.hostname", "test")
+	vMysqlQuery.Set("agent.Hostname", "test")
 	vMysqlQuery.Set("agent.env", "test")
-	vMysqlQuery.Set("agent.uuid", "test")
+	vMysqlQuery.Set("agent.UUID", "test")
 
 	vMysqlQuery.Set("sources.default.autostart", true)
 	vMysqlQuery.Set("sources.default.enabled", true)
@@ -26,12 +26,12 @@ func init() {
 	eventChan := make(chan events.LookatchEvent, 1)
 
 	agentInfo := &AgentHeader{
-		tenant: events.LookatchTenantInfo{
-			ID:  vMysqlQuery.GetString("agent.uuid"),
+		Tenant: events.LookatchTenantInfo{
+			ID:  vMysqlQuery.GetString("agent.UUID"),
 			Env: vMysqlQuery.GetString("agent.env"),
 		},
-		hostname: vMysqlQuery.GetString("agent.hostname"),
-		uuid:     vMysqlQuery.GetString("agent.uuid"),
+		Hostname: vMysqlQuery.GetString("agent.Hostname"),
+		UUID:     vMysqlQuery.GetString("agent.UUID"),
 	}
 
 	sMysqlQuery = &Source{
@@ -44,7 +44,7 @@ func init() {
 }
 
 func TestMysqlQueryGetMeta(t *testing.T) {
-	MysqlQuery, ok := newMysqlQuery(sMysqlQuery)
+	MysqlQuery, ok := NewMysqlQuery(sMysqlQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -55,7 +55,7 @@ func TestMysqlQueryGetMeta(t *testing.T) {
 }
 
 func TestMysqlQueryInit(t *testing.T) {
-	MysqlQuery, ok := newMysqlQuery(sMysqlQuery)
+	MysqlQuery, ok := NewMysqlQuery(sMysqlQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -64,7 +64,7 @@ func TestMysqlQueryInit(t *testing.T) {
 }
 
 func TestMysqlQueryStop(t *testing.T) {
-	MysqlQuery, ok := newMysqlQuery(sMysqlQuery)
+	MysqlQuery, ok := NewMysqlQuery(sMysqlQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -76,7 +76,7 @@ func TestMysqlQueryStop(t *testing.T) {
 
 //TODO add standalone mode
 //func TestMysqlQueryStart(t *testing.T) {
-//	MysqlQuery, ok := newMysqlQuery(sMysqlQuery)
+//	MysqlQuery, ok := NewMysqlQuery(sMysqlQuery)
 //	if ok != nil {
 //		t.Fail()
 //	}
@@ -87,7 +87,7 @@ func TestMysqlQueryStop(t *testing.T) {
 //}
 
 func TestMysqlQueryGetName(t *testing.T) {
-	MysqlQuery, ok := newMysqlQuery(sMysqlQuery)
+	MysqlQuery, ok := NewMysqlQuery(sMysqlQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -98,7 +98,7 @@ func TestMysqlQueryGetName(t *testing.T) {
 }
 
 func TestMysqlQueryGetStatus(t *testing.T) {
-	mysqlQuery, ok := newMysqlQuery(sMysqlQuery)
+	mysqlQuery, ok := NewMysqlQuery(sMysqlQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -119,7 +119,7 @@ func TestMysqlQueryGetStatus(t *testing.T) {
 }
 
 func TestMysqlQueryIsEnable(t *testing.T) {
-	MysqlQuery, ok := newMysqlQuery(sMysqlQuery)
+	MysqlQuery, ok := NewMysqlQuery(sMysqlQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -130,7 +130,7 @@ func TestMysqlQueryIsEnable(t *testing.T) {
 }
 
 func TestMysqlQueryHealtCheck(t *testing.T) {
-	mysqlQuery, ok := newMysqlQuery(sMysqlQuery)
+	mysqlQuery, ok := NewMysqlQuery(sMysqlQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -150,7 +150,7 @@ func TestMysqlQueryHealtCheck(t *testing.T) {
 }
 
 func TestMysqlQueryGetAvailableActions(t *testing.T) {
-	MysqlQuery, ok := newMysqlQuery(sMysqlQuery)
+	MysqlQuery, ok := NewMysqlQuery(sMysqlQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -161,7 +161,7 @@ func TestMysqlQueryGetAvailableActions(t *testing.T) {
 }
 
 func TestMysqlQueryProcess(t *testing.T) {
-	MysqlQuery, ok := newMysqlQuery(sMysqlQuery)
+	MysqlQuery, ok := NewMysqlQuery(sMysqlQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -172,7 +172,7 @@ func TestMysqlQueryProcess(t *testing.T) {
 }
 
 func TestMysqlQueryGetOutputChan(t *testing.T) {
-	MysqlQuery, ok := newMysqlQuery(sMysqlQuery)
+	MysqlQuery, ok := NewMysqlQuery(sMysqlQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -183,7 +183,7 @@ func TestMysqlQueryGetOutputChan(t *testing.T) {
 }
 
 func TestQuerySchema(t *testing.T) {
-	mysqlQuery, ok := newMysqlQuery(sMysqlQuery)
+	mysqlQuery, ok := NewMysqlQuery(sMysqlQuery)
 	if ok != nil {
 		t.Fail()
 	}

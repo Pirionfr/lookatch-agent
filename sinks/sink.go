@@ -36,17 +36,17 @@ type (
 //sinkCreator sink Creator func
 type sinkCreator func(*Sink) (SinkI, error)
 
-// factory sink factory
-var factory = map[string]sinkCreator{
-	StdoutType: newStdout,
-	KafkaType:  newKafka,
-	PulsarType: newPulsar,
+// Factory sink Factory
+var Factory = map[string]sinkCreator{
+	StdoutType: NewStdout,
+	KafkaType:  NewKafka,
+	PulsarType: NewPulsar,
 }
 
 // New create new sink
 func New(name string, sinkType string, conf *viper.Viper, stop chan error) (SinkI, error) {
 	//create sink from name
-	sinkCreatorFunc, found := factory[sinkType]
+	sinkCreatorFunc, found := Factory[sinkType]
 	if !found {
 		return nil, errors.Errorf("Sink type not found '%s'", sinkType)
 	}

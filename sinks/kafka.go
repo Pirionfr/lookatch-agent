@@ -66,8 +66,8 @@ type (
 	}
 )
 
-// newKafka create new kafka sink
-func newKafka(s *Sink) (SinkI, error) {
+// NewKafka create new kafka sink
+func NewKafka(s *Sink) (SinkI, error) {
 	ksConf := &kafkaSinkConfig{}
 	err := s.conf.Unmarshal(ksConf)
 	if err != nil {
@@ -229,8 +229,6 @@ func (k *Kafka) startProducer(in chan *KafkaMessage, stop chan error) {
 	}()
 
 	k.producerLoop(producer, in)
-
-	log.Info("startProducer")
 }
 
 func (k *Kafka) producerLoop(producer sarama.SyncProducer, in chan *KafkaMessage) {
@@ -307,7 +305,8 @@ func sendMsg(msgs []*sarama.ProducerMessage, producer sarama.SyncProducer) int64
 		}
 
 		if retries > MaxRetry {
-			log.WithField("nbRetry", retries).Error("Failed to push event to kafka. Stopping agent.")
+			log.WithField("nbRetry", retries).Error("Failed to push event to kafka. Waiting 10s before retrying...")
+			time.Sleep(time.Second * 10)
 		}
 		retries++
 		err = producer.SendMessages(msgs)

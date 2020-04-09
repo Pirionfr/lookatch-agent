@@ -31,8 +31,8 @@ type (
 	}
 )
 
-// newPulsar create new pulsar sink
-func newPulsar(s *Sink) (SinkI, error) {
+// NewPulsar create new pulsar sink
+func NewPulsar(s *Sink) (SinkI, error) {
 
 	ksConf := &pulsarSinkConfig{}
 	err := s.conf.Unmarshal(ksConf)

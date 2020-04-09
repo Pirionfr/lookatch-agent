@@ -60,6 +60,7 @@ type (
 		Mode             string                 `json:"mode"`
 		FilterPolicy     string                 `json:"filter_policy" mapstructure:"filter_policy"`
 		Filter           map[string]interface{} `json:"filter"`
+		DefinedPk        map[string]string      `json:"defined_pk" mapstructure:"defined_pk"`
 	}
 
 	//MysqlCDCMeta representation of metadata
@@ -76,8 +77,8 @@ type (
 	}
 )
 
-// newMysqlCdc create new mysql CDC source
-func newMysqlCdc(s *Source) (SourceI, error) {
+// NewMysqlCdc create new mysql CDC source
+func NewMysqlCdc(s *Source) (SourceI, error) {
 	mysqlCDCConfig := MysqlCDCConfig{}
 	err := s.Conf.UnmarshalKey("sources."+s.Name, &mysqlCDCConfig)
 	if err != nil {
@@ -89,11 +90,12 @@ func newMysqlCdc(s *Source) (SourceI, error) {
 		},
 		config: MysqlQueryConfig{
 			DBSQLQueryConfig: &DBSQLQueryConfig{
-				Host:     mysqlCDCConfig.Host,
-				Port:     mysqlCDCConfig.Port,
-				User:     mysqlCDCConfig.User,
-				Password: mysqlCDCConfig.Password,
-				NbWorker: 1,
+				Host:      mysqlCDCConfig.Host,
+				Port:      mysqlCDCConfig.Port,
+				User:      mysqlCDCConfig.User,
+				Password:  mysqlCDCConfig.Password,
+				NbWorker:  1,
+				DefinedPk: mysqlCDCConfig.DefinedPk,
 			},
 			Schema: "information_schema",
 		},
@@ -372,26 +374,34 @@ func (m *MysqlCDC) parseUpdate(e *canal.RowsEvent) error {
 // sendEvent send event to channel
 func (m *MysqlCDC) sendEvent(ts uint32, action string, table *schema.Table, event map[string]interface{}, oldEvent map[string]interface{}, columnMeta map[string]events.ColumnsMeta) {
 	primaryKey := make([]string, 0)
+	var key string
+
 	for i := range table.PKColumns {
 		primaryKey = append(primaryKey, table.Columns[i].Name)
+	}
+
+	if len(primaryKey) == 0 {
+		key = m.config.DefinedPk[table.Schema+"."+table.Name]
+	} else {
+		key = strings.Join(primaryKey, ",")
 	}
 
 	m.Offset++
 	m.OutputChannel <- events.LookatchEvent{
 		Header: events.LookatchHeader{
 			EventType: MysqlCDCType,
-			Tenant:    m.AgentInfo.tenant,
+			Tenant:    m.AgentInfo.Tenant,
 		},
 		Payload: events.SQLEvent{
 			Timestamp:    fmt.Sprint(ts),
-			Environment:  m.AgentInfo.tenant.Env,
+			Environment:  m.AgentInfo.Tenant.Env,
 			Database:     table.Schema,
 			Table:        table.Name,
 			Method:       action,
 			ColumnsMeta:  columnMeta,
 			OldStatement: oldEvent,
 			Statement:    event,
-			PrimaryKey:   strings.Join(primaryKey, ","),
+			PrimaryKey:   key,
 			Offset: &events.Offset{
 				Source: m.cdcOffset.OffsetString(m.config.Mode),
 				Agent:  strconv.FormatInt(m.Offset, 10),

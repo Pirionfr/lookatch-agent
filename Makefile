@@ -11,7 +11,7 @@ CC 					:= go build
 DFLAGS 				:= -race
 CFLAGS 				:= -X 'main.githash=$(GITHASH)' \
             -X 'main.date=$(DATE)' \
-            -X 'main.version=0.2.0'
+            -X 'main.version=$(VERSION)'
 PLATFORMS=darwin linux windows
 ARCHITECTURES=386 amd64
 
@@ -21,7 +21,7 @@ VPATH 				:= $(BUILD_DIR)
 
 .SECONDEXPANSION:
 .PHONY: all
-all: init format lint release
+all: init format lint test release
 
 .PHONY: init
 init:

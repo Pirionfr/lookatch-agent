@@ -33,3 +33,13 @@ func EscapeCtrl(ctrl []byte) (esc []byte) {
 	}
 	return esc
 }
+
+// FindInSlice check is val is in slice
+func InSlice(slice []string, val string) bool {
+	for _, item := range slice {
+		if item == val {
+			return true
+		}
+	}
+	return false
+}
