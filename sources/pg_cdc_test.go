@@ -17,9 +17,9 @@ var sPgcdc *Source
 
 func init() {
 	vPgcdc = viper.New()
-	vPgcdc.Set("agent.hostname", "test")
+	vPgcdc.Set("agent.Hostname", "test")
 	vPgcdc.Set("agent.env", "test")
-	vPgcdc.Set("agent.uuid", "test")
+	vPgcdc.Set("agent.UUID", "test")
 
 	vPgcdc.Set("sources.default.autostart", true)
 	vPgcdc.Set("sources.default.enabled", true)
@@ -27,12 +27,12 @@ func init() {
 	eventChan := make(chan events.LookatchEvent, 1)
 
 	agentInfo := &AgentHeader{
-		tenant: events.LookatchTenantInfo{
-			ID:  vPgcdc.GetString("agent.uuid"),
+		Tenant: events.LookatchTenantInfo{
+			ID:  vPgcdc.GetString("agent.UUID"),
 			Env: vPgcdc.GetString("agent.env"),
 		},
-		hostname: vPgcdc.GetString("agent.hostname"),
-		uuid:     vPgcdc.GetString("agent.uuid"),
+		Hostname: vPgcdc.GetString("agent.Hostname"),
+		UUID:     vPgcdc.GetString("agent.UUID"),
 	}
 
 	sPgcdc = &Source{
@@ -45,7 +45,7 @@ func init() {
 }
 
 func TestPgcdcGetMeta(t *testing.T) {
-	Pgcdc, ok := newPostgreSQLCdc(sPgcdc)
+	Pgcdc, ok := NewPostgreSQLCdc(sPgcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -56,7 +56,7 @@ func TestPgcdcGetMeta(t *testing.T) {
 }
 
 func TestPgcdcInit(t *testing.T) {
-	Pgcdc, ok := newPostgreSQLCdc(sPgcdc)
+	Pgcdc, ok := NewPostgreSQLCdc(sPgcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -65,7 +65,7 @@ func TestPgcdcInit(t *testing.T) {
 }
 
 func TestPgcdcStop(t *testing.T) {
-	Pgcdc, ok := newPostgreSQLCdc(sPgcdc)
+	Pgcdc, ok := NewPostgreSQLCdc(sPgcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -76,7 +76,7 @@ func TestPgcdcStop(t *testing.T) {
 }
 
 func TestPgcdcGetName(t *testing.T) {
-	Pgcdc, ok := newPostgreSQLCdc(sPgcdc)
+	Pgcdc, ok := NewPostgreSQLCdc(sPgcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -87,7 +87,7 @@ func TestPgcdcGetName(t *testing.T) {
 }
 
 func TestPgcdcGetStatus(t *testing.T) {
-	Pgcdc, ok := newPostgreSQLCdc(sPgcdc)
+	Pgcdc, ok := NewPostgreSQLCdc(sPgcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -98,7 +98,7 @@ func TestPgcdcGetStatus(t *testing.T) {
 }
 
 func TestPgcdcIsEnable(t *testing.T) {
-	Pgcdc, ok := newPostgreSQLCdc(sPgcdc)
+	Pgcdc, ok := NewPostgreSQLCdc(sPgcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -109,7 +109,7 @@ func TestPgcdcIsEnable(t *testing.T) {
 }
 
 func TestPgcdcHealtCheck(t *testing.T) {
-	Pgcdc, ok := newPostgreSQLCdc(sPgcdc)
+	Pgcdc, ok := NewPostgreSQLCdc(sPgcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -120,7 +120,7 @@ func TestPgcdcHealtCheck(t *testing.T) {
 }
 
 func TestPgcdcGetAvailableActions(t *testing.T) {
-	Pgcdc, ok := newPostgreSQLCdc(sPgcdc)
+	Pgcdc, ok := NewPostgreSQLCdc(sPgcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -131,7 +131,7 @@ func TestPgcdcGetAvailableActions(t *testing.T) {
 }
 
 func TestPgcdcProcess(t *testing.T) {
-	Pgcdc, ok := newPostgreSQLCdc(sPgcdc)
+	Pgcdc, ok := NewPostgreSQLCdc(sPgcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -142,7 +142,7 @@ func TestPgcdcProcess(t *testing.T) {
 }
 
 func TestPgcdcGetOutputChan(t *testing.T) {
-	Pgcdc, ok := newPostgreSQLCdc(sPgcdc)
+	Pgcdc, ok := NewPostgreSQLCdc(sPgcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -153,7 +153,7 @@ func TestPgcdcGetOutputChan(t *testing.T) {
 }
 
 func TestGetSlotStatus(t *testing.T) {
-	pgQuery, ok := newPostgreSQLCdc(sPgcdc)
+	pgQuery, ok := NewPostgreSQLCdc(sPgcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -177,7 +177,7 @@ func TestGetSlotStatus(t *testing.T) {
 }
 
 func TestFieldsToMaps1(t *testing.T) {
-	pgQuery, ok := newPostgreSQLCdc(sPgcdc)
+	pgQuery, ok := NewPostgreSQLCdc(sPgcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -251,7 +251,7 @@ func TestFieldsToMaps1(t *testing.T) {
 }
 
 func TestFieldsToMaps2(t *testing.T) {
-	pgQuery, ok := newPostgreSQLCdc(sPgcdc)
+	pgQuery, ok := NewPostgreSQLCdc(sPgcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -285,7 +285,7 @@ func TestFieldsToMaps2(t *testing.T) {
 		},
 	}
 
-	event, oldEvent, cMeta, pk := pCDC.fieldsToMap(msg)
+	event, oldEvent, cMeta, _ := pCDC.fieldsToMap(msg)
 
 	if event["col1"] != 1 {
 		t.Fail()
@@ -298,14 +298,10 @@ func TestFieldsToMaps2(t *testing.T) {
 	if cMeta["col1"].Type != "INT4" {
 		t.Fail()
 	}
-
-	if pk != "col1" {
-		t.Fail()
-	}
 }
 
 func TestFieldsToMaps3(t *testing.T) {
-	pgQuery, ok := newPostgreSQLCdc(sPgcdc)
+	pgQuery, ok := NewPostgreSQLCdc(sPgcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -337,7 +333,7 @@ func TestFieldsToMaps3(t *testing.T) {
 		},
 	}
 
-	event, oldEvent, cMeta, pk := pCDC.fieldsToMap(msg)
+	event, oldEvent, cMeta, _ := pCDC.fieldsToMap(msg)
 
 	if event["col1"] != 2 {
 		t.Fail()
@@ -350,14 +346,10 @@ func TestFieldsToMaps3(t *testing.T) {
 	if len(cMeta) > 0 {
 		t.Fail()
 	}
-
-	if pk != "col1" {
-		t.Fail()
-	}
 }
 
 func TestProcessMsgs(t *testing.T) {
-	pgQuery, ok := newPostgreSQLCdc(sPgcdc)
+	pgQuery, ok := NewPostgreSQLCdc(sPgcdc)
 	if ok != nil {
 		t.Fail()
 	}

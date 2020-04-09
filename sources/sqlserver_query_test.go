@@ -15,9 +15,9 @@ var sMSSQLQuery *Source
 
 func init() {
 	vMSSQLQuery = viper.New()
-	vMSSQLQuery.Set("agent.hostname", "test")
+	vMSSQLQuery.Set("agent.Hostname", "test")
 	vMSSQLQuery.Set("agent.env", "test")
-	vMSSQLQuery.Set("agent.uuid", "test")
+	vMSSQLQuery.Set("agent.UUID", "test")
 
 	vMSSQLQuery.Set("sources.default.autostart", true)
 	vMSSQLQuery.Set("sources.default.enabled", true)
@@ -25,12 +25,12 @@ func init() {
 	eventChan := make(chan events.LookatchEvent, 1)
 
 	agentInfo := &AgentHeader{
-		tenant: events.LookatchTenantInfo{
-			ID:  vMSSQLQuery.GetString("agent.uuid"),
+		Tenant: events.LookatchTenantInfo{
+			ID:  vMSSQLQuery.GetString("agent.UUID"),
 			Env: vMSSQLQuery.GetString("agent.env"),
 		},
-		hostname: vMSSQLQuery.GetString("agent.hostname"),
-		uuid:     vMSSQLQuery.GetString("agent.uuid"),
+		Hostname: vMSSQLQuery.GetString("agent.Hostname"),
+		UUID:     vMSSQLQuery.GetString("agent.UUID"),
 	}
 
 	sMSSQLQuery = &Source{
@@ -43,7 +43,7 @@ func init() {
 }
 
 func TestMSSQLQueryGetMeta(t *testing.T) {
-	MSSQLQuery, ok := newSqlserverSQLQuery(sMSSQLQuery)
+	MSSQLQuery, ok := NewSqlserverSQLQuery(sMSSQLQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -54,7 +54,7 @@ func TestMSSQLQueryGetMeta(t *testing.T) {
 }
 
 func TestMSSQLQueryInit(t *testing.T) {
-	MSSQLQuery, ok := newSqlserverSQLQuery(sMSSQLQuery)
+	MSSQLQuery, ok := NewSqlserverSQLQuery(sMSSQLQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -63,7 +63,7 @@ func TestMSSQLQueryInit(t *testing.T) {
 }
 
 func TestMSSQLQueryStop(t *testing.T) {
-	MSSQLQuery, ok := newSqlserverSQLQuery(sMSSQLQuery)
+	MSSQLQuery, ok := NewSqlserverSQLQuery(sMSSQLQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -75,7 +75,7 @@ func TestMSSQLQueryStop(t *testing.T) {
 
 //TODO add standalone mode
 //func TestMSSQLQueryStart(t *testing.T) {
-//	MSSQLQuery, ok := newSqlserverSQLQuery(sMSSQLQuery)
+//	MSSQLQuery, ok := NewSqlserverSQLQuery(sMSSQLQuery)
 //	if ok != nil {
 //		t.Fail()
 //	}
@@ -86,7 +86,7 @@ func TestMSSQLQueryStop(t *testing.T) {
 //}
 
 func TestMSSQLQueryGetName(t *testing.T) {
-	MSSQLQuery, ok := newSqlserverSQLQuery(sMSSQLQuery)
+	MSSQLQuery, ok := NewSqlserverSQLQuery(sMSSQLQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -97,7 +97,7 @@ func TestMSSQLQueryGetName(t *testing.T) {
 }
 
 func TestMSSQLQueryGetStatus(t *testing.T) {
-	MSSQLQuery, ok := newSqlserverSQLQuery(sMSSQLQuery)
+	MSSQLQuery, ok := NewSqlserverSQLQuery(sMSSQLQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -108,7 +108,7 @@ func TestMSSQLQueryGetStatus(t *testing.T) {
 }
 
 func TestMSSQLQueryIsEnable(t *testing.T) {
-	MSSQLQuery, ok := newSqlserverSQLQuery(sMSSQLQuery)
+	MSSQLQuery, ok := NewSqlserverSQLQuery(sMSSQLQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -119,7 +119,7 @@ func TestMSSQLQueryIsEnable(t *testing.T) {
 }
 
 func TestMSSQLQueryHealtCheck(t *testing.T) {
-	MSSQLQuery, ok := newSqlserverSQLQuery(sMSSQLQuery)
+	MSSQLQuery, ok := NewSqlserverSQLQuery(sMSSQLQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -130,7 +130,7 @@ func TestMSSQLQueryHealtCheck(t *testing.T) {
 }
 
 func TestMSSQLQueryGetAvailableActions(t *testing.T) {
-	MSSQLQuery, ok := newSqlserverSQLQuery(sMSSQLQuery)
+	MSSQLQuery, ok := NewSqlserverSQLQuery(sMSSQLQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -141,7 +141,7 @@ func TestMSSQLQueryGetAvailableActions(t *testing.T) {
 }
 
 func TestMSSQLQueryProcess(t *testing.T) {
-	MSSQLQuery, ok := newSqlserverSQLQuery(sMSSQLQuery)
+	MSSQLQuery, ok := NewSqlserverSQLQuery(sMSSQLQuery)
 	if ok != nil {
 		t.Fail()
 	}
@@ -152,7 +152,7 @@ func TestMSSQLQueryProcess(t *testing.T) {
 }
 
 func TestMSSQLQueryGetOutputChan(t *testing.T) {
-	MSSQLQuery, ok := newSqlserverSQLQuery(sMSSQLQuery)
+	MSSQLQuery, ok := NewSqlserverSQLQuery(sMSSQLQuery)
 	if ok != nil {
 		t.Fail()
 	}

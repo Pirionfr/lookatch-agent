@@ -1,15 +1,30 @@
 {
   "agent": {
-    "loglevel": "debug"
+    "env": "test",
+    "loglevel": "debug",
+    "tenant": "03876fc0-109e-494a-914e-0a10c79a326a",
+    "hostname": "test",
+    "uuid": "7ffbd458-0227-4465-a31d-c3bb8ff405ab",
+    "password": "HDc$^!a/%7iSH#<n!;<m",
+    "healthport" : 8080
   },
   "controller": {
-    "base_url": "https://datacollector.ovh.com",
+    "base_url": "https://api.preprod.dataconvergence.ovh.com",
     "poller_ticker" : "10s"
   },
   "sinks": {
-
+    "d5350a0c-cdae-4790-b9cc-7c69fa0bf7b2": {
+      "enabled": true,
+      "type" : "Stdout"
+    }
   },
   "sources": {
+    "5d63f00a-7512-4f75-a018-933446091c8f": {
+      "host": "51.83.13.173",
+      "port": "5432",
+      "user": "lookatch",
+      "password": "lokatchslave2020"
+    }
 
   }
 }

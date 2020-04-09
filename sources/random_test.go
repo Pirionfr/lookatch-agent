@@ -14,19 +14,19 @@ var sRandom *Source
 
 func init() {
 	vRandom = viper.New()
-	vRandom.Set("agent.hostname", "test")
+	vRandom.Set("agent.Hostname", "test")
 	vRandom.Set("agent.env", "test")
-	vRandom.Set("agent.uuid", "test")
+	vRandom.Set("agent.UUID", "test")
 
 	eventChan := make(chan events.LookatchEvent, 1)
 
 	agentInfo := &AgentHeader{
-		tenant: events.LookatchTenantInfo{
-			ID:  vRandom.GetString("agent.uuid"),
+		Tenant: events.LookatchTenantInfo{
+			ID:  vRandom.GetString("agent.UUID"),
 			Env: vRandom.GetString("agent.env"),
 		},
-		hostname: vRandom.GetString("agent.hostname"),
-		uuid:     vRandom.GetString("agent.uuid"),
+		Hostname: vRandom.GetString("agent.Hostname"),
+		UUID:     vRandom.GetString("agent.UUID"),
 	}
 
 	sRandom = &Source{
@@ -39,7 +39,7 @@ func init() {
 }
 
 func TestRandomGetMeta(t *testing.T) {
-	Random, ok := newRandom(sRandom)
+	Random, ok := NewRandom(sRandom)
 	if ok != nil {
 		t.Fail()
 	}
@@ -50,7 +50,7 @@ func TestRandomGetMeta(t *testing.T) {
 }
 
 func TestRandomGetSchema(t *testing.T) {
-	Random, ok := newRandom(sRandom)
+	Random, ok := NewRandom(sRandom)
 	if ok != nil {
 		t.Fail()
 	}
@@ -61,7 +61,7 @@ func TestRandomGetSchema(t *testing.T) {
 }
 
 func TestRandomInit(t *testing.T) {
-	Random, ok := newRandom(sRandom)
+	Random, ok := NewRandom(sRandom)
 	if ok != nil {
 		t.Fail()
 	}
@@ -70,7 +70,7 @@ func TestRandomInit(t *testing.T) {
 }
 
 func TestRandomStop(t *testing.T) {
-	Random, ok := newRandom(sRandom)
+	Random, ok := NewRandom(sRandom)
 	if ok != nil {
 		t.Fail()
 	}
@@ -81,7 +81,7 @@ func TestRandomStop(t *testing.T) {
 }
 
 func TestRandomStart(t *testing.T) {
-	Random, ok := newRandom(sRandom)
+	Random, ok := NewRandom(sRandom)
 	if ok != nil {
 		t.Fail()
 	}
@@ -92,7 +92,7 @@ func TestRandomStart(t *testing.T) {
 }
 
 func TestRandomGetName(t *testing.T) {
-	Random, ok := newRandom(sRandom)
+	Random, ok := NewRandom(sRandom)
 	if ok != nil {
 		t.Fail()
 	}
@@ -103,7 +103,7 @@ func TestRandomGetName(t *testing.T) {
 }
 
 func TestRandomGetStatus(t *testing.T) {
-	Random, ok := newRandom(sRandom)
+	Random, ok := NewRandom(sRandom)
 	if ok != nil {
 		t.Fail()
 	}
@@ -114,7 +114,7 @@ func TestRandomGetStatus(t *testing.T) {
 }
 
 func TestRandomIsEnable(t *testing.T) {
-	Random, ok := newRandom(sRandom)
+	Random, ok := NewRandom(sRandom)
 	if ok != nil {
 		t.Fail()
 	}
@@ -125,7 +125,7 @@ func TestRandomIsEnable(t *testing.T) {
 }
 
 func TestRandomHealtCheck(t *testing.T) {
-	Random, ok := newRandom(sRandom)
+	Random, ok := NewRandom(sRandom)
 	if ok != nil {
 		t.Fail()
 	}
@@ -136,7 +136,7 @@ func TestRandomHealtCheck(t *testing.T) {
 }
 
 func TestRandomGetAvailableActions(t *testing.T) {
-	Random, ok := newRandom(sRandom)
+	Random, ok := NewRandom(sRandom)
 	if ok != nil {
 		t.Fail()
 	}
@@ -147,7 +147,7 @@ func TestRandomGetAvailableActions(t *testing.T) {
 }
 
 func TestRandomProcess(t *testing.T) {
-	Random, ok := newRandom(sRandom)
+	Random, ok := NewRandom(sRandom)
 	if ok != nil {
 		t.Fail()
 	}
@@ -158,7 +158,7 @@ func TestRandomProcess(t *testing.T) {
 }
 
 func TestRandomGetOutputChan(t *testing.T) {
-	Random, ok := newRandom(sRandom)
+	Random, ok := NewRandom(sRandom)
 	if ok != nil {
 		t.Fail()
 	}

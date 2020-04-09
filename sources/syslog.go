@@ -33,8 +33,8 @@ type SyslogConfig struct {
 	Port int    `json:"Port"`
 }
 
-// newSyslog create new syslog source
-func newSyslog(s *Source) (SourceI, error) {
+// NewSyslog create new syslog source
+func NewSyslog(s *Source) (SourceI, error) {
 	syslogConfig := SyslogConfig{}
 	err := s.Conf.UnmarshalKey("sources."+s.Name, &syslogConfig)
 	if err != nil {
@@ -104,7 +104,7 @@ func (s *Syslog) Start(i ...interface{}) error {
 				},
 				Payload: events.GenericEvent{
 					Timestamp:   strconv.Itoa(int(time.Now().Unix())),
-					Environment: s.AgentInfo.tenant.Env,
+					Environment: s.AgentInfo.Tenant.Env,
 					Value:       logParts,
 				},
 			}

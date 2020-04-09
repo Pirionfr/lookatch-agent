@@ -19,10 +19,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/spf13/viper"
 
-	"github.com/Pirionfr/lookatch-agent/core"
 	"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	"github.com/Pirionfr/lookatch-agent/core"
 )
 
 var (
@@ -153,21 +154,22 @@ func initializeConfig() (*viper.Viper, error) {
 
 // runAgent run an instance of the collector
 func runAgent() {
-	config, err := initializeConfig()
-	if err != nil {
-		closing <- errors.Annotate(err, "Error when Initialize Config")
-		return
-	}
-
-	log.SetOutput(os.Stdout)
-	logLevel, err := log.ParseLevel(config.GetString("agent.loglevel"))
-	if err != nil {
-		logLevel = log.DebugLevel
-	}
-	log.SetLevel(logLevel)
-	log.WithField("level", log.DebugLevel).Info("log level")
-
+	var err error
 	go func() {
+		config, err := initializeConfig()
+		if err != nil {
+			closing <- errors.Annotate(err, "Error when Initialize Config")
+			return
+		}
+
+		log.SetOutput(os.Stdout)
+		logLevel, err := log.ParseLevel(config.GetString("agent.loglevel"))
+		if err != nil {
+			logLevel = log.DebugLevel
+		}
+		log.SetLevel(logLevel)
+		log.WithField("level", log.DebugLevel).Info("log level")
+
 		err = core.Run(config, closing)
 		if err != nil {
 			closing <- err

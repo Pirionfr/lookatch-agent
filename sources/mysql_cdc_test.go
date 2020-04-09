@@ -17,9 +17,9 @@ var sMysqlcdc *Source
 
 func init() {
 	vMysqlcdc = viper.New()
-	vMysqlcdc.Set("agent.hostname", "test")
+	vMysqlcdc.Set("agent.Hostname", "test")
 	vMysqlcdc.Set("agent.env", "test")
-	vMysqlcdc.Set("agent.uuid", "test")
+	vMysqlcdc.Set("agent.UUID", "test")
 
 	vMysqlcdc.Set("sources.default.autostart", true)
 	vMysqlcdc.Set("sources.default.enabled", true)
@@ -27,12 +27,12 @@ func init() {
 	eventChan := make(chan events.LookatchEvent, 1)
 
 	agentInfo := &AgentHeader{
-		tenant: events.LookatchTenantInfo{
-			ID:  vMysqlcdc.GetString("agent.uuid"),
+		Tenant: events.LookatchTenantInfo{
+			ID:  vMysqlcdc.GetString("agent.UUID"),
 			Env: vMysqlcdc.GetString("agent.env"),
 		},
-		hostname: vMysqlcdc.GetString("agent.hostname"),
-		uuid:     vMysqlcdc.GetString("agent.uuid"),
+		Hostname: vMysqlcdc.GetString("agent.Hostname"),
+		UUID:     vMysqlcdc.GetString("agent.UUID"),
 	}
 
 	sMysqlcdc = &Source{
@@ -45,7 +45,7 @@ func init() {
 }
 
 func TestMysqlcdcGetMeta(t *testing.T) {
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -56,7 +56,7 @@ func TestMysqlcdcGetMeta(t *testing.T) {
 }
 
 func TestMysqlcdcGetMeta2(t *testing.T) {
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -67,7 +67,7 @@ func TestMysqlcdcGetMeta2(t *testing.T) {
 }
 
 func TestMysqlcdcInit(t *testing.T) {
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -76,7 +76,7 @@ func TestMysqlcdcInit(t *testing.T) {
 }
 
 func TestMysqlcdcStop(t *testing.T) {
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -88,7 +88,7 @@ func TestMysqlcdcStop(t *testing.T) {
 
 //TODO add standalone mode
 //func TestMysqlcdcStart(t *testing.T) {
-//	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+//	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 //	if ok != nil {
 //		t.Fail()
 //	}
@@ -99,7 +99,7 @@ func TestMysqlcdcStop(t *testing.T) {
 //}
 
 func TestMysqlcdcGetName(t *testing.T) {
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -110,7 +110,7 @@ func TestMysqlcdcGetName(t *testing.T) {
 }
 
 func TestMysqlcdcGetStatus(t *testing.T) {
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -121,7 +121,7 @@ func TestMysqlcdcGetStatus(t *testing.T) {
 }
 
 func TestMysqlcdcIsEnable(t *testing.T) {
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -132,7 +132,7 @@ func TestMysqlcdcIsEnable(t *testing.T) {
 }
 
 func TestMysqlcdcHealtCheck(t *testing.T) {
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -143,7 +143,7 @@ func TestMysqlcdcHealtCheck(t *testing.T) {
 }
 
 func TestMysqlcdcGetAvailableActions(t *testing.T) {
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -154,7 +154,7 @@ func TestMysqlcdcGetAvailableActions(t *testing.T) {
 }
 
 func TestMysqlcdcProcess(t *testing.T) {
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -165,7 +165,7 @@ func TestMysqlcdcProcess(t *testing.T) {
 }
 
 func TestMysqlcdcGetOutputChan(t *testing.T) {
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -177,7 +177,7 @@ func TestMysqlcdcGetOutputChan(t *testing.T) {
 
 func TestOnPosSynced(t *testing.T) {
 
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -196,7 +196,7 @@ func TestOnPosSynced(t *testing.T) {
 
 func TestOnPosSynced2(t *testing.T) {
 
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -219,7 +219,7 @@ func TestOnPosSynced2(t *testing.T) {
 
 func TestOnXID(t *testing.T) {
 
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -237,7 +237,7 @@ func TestOnXID(t *testing.T) {
 
 func TestOnGTID(t *testing.T) {
 
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -259,7 +259,7 @@ func TestOnGTID(t *testing.T) {
 
 func TestOnRotate(t *testing.T) {
 
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -277,7 +277,7 @@ func TestOnRotate(t *testing.T) {
 
 func TestOnTableChanged(t *testing.T) {
 
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -290,7 +290,7 @@ func TestOnTableChanged(t *testing.T) {
 
 func TestOnDDL(t *testing.T) {
 
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -313,7 +313,7 @@ func TestLastBinlog(t *testing.T) {
 
 	mock.ExpectQuery("SHOW MASTER STATUS").WillReturnRows(rows)
 
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -343,7 +343,7 @@ func TestFirstBinlog(t *testing.T) {
 
 	mock.ExpectQuery("SHOW BINLOG EVENTS limit 1").WillReturnRows(rows)
 
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -372,7 +372,7 @@ func TestGetValidMysqlGTIDFromOffset(t *testing.T) {
 
 	mock.ExpectQuery("SELECT @@gtid_purged").WillReturnRows(rows)
 
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -390,7 +390,7 @@ func TestGetValidMysqlGTIDFromOffset(t *testing.T) {
 }
 
 func TestGetValidMysqlGTIDFromOffsetMalformed(t *testing.T) {
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -413,7 +413,7 @@ func TestGetGTIDFromMariaDBPosition(t *testing.T) {
 		sqlmock.NewRows([]string{"GTID"}).
 			AddRow("0-1-234"))
 
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -456,7 +456,7 @@ func TestGetValidMariaDBGTIDFromOffset1(t *testing.T) {
 		sqlmock.NewRows([]string{"GTID"}).
 			AddRow("0-1-2200"))
 
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -496,7 +496,7 @@ func TestGetValidMariaDBGTIDFromOffset2(t *testing.T) {
 		sqlmock.NewRows([]string{"GTID"}).
 			AddRow("0-1-2200"))
 
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -536,7 +536,7 @@ func TestGetValidMariaDBGTIDFromOffset3(t *testing.T) {
 		sqlmock.NewRows([]string{"GTID"}).
 			AddRow("0-1-2200"))
 
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -576,7 +576,7 @@ func TestGetValidMariaDBGTIDFromOffset4(t *testing.T) {
 		sqlmock.NewRows([]string{"GTID"}).
 			AddRow("0-1-2200"))
 
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -608,7 +608,7 @@ func TestGetValidBinlogFromOffset1(t *testing.T) {
 		sqlmock.NewRows([]string{"File", "Position", "Binlog_Do_DB", "Binlog_Ignore_DB"}).
 			AddRow("mysqld-bin.000003", 2319, "", ""))
 
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -637,7 +637,7 @@ func TestGetValidBinlogFromOffset2(t *testing.T) {
 		sqlmock.NewRows([]string{"File", "Position", "Binlog_Do_DB", "Binlog_Ignore_DB"}).
 			AddRow("mysqld-bin.000003", 2319, "", ""))
 
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -666,7 +666,7 @@ func TestGetValidBinlogFromOffset3(t *testing.T) {
 		sqlmock.NewRows([]string{"File", "Position", "Binlog_Do_DB", "Binlog_Ignore_DB"}).
 			AddRow("mysqld-bin.000003", 2319, "", ""))
 
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}
@@ -695,7 +695,7 @@ func TestGetValidBinlogFromOffset4(t *testing.T) {
 		sqlmock.NewRows([]string{"File", "Position", "Binlog_Do_DB", "Binlog_Ignore_DB"}).
 			AddRow("mysqld-bin.000003", 2319, "", ""))
 
-	Mysqlcdc, ok := newMysqlCdc(sMysqlcdc)
+	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
 	}

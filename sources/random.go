@@ -30,8 +30,8 @@ type RandomConfig struct {
 // RandomType type of source
 const RandomType = "Random"
 
-// create new Random source
-func newRandom(s *Source) (SourceI, error) {
+// NewRandom create new Random source
+func NewRandom(s *Source) (SourceI, error) {
 	randomConfig := RandomConfig{}
 	err := s.Conf.UnmarshalKey("sources."+s.Name, &randomConfig)
 	if err != nil {
@@ -56,7 +56,7 @@ func (r *Random) Start(i ...interface{}) error {
 				},
 				Payload: events.GenericEvent{
 					Timestamp:   strconv.Itoa(int(time.Now().Unix())),
-					Environment: r.AgentInfo.tenant.Env,
+					Environment: r.AgentInfo.Tenant.Env,
 					Value:       randomData,
 					Offset: &events.Offset{
 						Source: strconv.FormatUint(r.NbMessages, 10),

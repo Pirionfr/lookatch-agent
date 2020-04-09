@@ -28,7 +28,7 @@ func init() {
 
 func TestNewStdout(t *testing.T) {
 
-	r, err := newStdout(sink)
+	r, err := NewStdout(sink)
 	if err != nil {
 		t.Error(err)
 	}
@@ -38,7 +38,7 @@ func TestNewStdout(t *testing.T) {
 }
 
 func TestGetInputChan(t *testing.T) {
-	r, err := newStdout(sink)
+	r, err := NewStdout(sink)
 	if err != nil {
 		t.Error(err)
 	}
@@ -49,7 +49,7 @@ func TestGetInputChan(t *testing.T) {
 }
 
 func TestStart(t *testing.T) {
-	r, err := newStdout(sink)
+	r, err := NewStdout(sink)
 	if err != nil {
 		t.Error(err)
 	}
@@ -61,7 +61,7 @@ func TestStart(t *testing.T) {
 }
 
 func TestStart2(t *testing.T) {
-	r, err := newStdout(sink)
+	r, err := NewStdout(sink)
 	if err != nil {
 		t.Error(err)
 	}
@@ -88,7 +88,7 @@ func TestStart2(t *testing.T) {
 }
 
 func TestStartBadEvent(t *testing.T) {
-	r, err := newStdout(sink)
+	r, err := NewStdout(sink)
 	if err != nil {
 		t.Error(err)
 	}

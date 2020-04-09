@@ -16,8 +16,8 @@ type Stdout struct {
 // StdoutType type of sink
 const StdoutType = "Stdout"
 
-// newStdout create new stdout sink
-func newStdout(s *Sink) (SinkI, error) {
+// NewStdout create new stdout sink
+func NewStdout(s *Sink) (SinkI, error) {
 	return &Stdout{s}, nil
 }
 
