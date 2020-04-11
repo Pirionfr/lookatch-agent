@@ -48,3 +48,27 @@ func TestEscapeCtrl2(t *testing.T) {
 	}
 
 }
+
+func TestInSlice(t *testing.T) {
+	StringSlice := []string{
+		"foo",
+		"bar",
+	}
+
+	if !InSlice(StringSlice, "foo") {
+		t.Fail()
+	}
+
+}
+
+func TestInSlice2(t *testing.T) {
+	StringSlice := []string{
+		"foo",
+		"bar",
+	}
+
+	if InSlice(StringSlice, "foobar") {
+		t.Fail()
+	}
+
+}
