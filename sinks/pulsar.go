@@ -16,8 +16,8 @@ const PulsarType = "Pulsar"
 
 type (
 
-	// pulsarSinkConfig representation of kafka sink config
-	pulsarSinkConfig struct {
+	// PulsarSinkConfig representation of kafka sink config
+	PulsarSinkConfig struct {
 		Topic string `json:"topic"`
 		URL   string `json:"url"`
 		Token string `json:"token"`
@@ -26,30 +26,30 @@ type (
 	// Pulsar representation of Pulsar sink
 	Pulsar struct {
 		*Sink
-		pulsarConf *pulsarSinkConfig
-		producer   pulsar.Producer
+		PulsarConf *PulsarSinkConfig
+		Producer   pulsar.Producer
 	}
 )
 
 // NewPulsar create new pulsar sink
 func NewPulsar(s *Sink) (SinkI, error) {
 
-	ksConf := &pulsarSinkConfig{}
-	err := s.conf.Unmarshal(ksConf)
+	ksConf := &PulsarSinkConfig{}
+	err := s.Conf.Unmarshal(ksConf)
 	if err != nil {
 		return nil, nil
 	}
 	return &Pulsar{
 		Sink:       s,
-		pulsarConf: ksConf,
+		PulsarConf: ksConf,
 	}, nil
 }
 
-// Start connect to pulsar and start producer
+// Start connect to pulsar and start Producer
 func (p *Pulsar) Start(_ ...interface{}) error {
 	client, err := pulsar.NewClient(pulsar.ClientOptions{
-		URL:                        p.pulsarConf.URL,
-		Authentication:             pulsar.NewAuthenticationToken(p.pulsarConf.Token),
+		URL:                        p.PulsarConf.URL,
+		Authentication:             pulsar.NewAuthenticationToken(p.PulsarConf.Token),
 		TLSAllowInsecureConnection: true,
 	})
 
@@ -57,29 +57,29 @@ func (p *Pulsar) Start(_ ...interface{}) error {
 		return err
 	}
 
-	p.producer, err = client.CreateProducer(pulsar.ProducerOptions{
-		Topic: p.pulsarConf.Topic,
+	p.Producer, err = client.CreateProducer(pulsar.ProducerOptions{
+		Topic: p.PulsarConf.Topic,
 	})
 
 	if err != nil {
 		return err
 	}
 
-	go p.startProducer()
+	go p.StartProducer()
 
 	return nil
 }
 
 // GetInputChan return the input channel attached to this sink
 func (p *Pulsar) GetInputChan() chan events.LookatchEvent {
-	return p.in
+	return p.In
 }
 
-// startConsumer consume input chan
-func (p *Pulsar) startProducer() {
+// StartConsumer consume input chan
+func (p *Pulsar) StartProducer() {
 
-	for msg := range p.in {
-		err := p.processEvent(msg)
+	for msg := range p.In {
+		err := p.ProcessEvent(msg)
 		if err != nil {
 			log.WithError(err).Error("Producer could not send message")
 		}
@@ -87,13 +87,13 @@ func (p *Pulsar) startProducer() {
 
 }
 
-// processEvent convert LookatchEvent to  Pulsar ProducerMessage
-func (p *Pulsar) processEvent(msg events.LookatchEvent) error {
+// ProcessEvent convert LookatchEvent to  Pulsar ProducerMessage
+func (p *Pulsar) ProcessEvent(msg events.LookatchEvent) error {
 	payload, _ := json.Marshal(msg)
 
-	if len(p.encryptionkey) > 0 {
+	if len(p.EncryptionKey) > 0 {
 		var err error
-		payload, err = crypto.EncryptBytes(payload, p.encryptionkey)
+		payload, err = crypto.EncryptBytes(payload, p.EncryptionKey)
 		if err != nil {
 			log.WithError(err).Error("KafkaSink Encrypt Error")
 		}
@@ -103,6 +103,6 @@ func (p *Pulsar) processEvent(msg events.LookatchEvent) error {
 		Payload: payload,
 	}
 
-	_, err := p.producer.Send(context.Background(), pulsarMsg)
+	_, err := p.Producer.Send(context.Background(), pulsarMsg)
 	return err
 }

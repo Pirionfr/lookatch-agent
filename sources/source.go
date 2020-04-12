@@ -2,6 +2,7 @@ package sources
 
 import (
 	"github.com/juju/errors"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"gopkg.in/guregu/null.v3"
 
@@ -17,6 +18,8 @@ const (
 	SourceStatusWaiting        = "WAITING"
 	SourceStatusWaitingForMETA = "WAITING_FOR_META"
 	SourceStatusInit           = "INITIALIZING"
+
+	DefaultChannelSize = 100
 )
 
 type (
@@ -112,9 +115,12 @@ func New(name string, sourceType string, config *viper.Viper) (s SourceI, err er
 	if !config.IsSet("sources." + name) {
 		return nil, errors.Errorf("no custom config found for source name '%s'", name)
 	}
-
-	eventChan := make(chan events.LookatchEvent, 1000)
-	commitChan := make(chan interface{}, 1000)
+	channelSize := DefaultChannelSize
+	if !config.IsSet("sources." + name + ".chan_size") {
+		channelSize = config.GetInt("sources." + name + ".chan_size")
+	}
+	eventChan := make(chan events.LookatchEvent, channelSize)
+	commitChan := make(chan interface{}, channelSize)
 
 	baseSrc := &Source{
 		Name:          name,
@@ -142,7 +148,8 @@ func (s *Source) Stop() error {
 // Start source
 func (s *Source) Start(i ...interface{}) (err error) {
 	s.Status = SourceStatusRunning
-
+	log.Debug("start default UpdateCommittedLsn")
+	go s.UpdateCommittedLsn()
 	return nil
 }
 
@@ -196,9 +203,7 @@ func (s *Source) GetCapabilities() map[string]*utils.TaskDescription {
 
 // UpdateCommittedLsn do noting avoid deadlock
 func (s *Source) UpdateCommittedLsn() {
-	select {
-	case <-s.CommitChannel:
-	default: //Error handling here
-		//do nothing
+	for range s.CommitChannel {
+
 	}
 }

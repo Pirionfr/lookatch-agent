@@ -137,7 +137,11 @@ func (p *PostgreSQLQuery) QuerySchema() (err error) {
 		pg_attribute a
 	WHERE   c.table_schema NOT IN ('information_schema', 'pg_catalog', 'pglogical_origin')
 	    AND a.attname = c.column_name
-	    AND a.attrelid = (quote_ident(c.table_schema) || '.' || quote_ident(c.table_name))::regclass;`
+	    AND a.attrelid = (quote_ident(c.table_schema) || '.' || quote_ident(c.table_name))::regclass
+	order by c.table_catalog,
+	    c.table_schema,
+	    c.table_name,
+	    c.column_name;`
 
 	return p.DBSQLQuery.QuerySchema(q)
 }

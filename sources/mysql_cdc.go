@@ -153,12 +153,12 @@ func (m *MysqlCDC) Start(i ...interface{}) (err error) {
 		m.meta.CommittedOffset = m.config.Offset
 	}
 
-	if m.meta.CommittedOffset != "" {
-		errParse := m.GetValidOffset(m.config.Mode, m.config.Flavor, m.meta.CommittedOffset)
-		if errParse != nil {
-			//restart from beginning
-			m.config.Offset = ""
-		}
+	errParse := m.GetValidOffset(m.config.Mode, m.config.Flavor, m.meta.CommittedOffset)
+	if errParse != nil {
+		//restart from beginning
+		m.config.Offset = ""
+	} else {
+		m.meta.CommittedOffset = m.cdcOffset.OffsetString(m.config.Mode)
 	}
 
 	go func() {
@@ -174,6 +174,10 @@ func (m *MysqlCDC) Start(i ...interface{}) (err error) {
 
 // GetMeta get metadata
 func (m *MysqlCDC) GetMeta() map[string]utils.Meta {
+	log.WithFields(log.Fields{
+		"CommittedOffset": m.meta.CommittedOffset,
+		"CurrentOffset":   m.cdcOffset.OffsetString(m.config.Mode),
+	}).Debug("offset")
 	meta := m.Source.GetMeta()
 
 	for k, v := range structs.Map(m.meta) {
@@ -249,6 +253,15 @@ func (m *MysqlCDC) StartCanal() error {
 
 // OnPosSynced Use your own way to sync position. When force is true, sync position immediately.
 func (m *MysqlCDC) OnPosSynced(pos mysql.Position, gset mysql.GTIDSet, force bool) error {
+	if gset != nil {
+		m.cdcOffset.UpdateGTIDSet(gset)
+	} else {
+		m.cdcOffset.Update(pos)
+	}
+	if force && m.meta.CommittedOffset == "" {
+		m.meta.CommittedOffset = m.cdcOffset.OffsetString(m.config.Mode)
+	}
+
 	return nil
 }
 
@@ -291,6 +304,8 @@ func (m *MysqlCDC) OnRow(e *canal.RowsEvent) error {
 		return nil
 	}
 
+	m.cdcOffset.UpdatePos(e.Header.LogPos)
+
 	switch e.Action {
 	case canal.InsertAction:
 		return m.parseEvent(e)
@@ -314,16 +329,24 @@ func (m *MysqlCDC) parseEvent(e *canal.RowsEvent) error {
 
 		event := make(map[string]interface{})
 		columnMeta := make(map[string]events.ColumnsMeta)
-
-		for index, column := range e.Table.Columns {
-			if len(e.Table.Columns[index].EnumValues) > 0 {
-				event[column.Name] = e.Table.Columns[index].EnumValues[int(row[index].(int64))-1]
+		if len(e.Table.Columns) != len(row) {
+			log.Warn("column Meta and row meta are different")
+		}
+		for index, columnValue := range row {
+			column := e.Table.Columns[index]
+			if len(column.EnumValues) > 0 && columnValue != nil {
+				idEnum := int(columnValue.(int64))
+				if idEnum > 0 {
+					event[column.Name] = column.EnumValues[idEnum-1]
+				} else {
+					event[column.Name] = ""
+				}
 			} else {
-				event[column.Name] = row[index]
+				event[column.Name] = columnValue
 			}
 			if m.config.ColumnsMetaValue {
 				columnMeta[column.Name] = events.ColumnsMeta{
-					Type:     e.Table.Columns[index].RawType,
+					Type:     column.RawType,
 					Position: index,
 				}
 			}
@@ -337,30 +360,44 @@ func (m *MysqlCDC) parseEvent(e *canal.RowsEvent) error {
 
 // parseUpdate parse update rows
 func (m *MysqlCDC) parseUpdate(e *canal.RowsEvent) error {
+
 	for i := 0; i < len(e.Rows); i += 2 {
 		oldRow := e.Rows[i]
 		row := e.Rows[i+1]
 		event := make(map[string]interface{})
 		oldEvent := make(map[string]interface{})
 		columnMeta := make(map[string]events.ColumnsMeta)
-
-		for index, column := range e.Table.Columns {
-			if len(e.Table.Columns[index].EnumValues) > 0 {
-				event[column.Name] = e.Table.Columns[index].EnumValues[int(row[index].(int64))-1]
+		if len(e.Table.Columns) != len(row) {
+			log.Warn("column Meta and row meta are different")
+		}
+		for index, columnValue := range row {
+			column := e.Table.Columns[index]
+			if len(column.EnumValues) > 0 && columnValue != nil {
+				idEnum := int(columnValue.(int64))
+				if idEnum > 0 {
+					event[column.Name] = column.EnumValues[idEnum-1]
+				} else {
+					event[column.Name] = ""
+				}
 			} else {
-				event[e.Table.Columns[index].Name] = row[index]
+				event[column.Name] = columnValue
 			}
 			if m.config.ColumnsMetaValue {
-				columnMeta[e.Table.Columns[index].Name] = events.ColumnsMeta{
-					Type:     e.Table.Columns[index].RawType,
+				columnMeta[column.Name] = events.ColumnsMeta{
+					Type:     column.RawType,
 					Position: index,
 				}
 			}
 			if m.config.OldValue {
-				if len(e.Table.Columns[index].EnumValues) > 0 {
-					oldEvent[e.Table.Columns[index].Name] = e.Table.Columns[index].EnumValues[int(oldRow[index].(int64))-1]
+				if len(column.EnumValues) > 0 && e.Rows[i][index] != nil {
+					idEnum := int(oldRow[index].(int64))
+					if idEnum > 0 {
+						oldEvent[column.Name] = column.EnumValues[idEnum-1]
+					} else {
+						oldEvent[column.Name] = ""
+					}
 				} else {
-					oldEvent[e.Table.Columns[index].Name] = oldRow[index]
+					oldEvent[column.Name] = oldRow[index]
 				}
 			}
 
@@ -497,6 +534,10 @@ func (m *MysqlCDC) GetValidMariaDBGTIDFromOffset(offset string) (mysql.GTIDSet, 
 
 	switch {
 	case uuidSet.Contain(firstGTIDSet) && LastGTIDSet.Contain(uuidSet):
+		slaveGTIDSet, err := m.GetMariaDBPosGTID()
+		if err == nil {
+			uuidSet, _ = mysql.ParseMariadbGTIDSet(fmt.Sprintf("%s,%s", slaveGTIDSet.String(), offset))
+		}
 		return uuidSet, nil
 	case uuidSet.Contain(LastGTIDSet):
 		return LastGTIDSet, nil
@@ -515,6 +556,20 @@ func (m *MysqlCDC) GetGTIDFromMariaDBPosition(pos mysql.Position) (mysql.GTIDSet
 
 	if result[0]["GTID"] != nil {
 		return mysql.ParseMariadbGTIDSet(result[0]["GTID"].(string))
+
+	}
+	return nil, errors.New("can't parse result")
+}
+
+// GetMariaDBPosGTID return mariadb GTIDSet from slave
+func (m *MysqlCDC) GetMariaDBPosGTID() (mysql.GTIDSet, error) {
+	result, err := m.query.QueryMeta("SELECT @@gtid_binlog_pos")
+	if err != nil {
+		return nil, err
+	}
+
+	if result[0]["@@gtid_binlog_pos"] != nil {
+		return mysql.ParseMariadbGTIDSet(result[0]["@@gtid_binlog_pos"].(string))
 
 	}
 	return nil, errors.New("can't parse result")
@@ -588,6 +643,13 @@ func (m *MysqlOffset) OffsetString(mode string) string {
 func (m *MysqlOffset) Update(pos mysql.Position) {
 	m.Lock()
 	m.pos = pos
+	m.Unlock()
+}
+
+// Update set pos
+func (m *MysqlOffset) UpdatePos(pos uint32) {
+	m.Lock()
+	m.pos.Pos = pos
 	m.Unlock()
 }
 

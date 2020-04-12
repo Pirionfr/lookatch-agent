@@ -42,6 +42,16 @@ type (
 	Query struct {
 		Query string `name:"query" description:"SQL query to execute on the source by the collector" required:"true"`
 	}
+
+	// QueryInfo need Inbformation for query Event
+	QueryInfo struct {
+		Database      string
+		Schema        string
+		Table         string
+		PrimaryKey    string
+		ExecTimestamp string
+		ColumnMeta    map[string]events.ColumnsMeta
+	}
 	// SQLSchema  schema     table     Position
 	SQLSchema map[string]map[string]map[string]*Column
 )
@@ -162,8 +172,12 @@ func (d *DBSQLQuery) QuerySchema(q string) (err error) {
 
 // Query send a SQL query to the configured source
 func (d *DBSQLQuery) Query(database string, query string) (err error) {
+	info := QueryInfo{
+		Database:      database,
+		ExecTimestamp: strconv.FormatInt(time.Now().UnixNano(), 10),
+	}
 	//parse query
-	schema, table := d.ExtractDatabaseTable(query)
+	info.Schema, info.Table = d.ExtractDatabaseTable(query)
 
 	log.WithField("query", query).Debug("Start querying")
 	// check that the collector is still connected to the database
@@ -193,19 +207,17 @@ func (d *DBSQLQuery) Query(database string, query string) (err error) {
 	defer rows.Close()
 
 	// Fill in the metadata for each column found in the schema
-	var c map[string]events.ColumnsMeta
-	var primaryKey string
+
 	//columns list of resultset
 	cols, _ := rows.Columns()
 
+	info.PrimaryKey = d.GetPrimary(info.Schema, info.Table)
+
 	if d.Config.ColumnsMetaValue {
-		c = make(map[string]events.ColumnsMeta)
+		info.ColumnMeta = make(map[string]events.ColumnsMeta)
 		for index, element := range cols {
-			if ok := d.isPrimary(schema, table, strconv.Itoa(index)); ok && primaryKey == "" {
-				primaryKey = d.schemas[schema][table][strconv.Itoa(index)].Column
-			}
-			c[element] = events.ColumnsMeta{
-				Type:     d.schemas[schema][table][strconv.Itoa(index)].ColumnType,
+			info.ColumnMeta[element] = events.ColumnsMeta{
+				Type:     d.schemas[info.Schema][info.Table][strconv.Itoa(index)].ColumnType,
 				Position: index + 1,
 			}
 		}
@@ -215,12 +227,10 @@ func (d *DBSQLQuery) Query(database string, query string) (err error) {
 	lineBuffer := make([][]interface{}, BatchSize)
 
 	//The resultset is processed in workers that need to be spawned.
-	//The number of worker is specified in the configuration of the collector.
-	marshallChan := make(chan map[string]interface{}, BatchSize*d.Config.NbWorker)
 	wg := sizedwaitgroup.New(d.Config.NbWorker)
-
 	//l is a counter for chunk size according to batch size
 	l := 0
+
 	for rows.Next() {
 		//we need to give pointers to scan method
 		columns := make([]interface{}, len(cols))
@@ -234,8 +244,7 @@ func (d *DBSQLQuery) Query(database string, query string) (err error) {
 			//do not forget to inc waitgroup for all lines to be processed
 			wg.Add()
 			//spawn another worker per bunch of BatchSize lines
-			go d.MarshallWorker(marshallChan, database, schema, table, primaryKey, c)
-			go d.ProcessLines(cols, lineBuffer, marshallChan, &wg)
+			go d.ProcessLines(cols, lineBuffer, info, &wg)
 
 			//generate a new buffer to prevent reuse of same data container
 			lineBuffer = make([][]interface{}, BatchSize)
@@ -255,52 +264,24 @@ func (d *DBSQLQuery) Query(database string, query string) (err error) {
 	if len(lineBuffer[0]) > 0 {
 		//spawn another worker per bunch of BatchSize lines
 		wg.Add()
-		go d.MarshallWorker(marshallChan, database, schema, table, primaryKey, c)
-		go d.ProcessLines(cols, lineBuffer, marshallChan, &wg)
+		go d.ProcessLines(cols, lineBuffer, info, &wg)
 	}
 	//now wait for all lines to be processed and sent to channel of marshallers
 	wg.Wait()
 	//then close channel to alert marshaller that query is finished
 	log.Debug("Query Done")
-	close(marshallChan)
 	return nil
 }
 
-// MarshallWorker marshall the query statement into json and send it to the output sink
-func (d *DBSQLQuery) MarshallWorker(mapchan chan map[string]interface{}, database string, schema string, table string, key string, columnMeta map[string]events.ColumnsMeta) {
-	iterator := 0
-
-	header := events.LookatchHeader{
-		EventType: MysqlQueryType,
-		Tenant:    d.AgentInfo.Tenant,
-	}
-	for colmap := range mapchan {
-		d.Source.OutputChannel <- events.LookatchEvent{
-			Header: header,
-			Payload: events.SQLEvent{
-				Tenant:      d.AgentInfo.Tenant.ID,
-				Environment: d.AgentInfo.Tenant.Env,
-				Timestamp:   strconv.FormatInt(time.Now().UnixNano(), 10),
-				Method:      "query",
-				Database:    database,
-				Schema:      schema,
-				Table:       table,
-				Statement:   colmap,
-				ColumnsMeta: columnMeta,
-				PrimaryKey:  key,
-			},
-		}
-		iterator++
-	}
-	log.WithField("processedLines", iterator).Debug("Worker done")
-}
-
 // ProcessLines process batches of lines from a resultset to map them before sending them to a marshall goroutine
-func (d *DBSQLQuery) ProcessLines(columns []string, lines [][]interface{}, mapchan chan map[string]interface{}, wg *sizedwaitgroup.SizedWaitGroup) {
+func (d *DBSQLQuery) ProcessLines(columns []string, lines [][]interface{}, info QueryInfo, wg *sizedwaitgroup.SizedWaitGroup) {
 	log.Debug("PROCESSING")
+	header := events.LookatchHeader{
+		Tenant: d.AgentInfo.Tenant,
+	}
 	var colmap map[string]interface{}
 	var err error
-	for _, values := range lines {
+	for index, values := range lines {
 		colmap = make(map[string]interface{})
 		if len(values) == 0 {
 			break
@@ -318,7 +299,24 @@ func (d *DBSQLQuery) ProcessLines(columns []string, lines [][]interface{}, mapch
 			}
 
 		}
-		mapchan <- colmap
+		d.Source.OutputChannel <- events.LookatchEvent{
+			Header: header,
+			Payload: events.SQLEvent{
+				Tenant:      d.AgentInfo.Tenant.ID,
+				Environment: d.AgentInfo.Tenant.Env,
+				Timestamp:   info.ExecTimestamp,
+				Method:      "query",
+				Database:    info.Database,
+				Schema:      info.Schema,
+				Table:       info.Table,
+				Statement:   colmap,
+				ColumnsMeta: info.ColumnMeta,
+				PrimaryKey:  info.PrimaryKey,
+				Offset: &events.Offset{
+					Agent: strconv.Itoa(index),
+				},
+			},
+		}
 	}
 	log.Debug("PROCESS DONE")
 	//when jobs done notify group
@@ -400,10 +398,12 @@ func (d *DBSQLQuery) isPrimary(schema, table, columnIDStr string) bool {
 
 // GetPrimary check if columns is primary key
 func (d *DBSQLQuery) GetPrimary(schema, table string) string {
+	primaryKey := make([]string, 0)
 	for i := range d.schemas[schema][table] {
 		if d.schemas[schema][table][i].ColumnKey == "PRI" {
-			return d.schemas[schema][table][i].Column
+			primaryKey = append(primaryKey, d.schemas[schema][table][i].Column)
 		}
 	}
-	return ""
+
+	return strings.Join(primaryKey, ",")
 }

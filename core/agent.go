@@ -102,7 +102,7 @@ func newAgent(config *viper.Viper, s chan error) (a *Agent) {
 // else agent will be standalone mode
 func Run(config *viper.Viper, s chan error) (err error) {
 	a := newAgent(config, s)
-
+	a.healthCheckChecker()
 	if config.Get("controller") != nil {
 		err = a.RemoteInit()
 	} else {
@@ -116,9 +116,9 @@ func Run(config *viper.Viper, s chan error) (err error) {
 	if err != nil {
 		return err
 	}
-	a.healthCheckChecker()
 
-	return err
+	a.status = AgentStatusOnline
+	return nil
 }
 
 // RemoteInit init controller
@@ -184,7 +184,7 @@ func (a *Agent) updateConfig(b []byte) (err error) {
 		return
 	}
 	log.Info("Configuration updated")
-	a.status = AgentStatusOnline
+	a.status = AgentStatusStarting
 	a.encryptionKey = a.config.GetString("agent.encryptionKey")
 	return
 }
@@ -357,6 +357,11 @@ func (a *Agent) LoadMultiplexer(multiplexer *map[string][]string) error {
 				return errors.Errorf("sink name '%s' not found\n", sinkName)
 			}
 			sinksChan = append(sinksChan, aSink.GetInputChan())
+			log.WithFields(
+				log.Fields{
+					"sourceName": sourceName,
+					"sinkName":   sinkName,
+				}).Debug("create link")
 		}
 		a.multiplexers[sourceName] = NewMultiplexer(src.GetOutputChan(), sinksChan)
 	}
@@ -381,6 +386,7 @@ func (a *Agent) LoadDeMultiplexer(demux *map[string][]string) error {
 			sinksChan = append(sinksChan, aSink.GetCommitChan())
 		}
 		a.deMultiplexers[sourceName] = NewDemultiplexer(sinksChan, src.GetCommitChan())
+
 	}
 	return nil
 }
@@ -433,6 +439,10 @@ func (a *Agent) setSink(sinkName string, s sinks.SinkI) {
 
 // HealthCheck returns true if agent and all source are up
 func (a *Agent) HealthCheck() (alive bool) {
+	if a.status == AgentStatusStarting {
+		return true
+	}
+
 	sourceList := a.getSources()
 	for _, source := range sourceList {
 		if !source.HealthCheck() {

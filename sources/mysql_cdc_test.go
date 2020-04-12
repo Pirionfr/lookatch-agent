@@ -189,7 +189,7 @@ func TestOnPosSynced(t *testing.T) {
 		t.Fail()
 	}
 
-	if mysqlCDC.cdcOffset.Position().Compare(mysql.Position{Pos: 3, Name: "test"}) != 0 {
+	if mysqlCDC.cdcOffset.Position().Compare(mysql.Position{Pos: 5, Name: "test"}) != 0 {
 		t.Fail()
 	}
 }
@@ -212,7 +212,7 @@ func TestOnPosSynced2(t *testing.T) {
 		t.Fail()
 	}
 
-	if !mysqlCDC.cdcOffset.GTIDSet().Equal(gSet) {
+	if !mysqlCDC.cdcOffset.GTIDSet().Equal(newGSet) {
 		t.Fail()
 	}
 }
@@ -456,6 +456,10 @@ func TestGetValidMariaDBGTIDFromOffset1(t *testing.T) {
 		sqlmock.NewRows([]string{"GTID"}).
 			AddRow("0-1-2200"))
 
+	mock.ExpectQuery("SELECT @@gtid_binlog_pos").WillReturnRows(
+		sqlmock.NewRows([]string{"@@gtid_binlog_pos"}).
+			AddRow("0-1-2200"))
+
 	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
@@ -496,6 +500,10 @@ func TestGetValidMariaDBGTIDFromOffset2(t *testing.T) {
 		sqlmock.NewRows([]string{"GTID"}).
 			AddRow("0-1-2200"))
 
+	mock.ExpectQuery("SELECT @@gtid_binlog_pos").WillReturnRows(
+		sqlmock.NewRows([]string{"@@gtid_binlog_pos"}).
+			AddRow("0-1-2200,11-3-1"))
+
 	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
 	if ok != nil {
 		t.Fail()
@@ -508,7 +516,7 @@ func TestGetValidMariaDBGTIDFromOffset2(t *testing.T) {
 		t.Fail()
 	}
 
-	if set == nil || set.String() != "0-1-235" {
+	if set == nil || set.String() != "0-1-235,11-3-1" {
 		t.Fail()
 	}
 }
@@ -534,6 +542,10 @@ func TestGetValidMariaDBGTIDFromOffset3(t *testing.T) {
 
 	mock.ExpectQuery(`SELECT BINLOG_GTID_POS\("mysqld-bin.000003", 2319\) as GTID`).WillReturnRows(
 		sqlmock.NewRows([]string{"GTID"}).
+			AddRow("0-1-2200"))
+
+	mock.ExpectQuery("SELECT @@gtid_binlog_pos").WillReturnRows(
+		sqlmock.NewRows([]string{"@@gtid_binlog_pos"}).
 			AddRow("0-1-2200"))
 
 	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)
@@ -574,6 +586,10 @@ func TestGetValidMariaDBGTIDFromOffset4(t *testing.T) {
 
 	mock.ExpectQuery(`SELECT BINLOG_GTID_POS\("mysqld-bin.000003", 2319\) as GTID`).WillReturnRows(
 		sqlmock.NewRows([]string{"GTID"}).
+			AddRow("0-1-2200"))
+
+	mock.ExpectQuery("SELECT @@gtid_binlog_pos").WillReturnRows(
+		sqlmock.NewRows([]string{"@@gtid_binlog_pos"}).
 			AddRow("0-1-2200"))
 
 	Mysqlcdc, ok := NewMysqlCdc(sMysqlcdc)

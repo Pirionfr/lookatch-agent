@@ -13,7 +13,6 @@ var (
 
 func init() {
 	vSink = viper.New()
-	vSink.Set("sinks.default.autostart", true)
 	vSink.Set("sinks.default.enabled", true)
 }
 

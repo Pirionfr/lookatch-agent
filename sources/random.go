@@ -45,6 +45,9 @@ func NewRandom(s *Source) (SourceI, error) {
 
 // Start source
 func (r *Random) Start(i ...interface{}) error {
+	if err := r.Source.Start(i); err != nil {
+		return err
+	}
 	go func() {
 		wait, _ := time.ParseDuration(r.config.Wait)
 		for {

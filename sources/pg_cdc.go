@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Pirionfr/structs"
@@ -23,12 +24,13 @@ type (
 	// PostgreSQLCDC representation of PostgreSQL change data capture
 	PostgreSQLCDC struct {
 		*Source
-		config PostgreSQLCDCConf
-		query  *PostgreSQLQuery
-		filter *utils.Filter
-		conn   *pgconn.PgConn
-		meta   Meta
-		ctx    context.Context
+		config         PostgreSQLCDCConf
+		query          *PostgreSQLQuery
+		filter         *utils.Filter
+		conn           *pgconn.PgConn
+		meta           Meta
+		ctx            context.Context
+		CommittedState *OffsetCommittedState
 	}
 
 	// PostgreSQLCDCConf representation of PostgreSQL change data capture configuration
@@ -77,6 +79,13 @@ type (
 		CurrentLsn   pglogrepl.LSN `json:"current_lsn"`
 		CommittedLsn pglogrepl.LSN `json:"committed_lsn"`
 		SlotStatus   bool          `json:"slotstatus"`
+		ServerWALEnd pglogrepl.LSN `json:"werver_wal_end"`
+	}
+
+	//OffsetComittedState keep track offSend Event
+	OffsetCommittedState struct {
+		sync.RWMutex
+		SendedLsn []pglogrepl.LSN
 	}
 )
 
@@ -119,7 +128,8 @@ func NewPostgreSQLCdc(s *Source) (SourceI, error) {
 			FilterPolicy: postgreSQLCDCConf.FilterPolicy,
 			Filter:       postgreSQLCDCConf.Filter,
 		},
-		ctx: context.Background(),
+		ctx:            context.Background(),
+		CommittedState: NewOffsetCommittedState(),
 	}
 
 	return p, nil
@@ -142,12 +152,6 @@ func (p *PostgreSQLCDC) Start(i ...interface{}) (err error) {
 	err = p.Source.Start(i)
 	if err != nil {
 		return
-	}
-
-	p.conn, err = p.NewConn()
-	if err != nil {
-		log.WithError(err).Error("Unable to start replication")
-		return err
 	}
 
 	go p.UpdateCommittedLsn()
@@ -206,35 +210,49 @@ func (p *PostgreSQLCDC) NewConn() (*pgconn.PgConn, error) {
 
 // StartReplication Start Replication
 func (p *PostgreSQLCDC) StartReplication() {
-
-	sysident, err := pglogrepl.IdentifySystem(context.Background(), p.conn)
+	var err error
+	p.conn, err = p.NewConn()
 	if err != nil {
-		log.Fatalln("Identify System failed:", err)
+		log.WithError(err).Error("Unable to start replication")
+		return
 	}
-	p.meta.CommittedLsn = sysident.XLogPos
-	p.meta.CurrentLsn = sysident.XLogPos
+
+	sysident, err := pglogrepl.IdentifySystem(p.ctx, p.conn)
+	if err != nil {
+		log.Fatalln("IdentifySystem failed:", err)
+	}
+	log.WithFields(
+		log.Fields{
+			"SystemID": sysident.SystemID,
+			"Timeline": sysident.Timeline,
+			"XLogPos":  sysident.XLogPos,
+			"DBName":   sysident.DBName,
+		}).Info("IdentifySystem")
+
+	p.meta.CommittedLsn, _ = p.GetConfirmedFlushLsn()
 	// start replication
 	log.WithField("offset", p.meta.CommittedLsn).Debug("Starting replication")
 
 	options := pglogrepl.StartReplicationOptions{
 		PluginArgs: []string{},
+		Mode:       pglogrepl.LogicalReplication,
 	}
 
-	err = pglogrepl.StartReplication(p.ctx, p.conn, p.config.SlotName, p.meta.CommittedLsn, options)
+	err = pglogrepl.StartReplication(p.ctx, p.conn, p.config.SlotName, pglogrepl.LSN(0), options)
 	if err != nil {
 		//slot not created waiting for event
 		for strings.Contains(err.Error(), "SQLSTATE 42704") {
 			log.WithError(err).Warn("NewConn()")
 			log.Warn("Waiting 5 seconds to try again")
 			time.Sleep(5 * time.Second)
-			err = pglogrepl.StartReplication(p.ctx, p.conn, p.config.SlotName, p.meta.CommittedLsn, options)
+			err = pglogrepl.StartReplication(p.ctx, p.conn, p.config.SlotName, pglogrepl.LSN(0), options)
 		}
 		log.WithError(err).Fatal("Unable to Start Replication")
 	}
 }
 
 // checkStatus check Status
-func (p *PostgreSQLCDC) checkStatus() {
+func (p *PostgreSQLCDC) checkStatus(force bool) {
 	var err error
 	// Stream closed
 	if p.conn.IsClosed() {
@@ -251,8 +269,12 @@ func (p *PostgreSQLCDC) checkStatus() {
 		p.StartReplication()
 	}
 
-	standbyStatusUpdate := pglogrepl.StandbyStatusUpdate{
-		WALWritePosition: p.meta.CommittedLsn,
+	standbyStatusUpdate := pglogrepl.StandbyStatusUpdate{}
+	if force {
+		standbyStatusUpdate.WALWritePosition = p.meta.ServerWALEnd
+		p.meta.CommittedLsn = p.meta.ServerWALEnd
+	} else {
+		standbyStatusUpdate.WALWritePosition = p.meta.CommittedLsn
 	}
 
 	err = pglogrepl.SendStandbyStatusUpdate(p.ctx, p.conn, standbyStatusUpdate)
@@ -260,9 +282,9 @@ func (p *PostgreSQLCDC) checkStatus() {
 		log.WithError(err).Error("SendStandbyStatusUpdate failed")
 	}
 	log.WithFields(log.Fields{
-		"commitedLsn": p.meta.CommittedLsn,
-		"currentLsn":  p.meta.CurrentLsn,
-		"SlotStatus":  p.meta.SlotStatus,
+		"committedLsn": p.meta.CommittedLsn,
+		"currentLsn":   p.meta.CurrentLsn,
+		"SlotStatus":   p.meta.SlotStatus,
 	}).Info("Send agent Status")
 }
 
@@ -274,13 +296,15 @@ func (p *PostgreSQLCDC) decodeEvents() {
 
 	standbyTimeout := time.Second * TickerValue
 	nextStatusSend := time.Now().Add(standbyTimeout)
-
+	processEvent := false
 	for {
 		if time.Now().After(nextStatusSend) {
-			p.checkStatus()
+			p.checkStatus(p.CommittedState.IsEmpty())
 			nextStatusSend = time.Now().Add(standbyTimeout)
 		}
-
+		if processEvent {
+			continue
+		}
 		ctx, cancel := context.WithDeadline(p.ctx, nextStatusSend)
 		repMsg, err = p.conn.ReceiveMessage(ctx)
 		cancel()
@@ -290,7 +314,7 @@ func (p *PostgreSQLCDC) decodeEvents() {
 			}
 			if p.conn.IsClosed() {
 				//reconnect
-				log.Debug("Reconnecting...")
+				log.Warn("Reconnecting...")
 				p.conn, err = p.NewConn()
 				if err != nil {
 					log.WithError(err).Fatal("connection dead")
@@ -312,17 +336,26 @@ func (p *PostgreSQLCDC) decodeEvents() {
 				if err != nil {
 					log.WithError(err).Fatal("Parse PrimaryKeepaliveMessage failed")
 				}
+				p.meta.ServerWALEnd = pkm.ServerWALEnd
+				p.meta.CurrentLsn = p.meta.ServerWALEnd
+				log.WithFields(
+					log.Fields{
+						"ServerWALEnd":   pkm.ServerWALEnd,
+						"ServerTime":     pkm.ServerTime,
+						"ReplyRequested": pkm.ReplyRequested,
+					}).Debug("Primary Keepalive Message")
 
 				if pkm.ReplyRequested {
 					nextStatusSend = time.Time{}
 				}
-
+			case pglogrepl.StandbyStatusUpdateByteID:
+				nextStatusSend = time.Time{}
 			case pglogrepl.XLogDataByteID:
 				xld, err := pglogrepl.ParseXLogData(msg.Data[1:])
 				if err != nil {
 					log.WithError(err).Fatal("ParseXLogData failed:", err)
 				}
-				p.meta.CurrentLsn = xld.WALStart + pglogrepl.LSN(len(xld.WALData))
+				p.meta.CurrentLsn = xld.WALStart
 				msgs = &Messages{}
 				err = json.Unmarshal(utils.EscapeCtrl(xld.WALData), msgs)
 				if err != nil {
@@ -332,8 +365,15 @@ func (p *PostgreSQLCDC) decodeEvents() {
 					}).Error("failed parse to JSON from PG")
 					continue
 				} else {
-					p.processMsgs(msgs, xld.ServerTime.UnixNano())
+					processEvent = true
+					go func() {
+						defer func() {
+							processEvent = false
+						}()
+						p.processMsgs(msgs, xld.ServerTime.UnixNano())
+					}()
 				}
+				p.meta.CurrentLsn = xld.WALStart + pglogrepl.LSN(len(xld.WALData))
 			}
 		default:
 			log.Printf("Received unexpected message: %#v\n", msg)
@@ -360,7 +400,7 @@ func (p *PostgreSQLCDC) processMsgs(msgs *Messages, serverTime int64) {
 		}
 
 		statement, OldStatement, columTypes, key := p.fieldsToMap(msg)
-
+		p.CommittedState.Add(p.meta.CurrentLsn)
 		p.OutputChannel <- events.LookatchEvent{
 			Header: events.LookatchHeader{
 				EventType: PostgreSQLCDCType,
@@ -456,6 +496,22 @@ func (p *PostgreSQLCDC) GetSlotStatus() bool {
 	return result[0]["active"].(bool)
 }
 
+// GetRestartLsn Get restart Lsn
+func (p *PostgreSQLCDC) GetConfirmedFlushLsn() (pglogrepl.LSN, error) {
+
+	query := fmt.Sprintf("select confirmed_flush_lsn FROM pg_replication_slots where slot_name='%s'", p.config.SlotName)
+	result, err := p.query.QueryMeta(query)
+	if err != nil {
+		return 0, err
+	}
+	if result == nil {
+		return 0, fmt.Errorf("no commitedLsn found for slot '%s'", p.config.SlotName)
+	}
+
+	return pglogrepl.ParseLSN(result[0]["confirmed_flush_lsn"].(string))
+
+}
+
 // UpdateCommittedLsn  update CommittedLsn
 func (p *PostgreSQLCDC) UpdateCommittedLsn() {
 	for committedLsn := range p.CommitChannel {
@@ -463,6 +519,58 @@ func (p *PostgreSQLCDC) UpdateCommittedLsn() {
 		if err != nil {
 			log.WithError(err).Error("Error while updating committed Lsn")
 		}
+		p.CommittedState.CleanFromLsn(lsn)
 		p.meta.CommittedLsn = lsn
 	}
+}
+
+func NewOffsetCommittedState() *OffsetCommittedState {
+	return &OffsetCommittedState{
+		RWMutex:   sync.RWMutex{},
+		SendedLsn: make([]pglogrepl.LSN, 0),
+	}
+}
+
+//IsEmpty check if no offset in State
+func (c *OffsetCommittedState) IsEmpty() bool {
+	c.Lock()
+	isEmpty := false
+	if len(c.SendedLsn) == 0 {
+		isEmpty = true
+	}
+	c.Unlock()
+	return isEmpty
+}
+
+//Add add new lsn to state
+func (c *OffsetCommittedState) Add(lsn pglogrepl.LSN) {
+	c.Lock()
+	c.SendedLsn = append(c.SendedLsn, lsn)
+	c.Unlock()
+}
+
+//search return position of lsn in state, -1 otherwise
+func (c *OffsetCommittedState) search(lsn pglogrepl.LSN) int {
+	c.Lock()
+	index := -1
+	for ind, v := range c.SendedLsn {
+		if v == lsn {
+			index = ind
+			break
+		}
+	}
+	c.Unlock()
+	return index
+}
+
+//CleanFromLsn clean old lsn state
+func (c *OffsetCommittedState) CleanFromLsn(lsn pglogrepl.LSN) {
+	pos := c.search(lsn)
+	for pos != -1 {
+		c.Lock()
+		c.SendedLsn = c.SendedLsn[pos+1:]
+		c.Unlock()
+		pos = c.search(lsn)
+	}
+
 }
