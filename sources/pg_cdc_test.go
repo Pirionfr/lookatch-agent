@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/jackc/pglogrepl"
 	"github.com/spf13/viper"
 	"gopkg.in/guregu/null.v3"
 
@@ -397,6 +398,127 @@ func TestProcessMsgs(t *testing.T) {
 	}
 
 	if lk.Payload.(events.SQLEvent).Statement["col1"] != 1 {
+		t.Fail()
+	}
+}
+
+func TestNewOffsetCommittedStateAdd(t *testing.T) {
+	state := NewOffsetCommittedState()
+
+	if len(state.SendedLsn) > 0 {
+		t.Fail()
+	}
+	state.Add(pglogrepl.LSN(0))
+	state.Add(pglogrepl.LSN(1))
+	if len(state.SendedLsn) != 2 {
+		t.Fail()
+	}
+}
+
+func TestNewOffsetCommittedStateSearch1(t *testing.T) {
+	state := NewOffsetCommittedState()
+
+	state.Add(pglogrepl.LSN(0))
+	state.Add(pglogrepl.LSN(1))
+	state.Add(pglogrepl.LSN(5))
+	state.Add(pglogrepl.LSN(2))
+
+	index := state.search(pglogrepl.LSN(5))
+
+	if index != 2 {
+		t.Fail()
+	}
+}
+
+func TestNewOffsetCommittedStateSearch2(t *testing.T) {
+	state := NewOffsetCommittedState()
+
+	state.Add(pglogrepl.LSN(0))
+	state.Add(pglogrepl.LSN(1))
+	state.Add(pglogrepl.LSN(5))
+	state.Add(pglogrepl.LSN(2))
+
+	index := state.search(pglogrepl.LSN(4))
+
+	if index != -1 {
+		t.Fail()
+	}
+}
+
+func TestNewOffsetCommittedStateCleanFromLsn1(t *testing.T) {
+	state := NewOffsetCommittedState()
+
+	state.Add(pglogrepl.LSN(0))
+	state.Add(pglogrepl.LSN(1))
+	state.Add(pglogrepl.LSN(5))
+	state.Add(pglogrepl.LSN(2))
+
+	state.CleanFromLsn(pglogrepl.LSN(4))
+
+	if len(state.SendedLsn) != 4 {
+		t.Fail()
+	}
+}
+
+func TestNewOffsetCommittedStateCleanFromLsn2(t *testing.T) {
+	state := NewOffsetCommittedState()
+
+	state.Add(pglogrepl.LSN(0))
+	state.Add(pglogrepl.LSN(1))
+	state.Add(pglogrepl.LSN(5))
+	state.Add(pglogrepl.LSN(2))
+
+	state.CleanFromLsn(pglogrepl.LSN(5))
+
+	if len(state.SendedLsn) != 1 {
+		t.Fail()
+	}
+}
+
+func TestNewOffsetCommittedStateCleanFromLsn3(t *testing.T) {
+	state := NewOffsetCommittedState()
+
+	state.Add(pglogrepl.LSN(0))
+	state.Add(pglogrepl.LSN(1))
+	state.Add(pglogrepl.LSN(5))
+	state.Add(pglogrepl.LSN(2))
+
+	state.CleanFromLsn(pglogrepl.LSN(2))
+
+	if len(state.SendedLsn) != 0 {
+		t.Fail()
+	}
+}
+
+func TestNewOffsetCommittedStateCleanFromLsn4(t *testing.T) {
+	state := NewOffsetCommittedState()
+
+	state.Add(pglogrepl.LSN(0))
+	state.Add(pglogrepl.LSN(1))
+	state.Add(pglogrepl.LSN(2))
+	state.Add(pglogrepl.LSN(2))
+
+	state.CleanFromLsn(pglogrepl.LSN(2))
+
+	if len(state.SendedLsn) != 0 {
+		t.Fail()
+	}
+}
+
+func TestNewOffsetCommittedStateIsEmpty1(t *testing.T) {
+	state := NewOffsetCommittedState()
+
+	state.Add(pglogrepl.LSN(0))
+
+	if state.IsEmpty() {
+		t.Fail()
+	}
+}
+
+func TestNewOffsetCommittedStateIsEmpty2(t *testing.T) {
+	state := NewOffsetCommittedState()
+
+	if !state.IsEmpty() {
 		t.Fail()
 	}
 }

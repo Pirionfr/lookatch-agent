@@ -25,11 +25,10 @@ all: init format lint test release
 
 .PHONY: init
 init:
-	curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+	go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.25.0
 	go get -u github.com/onsi/ginkgo/ginkgo
 	go get -u golang.org/x/tools/cmd/cover
 	go get -u github.com/modocache/gover
-	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
 	go get golang.org/x/tools/cmd/goimports
 
 .PHONY: cleanmake

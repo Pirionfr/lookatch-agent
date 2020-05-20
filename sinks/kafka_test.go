@@ -36,7 +36,7 @@ func init() {
 			"tls":               true,
 			"topic_prefix":      "lookatch.test_batch",
 			"type":              "Kafka",
-			"producer": map[string]interface{}{
+			"Producer": map[string]interface{}{
 				"user":     "lookatch.test",
 				"password": "test",
 			},
@@ -57,7 +57,7 @@ func TestBuildKafkaSinkConfig(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	conf := ksink.(*Kafka).kafkaConf
+	conf := ksink.(*Kafka).KafkaConf
 
 	if conf.Brokers == nil {
 		t.Fail()
@@ -86,7 +86,7 @@ func TestBuildKafkaSinkConfigTopicSet(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	conf := ksink.(*Kafka).kafkaConf
+	conf := ksink.(*Kafka).KafkaConf
 
 	if conf.Topic != "test" {
 		t.Fail()
@@ -102,7 +102,7 @@ func TestBuildKafkaSinktls(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	conf := ksink.(*Kafka).kafkaConf
+	conf := ksink.(*Kafka).KafkaConf
 
 	if conf.TLS {
 		t.Fail()
@@ -118,7 +118,7 @@ func TestBuildKafkaSinkClientID(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	conf := ksink.(*Kafka).kafkaConf
+	conf := ksink.(*Kafka).KafkaConf
 
 	if conf.ClientID != "test" {
 		t.Fail()
@@ -135,7 +135,7 @@ func TestBuildKafkaSinkSecret(t *testing.T) {
 	}
 	typedSink := ksink.(*Kafka)
 
-	if typedSink.encryptionkey != "test" {
+	if typedSink.EncryptionKey != "test" {
 		t.Fail()
 	}
 }
@@ -155,7 +155,7 @@ func TestProcessGenericEvent(t *testing.T) {
 		Value:       "test",
 	}
 
-	msg, err := ksink.(*Kafka).processGenericEvent(genericMsg)
+	msg, err := ksink.(*Kafka).ProcessGenericEvent(genericMsg)
 	if err != nil {
 		t.Error(err)
 	}
@@ -187,7 +187,7 @@ func TestProcessSqlEvent(t *testing.T) {
 		},
 	}
 
-	msg, err := ksink.(*Kafka).processSQLEvent(msgSQL)
+	msg, err := ksink.(*Kafka).ProcessSQLEvent(msgSQL)
 	if err != nil {
 		t.Error(err)
 	}

@@ -13,15 +13,20 @@ func NewDemultiplexer(ins []chan interface{}, out chan interface{}) (demux *DeMu
 		ins: ins,
 		out: out,
 	}
-	go demux.consumer()
+	demux.consumer()
 	return
 }
 
 // consumer consume event from sinks and send it to source
 func (d *DeMultiplexer) consumer() {
-	for _, in := range d.ins {
-		for value := range in {
-			d.out <- value
+
+	// Start an output goroutine for each input channel in cs.  output
+	output := func(c <-chan interface{}) {
+		for n := range c {
+			d.out <- n
 		}
+	}
+	for _, c := range d.ins {
+		go output(c)
 	}
 }

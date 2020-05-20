@@ -115,7 +115,7 @@ func (m *MySQLQuery) Process(action string, params ...interface{}) interface{} {
 // QuerySchema extract schema from database
 func (m *MySQLQuery) QuerySchema() (err error) {
 	excluded := m.config.Exclude
-	notin := "'information_schema','mysql','performance_schema','sys'"
+	notin := "'information_schema','mysql','performance_schema','sys', 'mysql_innodb_cluster_metadata'"
 
 	//see which tables are excluded
 	for _, dbname := range excluded {

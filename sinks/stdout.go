@@ -32,8 +32,8 @@ func (s *Stdout) Start(i ...interface{}) (err error) {
 				return
 			}
 			msg := string(bytes)
-			if s.encryptionkey != "" {
-				msg, err = crypto.EncryptString(string(bytes), s.encryptionkey)
+			if s.EncryptionKey != "" {
+				msg, err = crypto.EncryptString(string(bytes), s.EncryptionKey)
 				if err != nil {
 					log.WithError(err).Error("error while encrypting event")
 					return
@@ -43,7 +43,7 @@ func (s *Stdout) Start(i ...interface{}) (err error) {
 			log.WithField("message", msg).Info("Stdout Sink")
 			s.SendCommit(message.Payload)
 		}
-	}(s.in)
+	}(s.In)
 
 	return
 }

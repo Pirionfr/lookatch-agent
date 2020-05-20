@@ -7,8 +7,10 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/juju/errors"
+	"github.com/remeh/sizedwaitgroup"
 
 	"github.com/Pirionfr/lookatch-agent/sources"
 	"github.com/Pirionfr/lookatch-agent/utils"
@@ -30,6 +32,7 @@ const (
 	schemaPath             = "/collectors/" + agentIDParamPath + "/controller/sources/" + sourceIDParamPath + "/schema"
 	metaParameter          = "name"
 	authHeader             = "Authorization"
+	DefaultTimeOut         = 60
 )
 
 type (
@@ -37,11 +40,11 @@ type (
 	ControllerConfig struct {
 		BaseURL      string `mapstructure:"base_url" json:"base_url"`
 		PollerTicker string `mapstructure:"poller_ticker" json:"poller_ticker"`
+		Worker       int    `json:"worker"`
 	}
 
 	// Controller allow the collector to be controlled by API
 	Controller struct {
-		client      *http.Client
 		conf        *ControllerConfig
 		auth        *Auth
 		PendingTask int
@@ -63,15 +66,12 @@ func NewControllerClient(conf *viper.Viper, auth *Auth) *Controller {
 		log.WithError(err).Error("Unmarshal err")
 		return nil
 	}
+	if ctrlConf.Worker < 1 {
+		ctrlConf.Worker = 1
+	}
 	ctrl := &Controller{
 		conf: ctrlConf,
 		auth: auth,
-	}
-
-	ctrl.client = &http.Client{
-		Transport: &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
-		},
 	}
 
 	return ctrl
@@ -103,22 +103,30 @@ func (c *Controller) SendSchema(sourceName string, schema map[string]map[string]
 	_, err = c.call(http.MethodDelete, path, nil, nil, nil)
 	if err != nil {
 		if !strings.Contains(err.Error(), "source.schema.doesNotExist") {
-			return err
+			return errors.Annotate(err, "error while deleting old schema")
 		}
+		err = nil
 	}
 
+	wg := sizedwaitgroup.New(c.conf.Worker)
+
 	for k, v := range schema {
+		wg.Add()
 		schemaBody := Schema{
 			Key:    k,
 			Values: v,
 		}
-		body, _ := json.Marshal(schemaBody)
-		_, err = c.call(http.MethodPut, path, nil, nil, body)
-		if err != nil {
-			err = errors.Annotate(err, "error while sending schema")
-		}
-	}
+		go func(schemaBody Schema) {
+			body, _ := json.Marshal(schemaBody)
+			_, errSend := c.call(http.MethodPut, path, nil, nil, body)
+			if errSend != nil {
+				log.WithError(errSend).WithField("key", schemaBody.Key).Error("error while sending schema")
+			}
+			wg.Done()
+		}(schemaBody)
 
+	}
+	wg.Wait()
 	return
 }
 
@@ -206,16 +214,29 @@ func (c *Controller) UpdateTasks(task utils.Task) (err error) {
 }
 
 // call function used to actually call the API
+// handle token expiration
+func (c *Controller) call(method string, path string, headers map[string]string, parameters map[string]string, body []byte) (returnBody []byte, err error) {
+	returnBody, err = c.callAPI(method, path, headers, parameters, body)
+	if errors.IsUnauthorized(err) {
+		c.auth.token = ""
+		returnBody, err = c.callAPI(method, path, headers, parameters, body)
+	}
+	return returnBody, err
+}
+
+// callApi function used to actually call the API
 // return an error if HTTP status code (299>=) is not Successful
 // check if header response return pending task pending.
 // Task header is used to know if API have task for collector
-func (c *Controller) call(method string, path string, headers map[string]string, parameters map[string]string, body []byte) (returnBody []byte, err error) {
+func (c *Controller) callAPI(method string, path string, headers map[string]string, parameters map[string]string, body []byte) (returnBody []byte, err error) {
+	client := &http.Client{
+		Timeout: time.Second * DefaultTimeOut,
+	}
 	path = strings.Replace(path, agentIDParamPath, c.auth.uuid, 1)
 	req, err := http.NewRequest(method, c.conf.BaseURL+path, bytes.NewReader(body))
 	if err != nil {
 		return
 	}
-
 	log.WithFields(
 		log.Fields{
 			"method": method,
@@ -239,16 +260,17 @@ func (c *Controller) call(method string, path string, headers map[string]string,
 		req.URL.RawQuery = q.Encode()
 	}
 
-	resp, err := c.client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return
 	}
-
-	defer resp.Body.Close()
+	if resp != nil && resp.Body != nil {
+		defer resp.Body.Close()
+	}
 
 	//check auth and reconnect if needed
 	if resp.StatusCode == http.StatusUnauthorized {
-		return c.call(method, path, headers, parameters, body)
+		return nil, errors.NewUnauthorized(err, "")
 	}
 
 	if resp.StatusCode >= 299 {

@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"strconv"
 
 	"github.com/google/uuid"
 	"github.com/spf13/viper"
@@ -115,6 +116,10 @@ func initializeConfig() (*viper.Viper, error) {
 	}
 	m := v.GetStringMap("agent")
 
+	if level := os.Getenv("LOG_LEVEL"); level != "" {
+		m["loglevel"] = level
+	}
+
 	if EnvUUID := os.Getenv("UUID"); EnvUUID != "" {
 		m["uuid"] = EnvUUID
 	}
@@ -149,6 +154,17 @@ func initializeConfig() (*viper.Viper, error) {
 	}
 
 	v.Set("agent", m)
+
+	c := v.GetStringMap("controller")
+	if ctrlWorker := os.Getenv("CTRL_WORKER"); ctrlWorker != "" {
+		c["worker"], err = strconv.Atoi(ctrlWorker)
+		if err != nil {
+			c["worker"] = 1
+		}
+	}
+
+	v.Set("controller", c)
+
 	return v, nil
 }
 

@@ -1,10 +1,11 @@
 package sinks
 
 import (
-	"github.com/Pirionfr/lookatch-agent/events"
 	"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+
+	"github.com/Pirionfr/lookatch-agent/events"
 )
 
 // Possible Statuses
@@ -13,6 +14,8 @@ const (
 	SinkStatusOnError = "ON_ERROR"
 	SinkStatusRunning = "RUNNING"
 	SinkStatusWaiting = "WAITING"
+
+	DefaultChannelSize = 100
 )
 
 type (
@@ -24,12 +27,12 @@ type (
 	}
 	// Sink representation of sink
 	Sink struct {
-		in            chan events.LookatchEvent
-		stop          chan error
-		commit        chan interface{}
-		name          string
-		encryptionkey string
-		conf          *viper.Viper
+		In            chan events.LookatchEvent
+		Stop          chan error
+		Commit        chan interface{}
+		Name          string
+		EncryptionKey string
+		Conf          *viper.Viper
 	}
 )
 
@@ -45,7 +48,7 @@ var Factory = map[string]sinkCreator{
 
 // New create new sink
 func New(name string, sinkType string, conf *viper.Viper, stop chan error) (SinkI, error) {
-	//create sink from name
+	//create sink from Name
 	sinkCreatorFunc, found := Factory[sinkType]
 	if !found {
 		return nil, errors.Errorf("Sink type not found '%s'", sinkType)
@@ -53,42 +56,47 @@ func New(name string, sinkType string, conf *viper.Viper, stop chan error) (Sink
 
 	customConf := conf.Sub("sinks." + name)
 	if customConf == nil {
-		err := errors.Errorf("no custom config found for sink name '%s'", name)
+		err := errors.Errorf("no custom config found for sink Name '%s'", name)
 		log.Error(err)
 		return nil, err
 	}
 
-	eventChan := make(chan events.LookatchEvent, 1000)
-	commitChan := make(chan interface{}, 1000)
+	channelSize := DefaultChannelSize
+	if !conf.IsSet("sink." + name + ".chan_size") {
+		channelSize = conf.GetInt("sink." + name + ".chan_size")
+	}
 
-	return sinkCreatorFunc(&Sink{eventChan, stop, commitChan, name, conf.GetString("agent.encryptionkey"), customConf})
+	eventChan := make(chan events.LookatchEvent, channelSize)
+	commitChan := make(chan interface{}, channelSize)
+
+	return sinkCreatorFunc(&Sink{eventChan, stop, commitChan, name, conf.GetString("agent.EncryptionKey"), customConf})
 }
 
 // GetInputChan return input channel attach to sink
 func (s *Sink) GetInputChan() chan events.LookatchEvent {
-	return s.in
+	return s.In
 }
 
-// GetCommitChan return the commit channel attached to this sink
+// GetCommitChan return the Commit channel attached to this sink
 func (s *Sink) GetCommitChan() chan interface{} {
-	return s.commit
+	return s.Commit
 }
 
-// SendCommit send a commit message into the commit channel of this sink
+// SendCommit send a Commit message into the Commit channel of this sink
 func (s *Sink) SendCommit(payload interface{}) {
 
 	switch typedMsg := payload.(type) {
 	case events.SQLEvent:
 		if typedMsg.Offset != nil {
-			s.commit <- typedMsg.Offset.Source
+			s.Commit <- typedMsg.Offset.Source
 		}
 	case events.GenericEvent:
 		if typedMsg.Offset != nil {
-			s.commit <- typedMsg.Offset.Source
+			s.Commit <- typedMsg.Offset.Source
 		}
 	case *events.Offset:
 		if typedMsg != nil {
-			s.commit <- typedMsg.Source
+			s.Commit <- typedMsg.Source
 		}
 	default:
 		log.WithField("message", payload).Warn("Source  doesn't match any known type")

@@ -44,11 +44,7 @@ func NewFileReadingFollower(s *Source) (SourceI, error) {
 
 // Start source
 func (f *FileReadingFollower) Start(i ...interface{}) (err error) {
-	err = f.Source.Start(i)
-	if err != nil {
-		return
-	}
-
+	f.Status = SourceStatusRunning
 	go f.UpdateCommittedLsn()
 
 	go f.read()

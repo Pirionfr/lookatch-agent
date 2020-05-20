@@ -12,3 +12,4 @@ coverage.txt
 *.log
 *.deb
 *.rpm
+config.json

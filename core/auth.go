@@ -16,7 +16,6 @@ type Auth struct {
 	uuid     string
 	password string
 	authURL  string
-	client   *http.Client
 	token    string
 }
 
@@ -39,16 +38,15 @@ func NewAuth(uuid string, password string, baseURL string) *Auth {
 		uuid:     uuid,
 		password: password,
 		authURL:  u.String(),
-		client: &http.Client{
-			Transport: &http.Transport{
-				Proxy: http.ProxyFromEnvironment,
-			},
-		},
 	}
 }
 
 // GetToken get token from server
 func (a *Auth) authenticate() (err error) {
+	client := &http.Client{
+		Timeout: time.Second * DefaultTimeOut,
+	}
+
 	req, err := http.NewRequest(http.MethodPost, a.authURL, nil)
 	if err != nil {
 		return
@@ -58,12 +56,14 @@ func (a *Auth) authenticate() (err error) {
 	req.Header.Set(HeaderDcc, "1")
 	req.SetBasicAuth(a.uuid, a.password)
 
-	resp, err := a.client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return
 	}
 
-	defer resp.Body.Close()
+	if resp != nil && resp.Body != nil {
+		defer resp.Body.Close()
+	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
