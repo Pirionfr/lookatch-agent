@@ -524,6 +524,46 @@ func (p *PostgreSQLCDC) UpdateCommittedLsn() {
 	}
 }
 
+func (p *PostgreSQLCDC) GetOffsetTimeline(tli int32, lsn pglogrepl.LSN) (int32, error) {
+	mrr := p.conn.Exec(p.ctx, fmt.Sprintf("TIMELINE_HISTORY %d", tli))
+	results, err := mrr.ReadAll()
+	if err != nil {
+		return 0, err
+	}
+	if len(results) != 1 {
+		return 0, errors.New(fmt.Sprintf("expected 1 result set, got %d", len(results)))
+	}
+
+	result := results[0]
+	if len(result.Rows) != 1 {
+		return 0, errors.New(fmt.Sprintf("expected 1 result set, got %d", len(result.Rows)))
+	}
+
+	row := result.Rows[0]
+	if len(row) != 2 {
+		return 0, errors.New(fmt.Sprintf("expected 1 result set, got %d", len(row)))
+	}
+
+	//split line
+	timelineList := strings.Split(string(row[1]), "\n\n")
+	for _, timeline := range timelineList {
+		current := strings.Split(timeline, "\t")
+		tLsn, err := pglogrepl.ParseLSN(current[1])
+		if err != nil {
+			return 0, errors.New(fmt.Sprintf("expected LSN string, got %s", current[1]))
+		}
+		if lsn <= tLsn {
+			currentTli, err := strconv.Atoi(current[0])
+			if err != nil {
+				return 0, errors.New(fmt.Sprintf("expected timeline, got %s", current[1]))
+			}
+			return int32(currentTli), nil
+		}
+	}
+
+	return tli, nil
+}
+
 func NewOffsetCommittedState() *OffsetCommittedState {
 	return &OffsetCommittedState{
 		RWMutex:   sync.RWMutex{},
