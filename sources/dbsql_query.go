@@ -290,7 +290,11 @@ func (d *DBSQLQuery) ProcessLines(columns []string, lines [][]interface{}, info 
 		for i, col := range columns {
 			switch vr := (*values[i].(*interface{})).(type) {
 			case []uint8:
-				colmap[col], err = strconv.ParseFloat(string(vr), 64)
+				if utils.IsNumDot(string(vr)) {
+					colmap[col], err = strconv.ParseFloat(string(vr), 64)
+				} else {
+					colmap[col], err = strconv.ParseInt(string(vr), 10, 64)
+				}
 				if err != nil {
 					colmap[col] = string(vr)
 				}

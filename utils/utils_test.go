@@ -72,3 +72,17 @@ func TestInSlice2(t *testing.T) {
 	}
 
 }
+
+func TestNumDot(t *testing.T) {
+	StringMap := map[string]bool{
+		"254":  false,
+		"32.2": true,
+		"for":  false,
+	}
+	for k, v := range StringMap {
+		if v != IsNumDot(k) {
+			t.Fail()
+		}
+	}
+
+}

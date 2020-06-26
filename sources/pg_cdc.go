@@ -531,17 +531,17 @@ func (p *PostgreSQLCDC) GetOffsetTimeline(tli int32, lsn pglogrepl.LSN) (int32, 
 		return 0, err
 	}
 	if len(results) != 1 {
-		return 0, errors.New(fmt.Sprintf("expected 1 result set, got %d", len(results)))
+		return 0, fmt.Errorf("expected 1 result set, got %d", len(results))
 	}
 
 	result := results[0]
 	if len(result.Rows) != 1 {
-		return 0, errors.New(fmt.Sprintf("expected 1 result set, got %d", len(result.Rows)))
+		return 0, fmt.Errorf("expected 1 result set, got %d", len(result.Rows))
 	}
 
 	row := result.Rows[0]
 	if len(row) != 2 {
-		return 0, errors.New(fmt.Sprintf("expected 1 result set, got %d", len(row)))
+		return 0, fmt.Errorf("expected 1 result set, got %d", len(row))
 	}
 
 	//split line
@@ -550,12 +550,12 @@ func (p *PostgreSQLCDC) GetOffsetTimeline(tli int32, lsn pglogrepl.LSN) (int32, 
 		current := strings.Split(timeline, "\t")
 		tLsn, err := pglogrepl.ParseLSN(current[1])
 		if err != nil {
-			return 0, errors.New(fmt.Sprintf("expected LSN string, got %s", current[1]))
+			return 0, fmt.Errorf("expected LSN string, got %s", current[1])
 		}
 		if lsn <= tLsn {
 			currentTli, err := strconv.Atoi(current[0])
 			if err != nil {
-				return 0, errors.New(fmt.Sprintf("expected timeline, got %s", current[1]))
+				return 0, fmt.Errorf("expected timeline, got %s", current[1])
 			}
 			return int32(currentTli), nil
 		}
