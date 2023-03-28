@@ -178,6 +178,9 @@ func (d *DBSQLQuery) Query(database string, query string) (err error) {
 	}
 	//parse query
 	info.Schema, info.Table = d.ExtractDatabaseTable(query)
+	if info.Schema == "" {
+		info.Schema = "public"
+	}
 
 	log.WithField("query", query).Debug("Start querying")
 	// check that the collector is still connected to the database
@@ -197,6 +200,7 @@ func (d *DBSQLQuery) Query(database string, query string) (err error) {
 
 	// retrieve the resultset associated with the query to execute
 	rows, err := d.db.Query(query)
+	defer rows.Close()
 	if err != nil {
 		log.WithFields(log.Fields{
 			"query": query,
@@ -204,7 +208,6 @@ func (d *DBSQLQuery) Query(database string, query string) (err error) {
 		}).Error("Error when query mysql")
 		return
 	}
-	defer rows.Close()
 
 	// Fill in the metadata for each column found in the schema
 

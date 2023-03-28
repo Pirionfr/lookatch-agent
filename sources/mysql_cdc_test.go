@@ -1,12 +1,12 @@
 package sources
 
 import (
+	"github.com/DATA-DOG/go-sqlmock"
 	"reflect"
 	"testing"
 
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/siddontang/go-mysql/mysql"
-	"github.com/siddontang/go-mysql/replication"
+	"github.com/go-mysql-org/go-mysql/mysql"
+	"github.com/go-mysql-org/go-mysql/replication"
 	"github.com/spf13/viper"
 
 	"github.com/Pirionfr/lookatch-agent/events"
@@ -185,7 +185,7 @@ func TestOnPosSynced(t *testing.T) {
 	mysqlCDC.config.Mode = ModeBinlog
 	mysqlCDC.cdcOffset.Update(mysql.Position{Pos: 3, Name: "test"})
 
-	if mysqlCDC.OnPosSynced(mysql.Position{Pos: 5, Name: "test"}, nil, true) != nil {
+	if mysqlCDC.OnPosSynced(nil, mysql.Position{Pos: 5, Name: "test"}, nil, true) != nil {
 		t.Fail()
 	}
 
@@ -208,7 +208,7 @@ func TestOnPosSynced2(t *testing.T) {
 
 	mysqlCDC.cdcOffset.UpdateGTIDSet(gSet)
 
-	if mysqlCDC.OnPosSynced(mysql.Position{}, newGSet, true) != nil {
+	if mysqlCDC.OnPosSynced(nil, mysql.Position{}, newGSet, true) != nil {
 		t.Fail()
 	}
 
@@ -226,7 +226,7 @@ func TestOnXID(t *testing.T) {
 	mysqlCDC := Mysqlcdc.(*MysqlCDC)
 	mysqlCDC.cdcOffset.Update(mysql.Position{Pos: 3, Name: "test"})
 
-	if mysqlCDC.OnXID(mysql.Position{Pos: 5, Name: "test"}) != nil {
+	if mysqlCDC.OnXID(nil, mysql.Position{Pos: 5, Name: "test"}) != nil {
 		t.Fail()
 	}
 
@@ -248,7 +248,7 @@ func TestOnGTID(t *testing.T) {
 
 	mysqlCDC.cdcOffset.UpdateGTIDSet(gSet)
 
-	if mysqlCDC.OnGTID(newGSet) != nil {
+	if mysqlCDC.OnGTID(nil, newGSet) != nil {
 		t.Fail()
 	}
 
@@ -266,7 +266,7 @@ func TestOnRotate(t *testing.T) {
 	mysqlCDC := Mysqlcdc.(*MysqlCDC)
 	mysqlCDC.cdcOffset.Update(mysql.Position{Pos: 3, Name: "test"})
 
-	if mysqlCDC.OnRotate(&replication.RotateEvent{Position: 4, NextLogName: []byte("test2")}) != nil {
+	if mysqlCDC.OnRotate(nil, &replication.RotateEvent{Position: 4, NextLogName: []byte("test2")}) != nil {
 		t.Fail()
 	}
 
@@ -283,7 +283,7 @@ func TestOnTableChanged(t *testing.T) {
 	}
 	mysqlCDC := Mysqlcdc.(*MysqlCDC)
 
-	if mysqlCDC.OnTableChanged("", "") != nil {
+	if mysqlCDC.OnTableChanged(nil, "", "") != nil {
 		t.Fail()
 	}
 }
@@ -296,7 +296,7 @@ func TestOnDDL(t *testing.T) {
 	}
 	mysqlCDC := Mysqlcdc.(*MysqlCDC)
 
-	if mysqlCDC.OnDDL(mysql.Position{}, nil) != nil {
+	if mysqlCDC.OnDDL(nil, mysql.Position{}, nil) != nil {
 		t.Fail()
 	}
 }

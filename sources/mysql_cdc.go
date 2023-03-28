@@ -8,11 +8,11 @@ import (
 	"sync"
 
 	"github.com/Pirionfr/structs"
+	"github.com/go-mysql-org/go-mysql/canal"
+	"github.com/go-mysql-org/go-mysql/mysql"
+	"github.com/go-mysql-org/go-mysql/replication"
+	"github.com/go-mysql-org/go-mysql/schema"
 	mysqlLog "github.com/siddontang/go-log/log"
-	"github.com/siddontang/go-mysql/canal"
-	"github.com/siddontang/go-mysql/mysql"
-	"github.com/siddontang/go-mysql/replication"
-	"github.com/siddontang/go-mysql/schema"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/Pirionfr/lookatch-agent/events"
@@ -252,7 +252,7 @@ func (m *MysqlCDC) StartCanal() error {
 }
 
 // OnPosSynced Use your own way to sync position. When force is true, sync position immediately.
-func (m *MysqlCDC) OnPosSynced(pos mysql.Position, gset mysql.GTIDSet, force bool) error {
+func (m *MysqlCDC) OnPosSynced(header *replication.EventHeader, pos mysql.Position, gset mysql.GTIDSet, force bool) error {
 	if gset != nil {
 		m.cdcOffset.UpdateGTIDSet(gset)
 	} else {
@@ -266,19 +266,19 @@ func (m *MysqlCDC) OnPosSynced(pos mysql.Position, gset mysql.GTIDSet, force boo
 }
 
 // OnXID store binlog Position
-func (m *MysqlCDC) OnXID(pos mysql.Position) error {
+func (m *MysqlCDC) OnXID(header *replication.EventHeader, pos mysql.Position) error {
 	m.cdcOffset.Update(pos)
 	return nil
 }
 
 // OnGTID store GTID Position
-func (m *MysqlCDC) OnGTID(gset mysql.GTIDSet) error {
+func (m *MysqlCDC) OnGTID(header *replication.EventHeader, gset mysql.GTIDSet) error {
 	m.cdcOffset.UpdateGTIDSet(gset)
 	return nil
 }
 
 // OnRotate store binlog Position
-func (m *MysqlCDC) OnRotate(e *replication.RotateEvent) error {
+func (m *MysqlCDC) OnRotate(header *replication.EventHeader, e *replication.RotateEvent) error {
 	pos := mysql.Position{
 		Name: string(e.NextLogName),
 		Pos:  uint32(e.Position),
@@ -288,12 +288,12 @@ func (m *MysqlCDC) OnRotate(e *replication.RotateEvent) error {
 }
 
 // OnTableChanged
-func (m *MysqlCDC) OnTableChanged(schema string, table string) error {
+func (m *MysqlCDC) OnTableChanged(header *replication.EventHeader, schema string, table string) error {
 	return nil
 }
 
 // OnDDL
-func (m *MysqlCDC) OnDDL(nextPos mysql.Position, queryEvent *replication.QueryEvent) error {
+func (m *MysqlCDC) OnDDL(header *replication.EventHeader, nextPos mysql.Position, queryEvent *replication.QueryEvent) error {
 	return nil
 }
 

@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/Pirionfr/structs"
-	"github.com/jackc/pgconn"
 	"github.com/jackc/pglogrepl"
-	"github.com/jackc/pgproto3/v2"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgproto3"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/Pirionfr/lookatch-agent/events"
@@ -381,7 +381,7 @@ func (p *PostgreSQLCDC) decodeEvents() {
 	}
 }
 
-//processMsgs process Messages
+// processMsgs process Messages
 func (p *PostgreSQLCDC) processMsgs(msgs *Messages, serverTime int64) {
 	var timestamp int64
 
@@ -531,7 +531,7 @@ func NewOffsetCommittedState() *OffsetCommittedState {
 	}
 }
 
-//IsEmpty check if no offset in State
+// IsEmpty check if no offset in State
 func (c *OffsetCommittedState) IsEmpty() bool {
 	c.Lock()
 	isEmpty := false
@@ -542,14 +542,14 @@ func (c *OffsetCommittedState) IsEmpty() bool {
 	return isEmpty
 }
 
-//Add add new lsn to state
+// Add add new lsn to state
 func (c *OffsetCommittedState) Add(lsn pglogrepl.LSN) {
 	c.Lock()
 	c.SendedLsn = append(c.SendedLsn, lsn)
 	c.Unlock()
 }
 
-//search return position of lsn in state, -1 otherwise
+// search return position of lsn in state, -1 otherwise
 func (c *OffsetCommittedState) search(lsn pglogrepl.LSN) int {
 	c.Lock()
 	index := -1
@@ -563,7 +563,7 @@ func (c *OffsetCommittedState) search(lsn pglogrepl.LSN) int {
 	return index
 }
 
-//CleanFromLsn clean old lsn state
+// CleanFromLsn clean old lsn state
 func (c *OffsetCommittedState) CleanFromLsn(lsn pglogrepl.LSN) {
 	pos := c.search(lsn)
 	for pos != -1 {
