@@ -347,7 +347,7 @@ func (m *MysqlCDC) parseEvent(e *canal.RowsEvent) error {
 			if m.config.ColumnsMetaValue {
 				columnMeta[column.Name] = events.ColumnsMeta{
 					Type:     column.RawType,
-					Position: index,
+					Position: index + 1,
 				}
 			}
 		}
@@ -385,7 +385,7 @@ func (m *MysqlCDC) parseUpdate(e *canal.RowsEvent) error {
 			if m.config.ColumnsMetaValue {
 				columnMeta[column.Name] = events.ColumnsMeta{
 					Type:     column.RawType,
-					Position: index,
+					Position: index + 1,
 				}
 			}
 			if m.config.OldValue {
@@ -430,7 +430,7 @@ func (m *MysqlCDC) sendEvent(ts uint32, action string, table *schema.Table, even
 			Tenant:    m.AgentInfo.Tenant,
 		},
 		Payload: events.SQLEvent{
-			Timestamp:    fmt.Sprint(ts),
+			Timestamp:    fmt.Sprintf("%d%s", ts, "000000000"),
 			Environment:  m.AgentInfo.Tenant.Env,
 			Database:     table.Schema,
 			Table:        table.Name,

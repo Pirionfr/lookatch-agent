@@ -158,12 +158,12 @@ func (s *Source) GetName() string {
 	return s.Name
 }
 
-//GetOutputChan get output channel
+// GetOutputChan get output channel
 func (s *Source) GetOutputChan() chan events.LookatchEvent {
 	return s.OutputChannel
 }
 
-//GetCommitChan return commit channel attach to source
+// GetCommitChan return commit channel attach to source
 func (s *Source) GetCommitChan() chan interface{} {
 	return s.CommitChannel
 }

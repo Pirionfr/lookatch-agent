@@ -4,7 +4,7 @@ import (
 	"reflect"
 )
 
-//  Available Task constants
+// Available Task constants
 const (
 	AgentStart   = "StartAgent"
 	AgentStop    = "StopAgent"
