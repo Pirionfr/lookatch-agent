@@ -10,6 +10,7 @@ require (
 	github.com/Shopify/sarama v1.38.1
 	github.com/apache/pulsar-client-go v0.9.0
 	github.com/denisenkom/go-mssqldb v0.12.3
+	github.com/go-mysql-org/go-mysql v1.7.0
 	github.com/go-sql-driver/mysql v1.7.0
 	github.com/google/uuid v1.3.0
 	github.com/jackc/pglogrepl v0.0.0-20230318140337-5ef673a9d169
@@ -19,13 +20,12 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/papertrail/go-tail v0.0.0-20221103124010-5087eb6a0a07
 	github.com/remeh/sizedwaitgroup v1.0.0
+	github.com/siddontang/go-log v0.0.0-20190221022429-1e957dd83bed
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.15.0
 	gopkg.in/guregu/null.v3 v3.5.0
 	gopkg.in/mcuadros/go-syslog.v2 v2.3.0
-	github.com/go-mysql-org/go-mysql v1.7.0
-    github.com/siddontang/go-log v0.0.0-20190221022429-1e957dd83bed
 )
 
 require (

@@ -178,9 +178,6 @@ func (d *DBSQLQuery) Query(database string, query string) (err error) {
 	}
 	//parse query
 	info.Schema, info.Table = d.ExtractDatabaseTable(query)
-	if info.Schema == "" {
-		info.Schema = "public"
-	}
 
 	log.WithField("query", query).Debug("Start querying")
 	// check that the collector is still connected to the database
@@ -200,7 +197,6 @@ func (d *DBSQLQuery) Query(database string, query string) (err error) {
 
 	// retrieve the resultset associated with the query to execute
 	rows, err := d.db.Query(query)
-	defer rows.Close()
 	if err != nil {
 		log.WithFields(log.Fields{
 			"query": query,
@@ -208,6 +204,7 @@ func (d *DBSQLQuery) Query(database string, query string) (err error) {
 		}).Error("Error when query mysql")
 		return
 	}
+	defer rows.Close()
 
 	// Fill in the metadata for each column found in the schema
 
@@ -293,7 +290,11 @@ func (d *DBSQLQuery) ProcessLines(columns []string, lines [][]interface{}, info 
 		for i, col := range columns {
 			switch vr := (*values[i].(*interface{})).(type) {
 			case []uint8:
-				colmap[col], err = strconv.ParseFloat(string(vr), 64)
+				if utils.IsNumDot(string(vr)) {
+					colmap[col], err = strconv.ParseFloat(string(vr), 64)
+				} else {
+					colmap[col], err = strconv.ParseInt(string(vr), 10, 64)
+				}
 				if err != nil {
 					colmap[col] = string(vr)
 				}

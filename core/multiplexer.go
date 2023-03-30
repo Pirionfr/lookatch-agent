@@ -8,7 +8,7 @@ type Multiplexer struct {
 	outs []chan events.LookatchEvent
 }
 
-//NewMultiplexer create a new multiplexer
+// NewMultiplexer create a new multiplexer
 func NewMultiplexer(in chan events.LookatchEvent, outs []chan events.LookatchEvent) (multiplexer *Multiplexer) {
 	multiplexer = &Multiplexer{
 		in:   in,

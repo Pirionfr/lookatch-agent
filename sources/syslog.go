@@ -127,7 +127,7 @@ func (s *Syslog) GetOutputChan() chan events.LookatchEvent {
 	return s.OutputChannel
 }
 
-//GetCommitChan return commit channel attach to source
+// GetCommitChan return commit channel attach to source
 func (s *Syslog) GetCommitChan() chan interface{} {
 	return s.CommitChannel
 }

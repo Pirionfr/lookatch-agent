@@ -36,7 +36,7 @@ type (
 	}
 )
 
-//sinkCreator sink Creator func
+// sinkCreator sink Creator func
 type sinkCreator func(*Sink) (SinkI, error)
 
 // Factory sink Factory

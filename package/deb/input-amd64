@@ -1,0 +1,2 @@
+build/lookatch-agent=/usr/bin/
+package/deb/config.json=/etc/lookatch/config.json

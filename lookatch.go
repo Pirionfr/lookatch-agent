@@ -6,7 +6,6 @@ it makes it possible for you to process your data in the same way,
 no matter the database backend they come from.
 You can then feed any application you may need so that they can react almost
 in real time to the changes in your configured source data.
-
 */
 package main
 

@@ -43,3 +43,14 @@ func InSlice(slice []string, val string) bool {
 	}
 	return false
 }
+
+func IsNumDot(s string) bool {
+	for _, v := range s {
+		if v == '.' {
+			return true
+		} else if v < '0' || v > '9' {
+			return false
+		}
+	}
+	return false
+}
